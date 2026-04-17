@@ -1,0 +1,17 @@
+.vscode
+
+# gitignore do Latex
+*.aux
+*.log
+*.bcf
+*.run.xml
+*.toc
+*.out
+*.lof
+*.lot
+*.bbl
+*.blg
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.synctex(busy)
