@@ -13,7 +13,6 @@
 \usepackage[style=ieee, sorting=nty, language=portuguese]{biblatex}
 \definecolor{grayFEI}{HTML}{7F7F7F}
 \usepackage{paracol} % no preâmbulo
-\usepackage{titlesec}
 \usepackage{indentfirst}  % Indenta o primeiro parágrafo
 \setlength{\parindent}{2em}  % Aumenta a indentação para 2em (pode ser ajustado
 \titlespacing*{\section}{0pt}{*0}{0pt}
@@ -136,20 +135,16 @@
 
 \email{isaacjesus@fei.edu.br}
 
-% \resumo{Este documento é um modelo para a elaboração dos artigos com resultados dos trabalhos de conclusão de curso do Centro Universitário FEI. Estes artigos serão publicados nos Anais dos Trabalhos de Conclusão de Curso, e constituem uma entrega obrigatória para a defesa do TCC.
-% O trabalho consiste em utilizar a arquitetura DeepLabv3+, desenvolvida pela Google, treinada com uma série de datasets encontradas [artigos] para segmentar imagens de ambientes Off-Road.
-% Com proposito de identificar caminhos em trilhas de competições Baja.
-% Um dos focos é também obter um bom resultado na métrica IoU no dataset YAMAHA.
-% }
-
 \resumo{
-  O campo da segmentação semântica tem crescido muito com os avanços da visão computacional e aplicar a segmentação semântica
-  em abientes off-road é um dos grandes desafios da área devido a dificuldade de encontrar caminhos e diferênciar diferentes obstaculos
-  que podem ser encontrados nesses ambientes. Diante desse ceneário esse documento apresenta um modelo de segmentação semântica
-  desenvolvido com a arquitetura DeepLabV3+, desenvolvida pela Google, utilizando o ResNet101 como backbone e treinado com
-  diversos dataset encontrados em artigos recentes na área da segmentação semântica em abientes off-road. O foco desse projeto
-  é desenvolver e treinar o modelo para obter bons resultados no dataset YAMAHA, conhecido como um dos datasets mais difícies para segmentação,
-  utilizando a métria IoU e também segmentar imagens e vídeos de competições Baja realizadas pela equipe da FEI.
+  O campo da segmentação semântica tem crescido significativamente com os avanços da visão computacional,
+  e sua aplicação em ambientes off-road é um dos grandes desafios da área devido a dificuldade de identificar caminhos
+  e diferenciar diferentes obstáculos presentes nas trilhas.
+  Diante desse cenário esse trabalho apresenta um modelo de segmentação semântica
+  desenvolvido com a arquitetura DeepLabV3+, proposta pela Google, utilizando a ResNet101 como backbone. O modelo será
+  treinado com diversos datasets encontrados em artigos recentes na área da segmentação semântica aplicada em ambientes off-road.
+  O objetivo deste trabalho é desenvolver e treinar o modelo para obter bons resultados no dataset YAMAHA, conhecido como
+  um dos datasets mais desafiadores para segmentação. Além disso, pretendemos aplicar o modelo na segmentação de imagens
+  e vídeos de competições Baja realizadas pela equipe da FEI, utilizando como métrica principal IoU (Intersection over Union)
 }
 
 \keyword{Segmentação Semântica, Off-Road, DeepLabV3+, YAMAHA, FALTA 2/3 PALAVRAS}
