@@ -51,7 +51,7 @@
 \titleformat{\section}
   {\color{azulFEI}\normalfont\fontfamily{phv}\selectfont\bfseries\fontsize{11}{13}\selectfont} % Fonte Helvetica, tamanho 11pt, negrito
   {\thesection.}{0.2em}{}
-\renewcommand{\thesection}{\Roman{section}} 
+\renewcommand{\thesection}{\Roman{section}}
 \titlespacing*{\section}
 {0pt}{10pt}{0pt}
 
@@ -111,11 +111,8 @@
 
 %-------------------------------- FIM ESTILOS ---------------------------------------------------%
 
-
-
 %Adicionar a bibliografia
 \addbibresource{referencias.bib}
-
 
 \begin{document}
 
@@ -139,14 +136,23 @@
 
 \email{isaacjesus@fei.edu.br}
 
-\resumo{Este documento é um modelo para a elaboração dos artigos com resultados dos trabalhos de conclusão de curso do Centro Universitário FEI. Estes artigos serão publicados nos Anais dos Trabalhos de Conclusão de Curso, e constituem uma entrega obrigatória para a defesa do TCC. 
+% \resumo{Este documento é um modelo para a elaboração dos artigos com resultados dos trabalhos de conclusão de curso do Centro Universitário FEI. Estes artigos serão publicados nos Anais dos Trabalhos de Conclusão de Curso, e constituem uma entrega obrigatória para a defesa do TCC.
+% O trabalho consiste em utilizar a arquitetura DeepLabv3+, desenvolvida pela Google, treinada com uma série de datasets encontradas [artigos] para segmentar imagens de ambientes Off-Road.
+% Com proposito de identificar caminhos em trilhas de competições Baja.
+% Um dos focos é também obter um bom resultado na métrica IoU no dataset YAMAHA.
+% }
 
-O trabalho consiste em utilizar a arquitetura DeepLabv3+, desenvolvida pela Google, treinada com uma série de datasets encontradas [artigos] para segmentar imagens de ambientes Off-Road.
-Com proposito de identificar caminhos em trilhas de competições Baja.
-Um dos focos é também obter um bom resultado na métrica IoU no dataset YAMAHA.
+\resumo{
+  O campo da segmentação semântica tem crescido muito com os avanços da visão computacional e aplicar a segmentação semântica
+  em abientes off-road é um dos grandes desafios da área devido a dificuldade de encontrar caminhos e diferênciar diferentes obstaculos
+  que podem ser encontrados nesses ambientes. Diante desse ceneário esse documento apresenta um modelo de segmentação semântica
+  desenvolvido com a arquitetura DeepLabV3+, desenvolvida pela Google, utilizando o ResNet101 como backbone e treinado com
+  diversos dataset encontrados em artigos recentes na área da segmentação semântica em abientes off-road. O foco desse projeto
+  é desenvolver e treinar o modelo para obter bons resultados no dataset YAMAHA, conhecido como um dos datasets mais difícies para segmentação,
+  utilizando a métria IoU e também segmentar imagens e vídeos de competições Baja realizadas pela equipe da FEI.
 }
 
-\keyword{Segmentação Semântica, Off-Road, DeepLabV3+, FALTA 3/4 PALAVRAS}
+\keyword{Segmentação Semântica, Off-Road, DeepLabV3+, YAMAHA, FALTA 2/3 PALAVRAS}
 }
 
 \end{@twocolumnfalse}
@@ -162,18 +168,18 @@ O título do trabalho deve ser escrito em negrito, com iniciais em letra maiúsc
  Os nomes dos autores, do curso e o endereço eletrônico para contato devem ser escritos em itálico, alinhado à esquerda, com tamanho 11 e negrito (nomes) e 10 (departamento e e-mail). Caso existam alunos de mais de um curso, deve-se incluir sequência numérica para identificação, colocada sobrescrito, do lado direito para o autor e do lado esquerdo para os cursos. Alunos de um mesmo curso utilizarão o mesmo número de identificação. Caso todos os alunos sejam do mesmo curso, não é necessário incluir o número de identificação do autor e do curso. Deve-se incluir o departamento do orientador.
 
 \section{Formatação da página}
-As margens da folha estão definidas na Tabela I. O trabalho deve conter resumo; introdução; objetivos, metodologia; resultados e conclusões além de eventuais referências bibliográficas. Seções adicionais podem ser incluídas, caso necessário. 
+As margens da folha estão definidas na Tabela I. O trabalho deve conter resumo; introdução; objetivos, metodologia; resultados e conclusões além de eventuais referências bibliográficas. Seções adicionais podem ser incluídas, caso necessário.
 
 O corpo do trabalho deve ser escrito com caracteres de tamanho 10, sem linhas em branco separando os parágrafos. Em cada novo parágrafo, o início da primeira linha deve ser deslocado em 0,5 cm, conforme modelo. Cabeçalho e rodapé não devem ser alterados.
 
-As referências devem ser indicadas entre chaves [1] ao longo do texto e descrito no final do artigo citando: nomes dos autores (pode ser abreviado, no máximo três nomes e caso tenha mais nomes usar o et. al.), nome da revista, volume, ano da publicação e página ou nome do livro, editor e ano de publicação. 
+As referências devem ser indicadas entre chaves [1] ao longo do texto e descrito no final do artigo citando: nomes dos autores (pode ser abreviado, no máximo três nomes e caso tenha mais nomes usar o et. al.), nome da revista, volume, ano da publicação e página ou nome do livro, editor e ano de publicação.
 Por exemplo: em \cite{10.1145/3716895.3716981} foram realizados muitos testes, alcançando uma acurácia de 100\%. Já em \cite{10.1145/3593239} não obtiveram resultados satisfatórios.
 
 \section{Figuras, tabelas e equações}
 
 \subsection{Figuras}
 As figuras devem ser centralizadas, e as legendas devem ser numeradas sequencialmente, alinhadas à esquerda na parte inferior, conforme exemplo apresentado, usando fonte Arial tamanho 9. O tamanho da figura e das letras dentro das figuras deve estar legível. Cores podem ser utilizadas, desde que apresentem boa resolução. As figuras devem ser citadas no texto, por exemplo, a Figura \ref{fig:minhafigura-coluna} apresenta um gráfico.
- 
+
 \begin{figure}[h!] % ← precisa do pacote float
 \centering
 \includegraphics[width=0.8\columnwidth]{exemplofig.png}
@@ -181,7 +187,7 @@ As figuras devem ser centralizadas, e as legendas devem ser numeradas sequencial
 \label{fig:minhafigura-coluna}
 \end{figure}
 
-\subsection{Tabelas} 
+\subsection{Tabelas}
 As tabelas devem ser referenciadas sequencialmente, com a legenda posicionada na parte superior da mesma e alinhada à esquerda, usando fonte Arial tamanho 9.\textbf{ O texto nas células da tabela deve ser centralizado. Usar o comando $|c|$} Elas devem ser citadas no texto, por exemplo a Tabela \ref{tab:exemplo} apresenta as informações das margens.
 
 \begin{table}[H]
