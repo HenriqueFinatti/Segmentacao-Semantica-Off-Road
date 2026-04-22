@@ -161,19 +161,32 @@
 % (P)
 A área da visão computacional tem impactado diretamente os avanços do campo da segmentação semântica, quando falamos sobre essa vertente em ambientes off-road os desafios são múltiplos devido a bordas indeterminadas nas trilhas, variedade de obstáculos e mudanças frequentes em diferentes épocas e estações do ano.
 % (E)
-% Pesquisar artigo de evidência da dificuldade da segmentação semântica em off road. (Tiago) 
+% Pesquisar artigo de evidência da dificuldade da segmentação semântica em off road. (Tiago)
 % (E)
 Com base nos artigos citados acima o mesmo modelo de segmentação teve mais dificuldade para segmentar ambientes off-road comparado a ambientes urbanos, mesmo tendo um treinamento parecido.
 % (L)
 Dessa forma, o reconhecimento de vias não urbanas ainda é um desafio a ser explorado.
 
 % Explicação da CNN
-% (P) Explicar o que é e depois o por que ela é usada para segmentação
-% (E) Achar artigo do por que ela é usada. colocar alguma imagem de um diagrama da CNN
-% (E) Concluir o ponto a cima.
-% (L) Explicar o por que vamos usar isso no nosso trabalho
+% (P)
+As Redes Neurais Convolucionais (CNNs) são amplamente utilizadas em tarefas de visão computacional devido à sua capacidade de extrair características relevantes de imagens, tornando-se fundamentais para aplicações como segmentação semântica.
+% (E)
+% Ainda precisamos de algum artigo nessa bomba
+Estudos recentes demonstram que arquiteturas baseadas em CNNs, como DeepLabV3+, apresentam alto desempenho em tarefas de segmentação.
+% (E)
+Essa capacidade é especialmente importante em cenários off-road, onde a área visual possui muitos elemento e as fronteiras entre classes são mais difíceis de interpretar, exigindo modelos mais capacitados para segmentar as imagens.
+% (L)
+Dessa forma, esse trabalho, faz uso de uma arquitetura baseada em CNN, especificamente o modelo DeepLabV3+, visando obter uma segmentação mais precisa.
 
-% Explicação do Dataset
+% Explicação do dataset
+% (P)
+A escolha e a diversidade dos datasets utilizados no treinamento são muito relevantes para o desempenho dos modelos de segmentação, especialmente em cenários off-road.
+% (E)
+% Talvez pegar um artigo que utilize uma mistura de datasets, o primeiro da lista monta um dataset sintético baseado no PASCAL VOC, talvez seja bom
+% (E)
+Nesse contexto, este trabalho utiliza uma coletânea de datasets que foram utilizados em estudos recentes da área, incluindo o dataset YAMAHA, reconhecido pela sua alta complexidade, variabilidade de cenários e dificuldade na definição de classes.
+% (L)
+Dessa forma, a utilização de múltiplos datasets, com destaque para o YAMAHA, proporciona um melhor treinamento do modelo, permitindo avaliar seu desempenho em diferentes condições.
 
 \section{Formatação da página}
 As margens da folha estão definidas na Tabela I. O trabalho deve conter resumo; introdução; objetivos, metodologia; resultados e conclusões além de eventuais referências bibliográficas. Seções adicionais podem ser incluídas, caso necessário.
