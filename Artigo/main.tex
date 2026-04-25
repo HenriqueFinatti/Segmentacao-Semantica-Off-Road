@@ -7,7 +7,6 @@
 \usepackage{xcolor}
 \usepackage{fancyhdr}
 \usepackage{helvet}
-\usepackage{}
 \usepackage{multicol}
 \usepackage{titlesec}     % Para personalizar \section
 \usepackage[style=ieee, sorting=nty, language=portuguese]{biblatex}
@@ -114,7 +113,7 @@
 \addbibresource{referencias.bib}
 
 \begin{document}
-
+\makeatletter
 \setlength{\columnsep}{20pt}
 \twocolumn[%
 \begin{@twocolumnfalse}
@@ -123,34 +122,34 @@
 
 \inovatitle{Estudo e Implementação de um Sistema de Segmentação Semântica para Ambientes Off-Road}
 
-\autores{Henrique Finatti$^1$, Mateus Marana$^1$, Tiago Fagundes$^1$}
+\autores{Henrique Finatti$^1$, Mateus Marana Assuena$^1$, Tiago Fagundes$^1$}
 
 \filiacao{$^1$Ciência da Computação - campus São Bernardo do Campo}
 
 \email{unifhtrebbi@fei.edu.br, unimassuena@fei.edu.br, uniftsantos@fei.edu.br}
 
-\orientador{Orientador: Pr. Dt Isaac Jesus da Silva}
+\orientador{Orientador: Pr. Dr. Isaac Jesus da Silva}
 
 \filiacao{Departamento de Ciência da Computação / Engenharia Elétrica, Centro Universitário FEI}
 
 \email{isaacjesus@fei.edu.br}
 
 \resumo{
-  O campo da segmentação semântica tem crescido significativamente com os avanços da visão computacional,
-  e sua aplicação em ambientes off-road é um dos grandes desafios da área devido a dificuldade de identificar caminhos
+  O campo da segmentação semântica tem crescido significativamente com os avanços da visão computacional, sua aplicação em ambientes off-road é um dos grandes desafios da área devido a dificuldade de identificar caminhos
   e diferenciar diferentes obstáculos presentes nas trilhas.
   Diante desse cenário esse trabalho apresenta um modelo de segmentação semântica
-  desenvolvido com a arquitetura DeepLabV3+, proposta pela Google, utilizando a ResNet101 como backbone. O modelo será
+  desenvolvido com a arquitetura DeepLabV3+, proposta pela Google, utilizando a ResNet152 como backbone. O modelo será
   treinado com diversos datasets encontrados em artigos recentes na área da segmentação semântica aplicada em ambientes off-road.
   O objetivo deste trabalho é desenvolver e treinar o modelo para obter bons resultados no dataset YAMAHA, conhecido como
   um dos datasets mais desafiadores para segmentação. Além disso, pretendemos aplicar o modelo na segmentação de imagens
   e vídeos de competições Baja realizadas pela equipe da FEI, utilizando como métrica principal IoU (Intersection over Union)
 }
 
-\keyword{Segmentação Semântica, Off-Road, DeepLabV3+, YAMAHA, FALTA 2/3 PALAVRAS}
+\keyword{Segmentação Semântica, Off-Road, DeepLabV3+, YAMAHA}
 }
 
 \end{@twocolumnfalse}
+\makeatother
 ]
 
 
@@ -161,7 +160,7 @@
 % (P)
 A área da visão computacional tem impactado diretamente os avanços do campo da segmentação semântica, quando falamos sobre essa vertente em ambientes off-road os desafios são múltiplos devido a bordas indeterminadas nas trilhas, variedade de obstáculos e mudanças frequentes em diferentes épocas e estações do ano.
 % (E)
-% Pesquisar artigo de evidência da dificuldade da segmentação semântica em off road. (Tiago)
+A segmentação semântica em vias off-road apresenta uma complexidade significativamente superior à das vias urbanas devido à natureza não estruturada e imprevisível desses ambientes. Enquanto o cenário urbano é regido por uma geometria de faixas rigorosa, características padronizadas e consistência geométrica, os ambientes off-road são caracterizados por terrenos dinâmicos, escalas de objetos irregulares e a ausência total de infraestrutura de sinalização\cite{s26061944}.
 % (E)
 Com base nos artigos citados acima o mesmo modelo de segmentação teve mais dificuldade para segmentar ambientes off-road comparado a ambientes urbanos, mesmo tendo um treinamento parecido.
 % (L)
@@ -172,14 +171,14 @@ Dessa forma, o reconhecimento de vias não urbanas ainda é um desafio a ser exp
 As Redes Neurais Convolucionais (CNNs) são amplamente utilizadas em tarefas de visão computacional devido à sua capacidade de extrair características relevantes de imagens, tornando-se fundamentais para aplicações como segmentação semântica.
 % (E)
 % Ainda precisamos de algum artigo nessa bomba
-Estudos recentes demonstram que arquiteturas baseadas em CNNs, como DeepLabV3+, apresentam alto desempenho em tarefas de segmentação.
+Com base nesse artigo onde muitas arquiteturas de CNN são comparadas em desempenho, considerando IoU (Intersection over Union) como métrica, um modelo de grande destaque foi o DeepLabV3+ \cite{BEYCIMEN2026113680}.
 % (E)
 Essa capacidade é especialmente importante em cenários off-road, onde a área visual possui muitos elemento e as fronteiras entre classes são mais difíceis de interpretar, exigindo modelos mais capacitados para segmentar as imagens.
 % (L)
 Dessa forma, esse trabalho, faz uso de uma arquitetura baseada em CNN, especificamente o modelo DeepLabV3+, visando obter uma segmentação mais precisa.
-
 % Explicação do dataset
 % (P)
+
 A escolha e a diversidade dos datasets utilizados no treinamento são muito relevantes para o desempenho dos modelos de segmentação, especialmente em cenários off-road.
 % (E)
 % Talvez pegar um artigo que utilize uma mistura de datasets, o primeiro da lista monta um dataset sintético baseado no PASCAL VOC, talvez seja bom
@@ -188,52 +187,144 @@ Nesse contexto, este trabalho utiliza uma coletânea de datasets que foram utili
 % (L)
 Dessa forma, a utilização de múltiplos datasets, com destaque para o YAMAHA, proporciona um melhor treinamento do modelo, permitindo avaliar seu desempenho em diferentes condições.
 
-\section{Formatação da página}
-As margens da folha estão definidas na Tabela I. O trabalho deve conter resumo; introdução; objetivos, metodologia; resultados e conclusões além de eventuais referências bibliográficas. Seções adicionais podem ser incluídas, caso necessário.
+\includegraphics[width=6cm, height=3cm]{imagem_normal_e_segmentada.png}
 
-O corpo do trabalho deve ser escrito com caracteres de tamanho 10, sem linhas em branco separando os parágrafos. Em cada novo parágrafo, o início da primeira linha deve ser deslocado em 0,5 cm, conforme modelo. Cabeçalho e rodapé não devem ser alterados.
+\section{Revisão Bibliográfica}
 
-As referências devem ser indicadas entre chaves [1] ao longo do texto e descrito no final do artigo citando: nomes dos autores (pode ser abreviado, no máximo três nomes e caso tenha mais nomes usar o et. al.), nome da revista, volume, ano da publicação e página ou nome do livro, editor e ano de publicação.
-Por exemplo: em \cite{10.1145/3716895.3716981} foram realizados muitos testes, alcançando uma acurácia de 100\%. Já em \cite{10.1145/3593239} não obtiveram resultados satisfatórios.
+\subsection{Segmentação Semântica}
+A segmentação semântica é definida como a tarefa de classificação de imagens em nível de pixel, onde cada unidade fundamental da
+imagem é atribuída a uma categoria semântica específica \cite{LATEEF2019321, Sehar2022}. Ao contrário da detecção de objetos, que utiliza caixas delimitadoras
+(bounding boxes), a segmentação provê uma compreensão granular da cena ao delinear as formas exatas e os limites dos objetos e
+superfícies \cite{GARCIAGARCIA201841, s19112577}. Este processo é o passo natural na evolução da inferência visual, progredindo de uma classificação global para uma
+inferência de grão fino necessária para a compreensão completa da cena \cite{Sehar2022, DBLP:journals/corr/Garcia-GarciaOO17}. Portanto, a segmentação semântica atua como a base perceptiva
+que permite a um sistema autônomo "enxergar" e categorizar cada centímetro do ambiente visível.
 
-\section{Figuras, tabelas e equações}
+Atualmente, o estado da arte na segmentação semântica foca na superação de desafios como a variabilidade de iluminação, oclusões e a
+necessidade de processamento em tempo real \cite{BEYCIMEN2026113680}. O campo evoluiu do uso de algoritmos tradicionais baseados em
+texturas e cores para modelos híbridos que integram informações de múltiplos sensores, como câmeras RGB e LiDAR, para criar mapas
+2.5D ou 3D densos \cite{KABIR2025102644, Maturana2017}. Pesquisas recentes destacam que o refinamento dessas predições através de técnicas como Campos Aleatórios
+Condicionais (CRF) ou mecanismos de atenção permite capturar detalhes espaciais finos que antes eram perdidos em camadas de
+compressão de dados \cite{GARCIAGARCIA201841, Sehar2022}. Assim, a segmentação semântica moderna não apenas identifica classes, mas busca uma representação espacialmente
+precisa e contextualizada do mundo.
 
-\subsection{Figuras}
-As figuras devem ser centralizadas, e as legendas devem ser numeradas sequencialmente, alinhadas à esquerda na parte inferior, conforme exemplo apresentado, usando fonte Arial tamanho 9. O tamanho da figura e das letras dentro das figuras deve estar legível. Cores podem ser utilizadas, desde que apresentem boa resolução. As figuras devem ser citadas no texto, por exemplo, a Figura \ref{fig:minhafigura-coluna} apresenta um gráfico.
+Para o objetivo de segmentar caminhos off-road, a segmentação semântica é indispensável para distinguir superfícies navegáveis de
+obstáculos naturais complexos, como vegetação alta ou poças de lama \cite{10742323, Maturana2017}. Em ambientes onde não existem marcações de faixa ou estradas
+pavimentadas, o sistema deve classificar texturas irregulares — como grama, terra solta e cascalho — que possuem propriedades de
+trafegabilidade distintas \cite{9636033, 9551643}. Utilizaremos esta técnica para isolar a região de interesse (trilha) e fornecer ao planejador de rotas
+um mapa de custo baseado na classe de terreno identificada \cite{9551643, Maturana2017}. Dessa forma, a precisão pixel a pixel garantirá que o veículo identifique o
+caminho seguro mesmo em cenários de alta complexidade topográfica e visual.
 
-\begin{figure}[h!] % ← precisa do pacote float
-\centering
-\includegraphics[width=0.8\columnwidth]{exemplofig.png}
-\caption{Legenda da figura dentro da coluna}
-\label{fig:minhafigura-coluna}
-\end{figure}
-
-\subsection{Tabelas}
-As tabelas devem ser referenciadas sequencialmente, com a legenda posicionada na parte superior da mesma e alinhada à esquerda, usando fonte Arial tamanho 9.\textbf{ O texto nas células da tabela deve ser centralizado. Usar o comando $|c|$} Elas devem ser citadas no texto, por exemplo a Tabela \ref{tab:exemplo} apresenta as informações das margens.
-
-\begin{table}[H]
-\caption{Legenda da tabela, precisa ser intuitivo.}
-\label{tab:exemplo}
-\begin{tabular}{|c|c|}
-\hline
-\textbf{Margem} & \textbf{Tamanho (cm)} \\ \hline
-Superior & 2,0 \\ \hline
-Inferior & 2,0 \\ \hline
-Esquerda & 2,0 \\ \hline
-Direita & 2,0 \\ \hline
-Coluna & 1,0 \\ \hline
-\end{tabular}
-\end{table}
+\subsection{Deep Learning}
+O Aprendizado Profundo (Deep Learning) revolucionou a visão computacional ao permitir que modelos aprendam hierarquias de
+características diretamente dos dados brutos, eliminando a necessidade de engenharia manual de recursos
+(hand-crafted features) \cite{GARCIAGARCIA201841, 10.1145/3729420}. Baseado em redes neurais profundas, o Deep Learning utiliza múltiplas camadas de
+processamento para extrair representações cada vez mais abstratas e complexas da entrada visual \cite{10.1145/3729420}. O sucesso desta abordagem foi
+impulsionado pelo aumento massivo da disponibilidade de dados e pelo poder computacional das GPUs, que permitem o treinamento de
+redes com milhões de parâmetros \cite{KABIR2025102644, LATEEF2019321}. Consequentemente, o Deep Learning tornou-se o paradigma dominante para resolver problemas de
+percepção que exigem alto nível de generalização.
 
 
-\subsection{Equações}
-Caso seja necessário incluir equações, estas devem ser apresentadas em itálico, alinhadas à esquerda, e numeradas no lado direito entre parênteses.
-\begin{equation}
-    W= \theta_1 - \theta_2
-\end{equation}
+Hoje em dia, o Deep Learning em sistemas autônomos caminha para arquiteturas de ponta a ponta (end-to-end) e o uso de modelos
+pré-treinados via Transfer Learning \cite{10.1145/3729420, s19112577}. O uso de transferênca de aprendizado permite que redes treinadas em grandes bases de dados,
+como ImageNet, adaptem seus pesos para tarefas específicas com conjuntos de dados menores, acelerando a convergência e aumentando
+a precisão \cite{GARCIAGARCIA201841, s19112577}. Além disso, novas tendências como o aprendizado autossupervisionado e o uso de Transformers estão permitindo que os
+modelos capturem dependências contextuais globais de forma mais eficiente do que as redes neurais tradicionais \cite{10.1145/3729420, s26061944}. Este progresso
+tecnológico assegura que as máquinas possam lidar com uma variedade de tarefas de percepção e decisão com desempenho próximo ou
+superior ao humano.
 
-\section{Conclusões}
-Destaque os principais resultados alcançados e contribuições do trabalho desenvolvido.
+No contexto de navegação off-road, utilizaremos o Deep Learning para gerenciar a incerteza e a variabilidade intrínseca dos
+terrenos naturais \cite{10742323, s26061944}. Ambientes rurais apresentam padrões visuais que mudam drasticamente com as estações e o clima, exigindo a
+robustez que apenas redes neurais profundas treinadas em datasets diversos podem oferecer \cite{KABIR2025102644, 10742323}. Nosso objetivo será aplicar o Deep Learning
+para realizar a extração automática de características de trafegabilidade a partir de imagens de vídeo em tempo real \cite{10742323, Sehar2022}. Assim, o modelo
+será capaz de aprender a reconhecer o "conceito" de um caminho navegável através de milhares de exemplos, garantindo uma direção segura
+em terrenos imprevisíveis.
+
+\subsection{Redes Neurais Convolucionais (CNNs)}
+As Redes Neurais Convolucionais (CNNs) são arquiteturas especializadas no processamento de dados com topologia de grade,
+como imagens, utilizando operações de convolução para extrair relações espaciais e estruturais \cite{s19112577}. Uma CNN típica é composta por
+camadas convolucionais (que aplicam filtros para detectar bordas, formas e texturas), camadas de ativação não-linear (como ReLU) e
+camadas de agrupamento ou pooling (que reduzem a dimensionalidade e conferem invariância a pequenas translações) \cite{s19112577, GARCIAGARCIA201841}.
+Através do compartilhamento de pesos e interações esparsas, as CNNs são eficientes computacionalmente para analisar padrões visuais
+complexos \cite{s19112577}. Portanto, elas formam a "espinha dorsal" visual de quase todos os sistemas modernos de visão de robótica.
+Diagrama de uma CNN Básica:
+
+Legenda: O processo reduz as dimensões espaciais (largura/altura) enquanto aumenta a profundidade (canais de características) para
+entender o contexto \cite{s19112577, Sehar2022}.
+
+Atualmente, a evolução das CNNs foca em aumentar a profundidade da rede enquanto mitiga o problema do desaparecimento do gradiente
+através de conexões de salto (skip connections), como visto na arquitetura ResNet \cite{LATEEF2019321, Sgibnev2020}. Modelos contemporâneos também exploram convoluções
+separáveis em profundidade e blocos de "Squeeze \& Excitation" para otimizar o tempo de inferência sem sacrificar a precisão, tornando-os
+viáveis para hardware embarcado \cite{10.1145/3729420, Sgibnev2020}. Além disso, a integração de CNNs com modelos de memória (como LSTM) permite que o sistema considere a
+continuidade temporal em sequências de vídeo \cite{LATEEF2019321, Sehar2022}. Essa sofisticação permite que as CNNs modernas operem de forma rápida e precisa em
+dispositivos móveis e robôs.
+
+Em nosso projeto, as CNNs atuarão como o motor de extração de características para identificar padrões de terreno off-road,
+como a densidade da vegetação ou a irregularidade do solo \cite{Maturana2017, 10742323}. Utilizaremos arquiteturas como a ResNet como base (backbone) para
+nossos modelos de segmentação, aproveitando sua capacidade de manter resoluções espaciais ricas através de suas conexões residuais \cite{Sgibnev2020, 10742323}. A
+capacidade das CNNs de aprender representações visuais robustas será fundamental para distinguir entre uma trilha de terra batida e uma
+área de lama instável \cite{9551643, s26061944}. Linkando as camadas convolucionais ao nosso objetivo, conseguiremos mapear o ambiente visual em representações
+matemáticas prontas para a tomada de decisão do veículo.
+\\
+
+\includegraphics[width=6cm, height=3cm]{Rede_Neural_Convolucional.png}
+
+\subsection{Fully Convolutional Network (FCN)}
+O modelo Fully Convolutional Network (FCN) representou um marco ao adaptar classificadores de imagem para predição densa,
+substituindo camadas totalmente conectadas por camadas convolucionais \cite{LATEEF2019321, Long_2015_CVPR}. Esta arquitetura permite que a rede aceite entradas
+de qualquer tamanho e produza mapas de saída com dimensões espaciais correspondentes através de um processo de "convolucionalização" \cite{GARCIAGARCIA201841, Long_2015_CVPR}.
+Para recuperar a resolução perdida durante o downsampling, o FCN utiliza camadas de upsampling (deconvolução) e uma arquitetura
+de "pulo" (skip architecture) que combina informações semânticas grosseiras de camadas profundas com detalhes de aparência de
+camadas rasas \cite{LATEEF2019321, Long_2015_CVPR}. Assim, o FCN transformou o aprendizado de visão de uma classificação de "imagem inteira" para uma classificação
+de "pixel a pixel".
+
+Diagrama da Arquitetura FCN (Simbolização):
+
+Atualmente, o FCN é considerado o precursor de quase todos os modelos modernos de segmentação semântica e continua sendo uma
+referência de eficiência para aplicações em tempo real \cite{GARCIAGARCIA201841, DBLP:journals/corr/Garcia-GarciaOO17}. Embora arquiteturas mais recentes tenham surgido, a simplicidade do FCN e
+sua eficácia em aprender a partir de imagens completas fim-a-fim (end-to-end) mantêm sua relevância em benchmarks industriais \cite{Long_2015_CVPR}. Pesquisas
+atuais frequentemente utilizam variantes do FCN (como FCN-8s) como base para estudos de segmentação em ambientes florestais e urbanos
+devido ao seu equilíbrio entre custo computacional e acurácia \cite{10742323, BEYCIMEN2026113680}. Sua arquitetura é, portanto, o alicerce fundamental para a percepção
+visual densa.
+
+Para o mapeamento off-road, o FCN será utilizado para gerar os mapas de calor de probabilidade inicial das trilhas, permitindo uma
+inferência rápida e eficaz sobre o vídeo do veículo \cite{10742323, Long_2015_CVPR}. A arquitetura de salto do FCN é particularmente útil para o nosso objetivo,
+pois as trilhas off-road muitas vezes possuem bordas indefinidas que exigem a integração de detalhes finos da imagem para uma
+segmentação precisa \cite{Long_2015_CVPR}. Utilizaremos o FCN-8s para garantir que as características espaciais do caminho sejam preservadas, facilitando a
+identificação de passagens estreitas entre obstáculos \cite{Long_2015_CVPR}. Dessa maneira, o FCN provê a agilidade necessária para que o veículo reaja a
+mudanças súbitas na trilha em alta velocidade.
+\\
+
+\includegraphics[width=6cm, height=3cm]{FCN.png}
+
+\subsection{DeepLabV3}
+O DeepLabv3 é uma arquitetura avançada de segmentação semântica que introduz a convolução atrous (ou dilatada) e o
+módulo Atrous Spatial Pyramid Pooling (ASPP) para capturar contextos em múltiplas escalas de forma eficiente \cite{LATEEF2019321}. A convolução
+atrous permite expandir o campo receptivo dos filtros sem aumentar o número de parâmetros, "pulando" pixels na aplicação do
+kernel e mantendo a resolução espacial \cite{LATEEF2019321, GARCIAGARCIA201841}. O módulo ASPP complementa isso ao aplicar múltiplos filtros atrous com diferentes
+taxas de amostragem em paralelo, permitindo que a rede entenda tanto objetos pequenos quanto estruturas globais na mesma
+cena \cite{LATEEF2019321, Sgibnev2020}. Portanto, o DeepLabv3 resolve o problema de escala de imagem que frequentemente limita outros modelos de segmentação.
+
+% Diagrama do Módulo ASPP (DeepLabv3):
+
+% Feature Map --> [Atrous Conv (Rate 6)]  --+
+%             --> [Atrous Conv (Rate 12)] --+--> [CONCATENAÇÃO] --> [CONV 1x1] --> Saída
+%             --> [Atrous Conv (Rate 18)] --+
+%             --> [Global Image Pooling]  --+
+
+% Legenda: Diferentes taxas (rates) de dilatação permitem "olhar" para a imagem com campos de visão variados simultaneamente \cite{LATEEF2019321}.
+
+Hoje em dia, o DeepLabv3 e sua evolução DeepLabv3+ são considerados padrões de excelência para tarefas que exigem alta precisão
+nas bordas dos objetos e compreensão contextual profunda \cite{LATEEF2019321, KABIR2025102644}. Ao integrar decodificadores mais simples mas eficazes, o modelo consegue
+produzir segmentações nítidas mesmo em classes visualmente ambíguas \cite{LATEEF2019321, BEYCIMEN2026113680}. Ele é amplamente utilizado em benchmarks de direção autônoma
+de ponta, como o Cityscapes, onde o desempenho em limites de objetos é crítico para a segurança \cite{LATEEF2019321}. Sua capacidade de lidar com
+informações multi-escala tornou-o uma ferramenta essencial para a pesquisa em IA visual.
+
+No projeto de segmentação off-road, o DeepLabv3 será empregado para lidar com o desafio das diferentes escalas de obstáculos e
+caminhos (ex: uma pequena pedra de perto vs. uma grande montanha ao fundo) \cite{Sgibnev2020, BEYCIMEN2026113680}. A convolução atrous nos permitirá extrair características de
+vegetação e solo com maior precisão estrutural, o que é vital quando o caminho se mistura visualmente com o ambiente
+ao redor \cite{LATEEF2019321, s19112577}. Utilizaremos o ASPP para garantir que o veículo compreenda a continuidade da estrada off-road mesmo quando ela se
+estende até o horizonte de forma irregular \cite{Sgibnev2020, LATEEF2019321}. Consequentemente, o DeepLabv3 fornecerá a robustez necessária para segmentar trilhas
+complexas onde modelos tradicionais poderiam falhar por falta de contexto global.
 
 \section{Referências}
 \printbibliography[heading=none]
