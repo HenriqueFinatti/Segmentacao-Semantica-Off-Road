@@ -19,13 +19,6 @@ def download_and_copy(dataset_name, kaggle_path):
 
     shutil.copytree(downloaded_path, destination)
 
-def clean_cache():
-    print('Removendo cache dos arquivos')
-    cache_path = os.path.expanduser("~/.cache/kagglehub")
-
-    if os.path.exists(cache_path):
-        shutil.rmtree(cache_path, ignore_errors=True)
-
 def main():
     print("\n======================| Iniciando Downloads do Kaggle |======================\n")
 
@@ -33,8 +26,6 @@ def main():
 
     for name, path in DATASETS.items():
         download_and_copy(name, path)
-
-    clean_cache()
 
     print("\n======================| Downloads do Kaggle finalizados |======================\n")
 

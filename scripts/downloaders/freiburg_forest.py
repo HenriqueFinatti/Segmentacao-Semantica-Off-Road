@@ -14,7 +14,6 @@ FILES = [
     "freiburg_forest_annotated.tar.gz.part-ac"
 ]
 
-
 def download_file(url, dest_path):
     headers = {}
     mode = "wb"
@@ -56,26 +55,6 @@ def merge_files():
     with tarfile.open(FINAL_FILE, "r:*") as tar:
         tar.extractall(path=OUTPUT_DIR)
 
-def delete_files():
-    print('Removendo arquivos originais')
-    for filename in os.listdir(OUTPUT_DIR):
-        file_path = os.path.join(OUTPUT_DIR, filename)
-        if os.path.isfile(file_path):
-            os.unlink(file_path)
-
-    freiburg_dataset = os.path.join(OUTPUT_DIR, 'freiburg_forest_annotated')
-
-    for folder in os.listdir(os.path.join(freiburg_dataset, 'test')):
-        folder_path = os.path.join(OUTPUT_DIR, folder)
-        if not os.path.isfile(folder_path) and folder not in ['rgb', 'GT_color']:
-            shutil.rmtree(os.path.join(freiburg_dataset, 'test', folder))
-
-
-    for folder in os.listdir(os.path.join(freiburg_dataset, 'train')):
-        folder_path = os.path.join(OUTPUT_DIR, folder)
-        if not os.path.isfile(folder_path) and folder not in ['rgb', 'GT_color']:
-            shutil.rmtree(os.path.join(freiburg_dataset, 'train', folder))
-
 if __name__ == "__main__":
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -87,8 +66,6 @@ if __name__ == "__main__":
         download_file(url, dest_path)
 
     merge_files()
-
-    delete_files()
 
     print("\n======================| Freiburg Forest baixado com sucesso |======================\n")
 
