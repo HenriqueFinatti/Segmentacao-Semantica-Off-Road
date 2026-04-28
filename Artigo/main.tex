@@ -209,7 +209,7 @@ precisa e contextualizada do mundo.
 
 Para o objetivo de segmentar caminhos off-road, a segmentação semântica é indispensável para distinguir superfícies navegáveis de
 obstáculos naturais complexos, como vegetação alta ou poças de lama \cite{10742323, Maturana2017}. Em ambientes onde não existem marcações de faixa ou estradas
-pavimentadas, o sistema deve classificar texturas irregulares — como grama, terra solta e cascalho — que possuem propriedades de
+pavimentadas, o sistema deve classificar texturas irregulares que possuem propriedades de
 trafegabilidade distintas \cite{9636033, 9551643}. Utilizaremos esta técnica para isolar a região de interesse (trilha) e fornecer ao planejador de rotas
 um mapa de custo baseado na classe de terreno identificada \cite{9551643, Maturana2017}. Dessa forma, a precisão pixel a pixel garantirá que o veículo identifique o
 caminho seguro mesmo em cenários de alta complexidade topográfica e visual.
@@ -222,7 +222,6 @@ processamento para extrair representações cada vez mais abstratas e complexas 
 impulsionado pelo aumento massivo da disponibilidade de dados e pelo poder computacional das GPUs, que permitem o treinamento de
 redes com milhões de parâmetros \cite{KABIR2025102644, LATEEF2019321}. Consequentemente, o Deep Learning tornou-se o paradigma dominante para resolver problemas de
 percepção que exigem alto nível de generalização.
-
 
 Hoje em dia, o Deep Learning em sistemas autônomos caminha para arquiteturas de ponta a ponta (end-to-end) e o uso de modelos
 pré-treinados via Transfer Learning \cite{10.1145/3729420, s19112577}. O uso de transferênca de aprendizado permite que redes treinadas em grandes bases de dados,
@@ -246,10 +245,6 @@ camadas convolucionais (que aplicam filtros para detectar bordas, formas e textu
 camadas de agrupamento ou pooling (que reduzem a dimensionalidade e conferem invariância a pequenas translações) \cite{s19112577, GARCIAGARCIA201841}.
 Através do compartilhamento de pesos e interações esparsas, as CNNs são eficientes computacionalmente para analisar padrões visuais
 complexos \cite{s19112577}. Portanto, elas formam a "espinha dorsal" visual de quase todos os sistemas modernos de visão de robótica.
-Diagrama de uma CNN Básica:
-
-Legenda: O processo reduz as dimensões espaciais (largura/altura) enquanto aumenta a profundidade (canais de características) para
-entender o contexto \cite{s19112577, Sehar2022}.
 
 Atualmente, a evolução das CNNs foca em aumentar a profundidade da rede enquanto mitiga o problema do desaparecimento do gradiente
 através de conexões de salto (skip connections), como visto na arquitetura ResNet \cite{LATEEF2019321, Sgibnev2020}. Modelos contemporâneos também exploram convoluções
@@ -276,8 +271,6 @@ Para recuperar a resolução perdida durante o downsampling, o FCN utiliza camad
 de "pulo" (skip architecture) que combina informações semânticas grosseiras de camadas profundas com detalhes de aparência de
 camadas rasas \cite{LATEEF2019321, Long_2015_CVPR}. Assim, o FCN transformou o aprendizado de visão de uma classificação de "imagem inteira" para uma classificação
 de "pixel a pixel".
-
-Diagrama da Arquitetura FCN (Simbolização):
 
 Atualmente, o FCN é considerado o precursor de quase todos os modelos modernos de segmentação semântica e continua sendo uma
 referência de eficiência para aplicações em tempo real \cite{GARCIAGARCIA201841, DBLP:journals/corr/Garcia-GarciaOO17}. Embora arquiteturas mais recentes tenham surgido, a simplicidade do FCN e
