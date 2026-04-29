@@ -4,7 +4,6 @@ import shutil
 DATASET = './data/raw/synthetic_offroad/dataset'
 
 def clean_files():
-    print('Removendo cache dos arquivos')
     cache_path = os.path.expanduser("~/.cache/kagglehub")
 
     if os.path.exists(cache_path):
@@ -14,8 +13,6 @@ def clean_files():
         shutil.rmtree(f'data/raw/synthetic_offroad/dataset/{split}/mask_labels', ignore_errors=True)
 
 def rename_files():
-    print("Iniciando renomeação de arquivos...")
-    
     splits = ['test', 'train']
     subfolders = ['rgb', 'mask']
     
@@ -56,6 +53,8 @@ def organize_files():
             index += 1
 
 if __name__ == '__main__':
+    print("\n-------------------------| Synthetic Offroad |---------------------------\n")
+
     clean_files()
 
     rename_files()

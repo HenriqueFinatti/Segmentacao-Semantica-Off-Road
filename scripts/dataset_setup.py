@@ -1,10 +1,8 @@
 import time
-import os
 import runpy
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    
     
     scripts = [
         "scripts/download_manager.py",
@@ -12,7 +10,6 @@ if __name__ == '__main__':
         "scripts/gerador_mask.py",
     ]
 
-    start = time.perf_counter()
     for script in scripts:
         runpy.run_path(script, run_name="__main__")
     

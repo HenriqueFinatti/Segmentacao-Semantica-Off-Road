@@ -5,8 +5,6 @@ OUTPUT_DIR = "./data/raw"
 FREIBURG_DATASET = os.path.join(OUTPUT_DIR, 'freiburg_forest_annotated')
 
 def delete_files():
-    print('Limpando arquivos residuais...')
-
     for filename in os.listdir(OUTPUT_DIR):
         file_path = os.path.join(OUTPUT_DIR, filename)
         if os.path.isfile(file_path):
@@ -21,9 +19,7 @@ def delete_files():
             if os.path.isdir(full_folder_path) and folder not in ['rgb', 'GT_color']:
                 shutil.rmtree(full_folder_path)
 
-def rename_files():
-    print("Iniciando renomeação de arquivos...")
-    
+def rename_files():    
     splits = ['test', 'train']
     subfolders = ['rgb', 'GT_color']
     
@@ -66,6 +62,8 @@ def organize_files():
             index += 1
 
 if __name__ == '__main__':
+    print("\n-------------------------| Freiburg Forest |---------------------------\n")
+
     delete_files()
 
     rename_files()

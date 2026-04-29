@@ -58,7 +58,7 @@ def merge_files():
 if __name__ == "__main__":
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    print("\n======================| Iniciando Download do Freiburg Forest |======================\n")
+    print("\n-------------------------| Freiburg Forest |---------------------------\n")
     for file_name in FILES:
         url = BASE_URL + file_name
         dest_path = os.path.join(OUTPUT_DIR, file_name)
@@ -66,6 +66,3 @@ if __name__ == "__main__":
         download_file(url, dest_path)
 
     merge_files()
-
-    print("\n======================| Freiburg Forest baixado com sucesso |======================\n")
-

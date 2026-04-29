@@ -12,6 +12,7 @@ def create_dataset_folder():
 if __name__ == '__main__':
     start = time.perf_counter()
     
+    print("======================| Iniciando limpeza dos datasets |======================")
     create_dataset_folder()
     
     scripts = [
@@ -25,4 +26,4 @@ if __name__ == '__main__':
     
     end = time.perf_counter()
 
-    print(f"Tempo total: {end - start:.4f} segundos")
+    print(f"Tempo de limpeza: {end - start:.4f} segundos")

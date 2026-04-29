@@ -51,6 +51,5 @@ if __name__ == '__main__':
     generate_masks()
     
     final_clean()
-    print("\n======================| Finalizado com Sucesso |======================\n")
     end = time.perf_counter()
-    print(f"Tempo total: {end - start:.4f} segundos")
+    print(f"Tempo para gerar as mascaras: {end - start:.4f} segundos")
