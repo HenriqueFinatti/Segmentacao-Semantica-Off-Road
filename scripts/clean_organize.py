@@ -17,7 +17,8 @@ if __name__ == '__main__':
     
     scripts = [
         "scripts/cleaners/freiburg_forest.py",
-        "scripts/cleaners/synthetic_offroad.py"
+        "scripts/cleaners/synthetic_offroad.py",
+        "scripts/cleaners/terrain_attention.py"
     ]
 
     start = time.perf_counter()

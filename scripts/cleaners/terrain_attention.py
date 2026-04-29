@@ -49,7 +49,7 @@ def organize_files():
 if __name__ == '__main__':
     print("\n-------------------------| Terrain Attention |---------------------------\n")
 
-    clean_files()
+    # clean_files()
 
     rename_files()
 
