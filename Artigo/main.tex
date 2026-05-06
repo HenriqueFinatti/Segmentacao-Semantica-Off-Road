@@ -135,17 +135,18 @@
 \email{isaacjesus@fei.edu.br}
 
 \resumo{
-  O campo da segmentação semântica tem crescido significativamente com os avanços da visão computacional, sua aplicação em ambientes off-road é um dos grandes desafios da área devido a dificuldade de identificar caminhos
+  O campo da segmentação semântica tem crescido significativamente com os avanços da visão computacional, sua aplicação em ambientes 
+  off-road é um dos grandes desafios da área devido a dificuldade de identificar caminhos
   e diferenciar diferentes obstáculos presentes nas trilhas.
   Diante desse cenário esse trabalho apresenta um modelo de segmentação semântica
   desenvolvido com a arquitetura DeepLabV3+, proposta pela Google, utilizando a ResNet152 como backbone. O modelo será
   treinado com diversos datasets encontrados em artigos recentes na área da segmentação semântica aplicada em ambientes off-road.
   O objetivo deste trabalho é desenvolver e treinar o modelo para obter bons resultados no dataset YAMAHA, conhecido como
   um dos datasets mais desafiadores para segmentação. Além disso, pretendemos aplicar o modelo na segmentação de imagens
-  e vídeos de competições Baja realizadas pela equipe da FEI, utilizando como métrica principal IoU (Intersection over Union)
+  e vídeos de competições Baja realizadas pela equipe da FEI, utilizando como métrica principal Intersection over Union (IoU)
 }
 
-\keyword{Segmentação Semântica, Off-Road, DeepLabV3+, YAMAHA}
+\keyword{Segmentação Semântica, Off-Road, DeepLabV3+, Carla, YAMAHA}
 }
 
 \end{@twocolumnfalse}
@@ -155,37 +156,53 @@
 
 
 \section{Introdução}
+%Contexto, Problemas de Pesquisa, Objetivos, Justificativa e Hipóteses
+
+%Metodologia de Pesquisa e Estrutura dos Capítulos
 
 % Explicação da segmentação
 % (P)
-A área da visão computacional tem impactado diretamente os avanços do campo da segmentação semântica, quando falamos sobre essa vertente em ambientes off-road os desafios são múltiplos devido a bordas indeterminadas nas trilhas, variedade de obstáculos e mudanças frequentes em diferentes épocas e estações do ano.
+A área da visão computacional tem impactado diretamente os avanços do campo da segmentação semântica, quando falamos sobre essa 
+vertente em ambientes off-road os desafios são múltiplos devido a bordas indeterminadas nas trilhas, variedade de obstáculos e 
+mudanças frequentes em diferentes épocas e estações do ano.
 % (E)
-A segmentação semântica em vias off-road apresenta uma complexidade significativamente superior à das vias urbanas devido à natureza não estruturada e imprevisível desses ambientes. Enquanto o cenário urbano é regido por uma geometria de faixas rigorosa, características padronizadas e consistência geométrica, os ambientes off-road são caracterizados por terrenos dinâmicos, escalas de objetos irregulares e a ausência total de infraestrutura de sinalização\cite{s26061944}.
+A segmentação semântica em vias off-road apresenta uma complexidade significativamente superior à das vias urbanas devido à 
+natureza não estruturada e imprevisível desses ambientes. Enquanto o cenário urbano é regido por uma geometria de faixas rigorosa, 
+características padronizadas e consistência geométrica, os ambientes off-road são caracterizados por terrenos dinâmicos, escalas de 
+objetos irregulares e a ausência total de infraestrutura de sinalização\cite{s26061944}.
 % (E)
-Com base nos artigos citados acima o mesmo modelo de segmentação teve mais dificuldade para segmentar ambientes off-road comparado a ambientes urbanos, mesmo tendo um treinamento parecido.
+Com base nos artigos citados acima o mesmo modelo de segmentação teve mais dificuldade para segmentar ambientes off-road 
+comparado a ambientes urbanos, mesmo tendo um treinamento parecido.
 % (L)
 Dessa forma, o reconhecimento de vias não urbanas ainda é um desafio a ser explorado.
 
 % Explicação da CNN
 % (P)
-As Redes Neurais Convolucionais (CNNs) são amplamente utilizadas em tarefas de visão computacional devido à sua capacidade de extrair características relevantes de imagens, tornando-se fundamentais para aplicações como segmentação semântica.
+As Redes Neurais Convolucionais (CNNs) são amplamente utilizadas em tarefas de visão computacional devido à sua 
+capacidade de extrair características relevantes de imagens, tornando-se fundamentais para aplicações como segmentação semântica.
 % (E)
 % Ainda precisamos de algum artigo nessa bomba
-Com base nesse artigo onde muitas arquiteturas de CNN são comparadas em desempenho, considerando IoU (Intersection over Union) como métrica, um modelo de grande destaque foi o DeepLabV3+ \cite{BEYCIMEN2026113680}.
+Com base nesse artigo onde muitas arquiteturas de CNN são comparadas em desempenho, considerando Intersection over Union (IoU) como 
+métrica, um modelo de grande destaque foi o DeepLabV3+ \cite{BEYCIMEN2026113680}.
 % (E)
-Essa capacidade é especialmente importante em cenários off-road, onde a área visual possui muitos elemento e as fronteiras entre classes são mais difíceis de interpretar, exigindo modelos mais capacitados para segmentar as imagens.
+Essa capacidade é especialmente importante em cenários off-road, onde a área visual possui muitos elemento e as fronteiras 
+entre classes são mais difíceis de interpretar, exigindo modelos mais capacitados para segmentar as imagens.
 % (L)
-Dessa forma, esse trabalho, faz uso de uma arquitetura baseada em CNN, especificamente o modelo DeepLabV3+, visando obter uma segmentação mais precisa.
+Dessa forma, esse trabalho, faz uso de uma arquitetura baseada em CNN, especificamente o modelo DeepLabV3+, visando obter 
+uma segmentação mais precisa.
+
 % Explicação do dataset
 % (P)
-
-A escolha e a diversidade dos datasets utilizados no treinamento são muito relevantes para o desempenho dos modelos de segmentação, especialmente em cenários off-road.
+A escolha e a diversidade dos datasets utilizados no treinamento são muito relevantes para o desempenho dos modelos de segmentação, 
+especialmente em cenários off-road.
 % (E)
 % Talvez pegar um artigo que utilize uma mistura de datasets, o primeiro da lista monta um dataset sintético baseado no PASCAL VOC, talvez seja bom
 % (E)
-Nesse contexto, este trabalho utiliza uma coletânea de datasets que foram utilizados em estudos recentes da área, incluindo o dataset YAMAHA, reconhecido pela sua alta complexidade, variabilidade de cenários e dificuldade na definição de classes.
+Nesse contexto, este trabalho utiliza uma coletânea de datasets que foram utilizados em estudos recentes da área, incluindo o 
+dataset YAMAHA, reconhecido pela sua alta complexidade, variabilidade de cenários e dificuldade na definição de classes.
 % (L)
-Dessa forma, a utilização de múltiplos datasets, com destaque para o YAMAHA, proporciona um melhor treinamento do modelo, permitindo avaliar seu desempenho em diferentes condições.
+Dessa forma, a utilização de múltiplos datasets, com destaque para o YAMAHA, proporciona um melhor treinamento do modelo, 
+permitindo avaliar seu desempenho em diferentes condições.
 
 \includegraphics[width=6cm, height=3cm]{imagem_normal_e_segmentada.png}
 
@@ -263,32 +280,6 @@ matemáticas prontas para a tomada de decisão do veículo.
 
 \includegraphics[width=6cm, height=3cm]{Rede_Neural_Convolucional.png}
 
-\subsection{Fully Convolutional Network (FCN)}
-O modelo Fully Convolutional Network (FCN) representou um marco ao adaptar classificadores de imagem para predição densa,
-substituindo camadas totalmente conectadas por camadas convolucionais \cite{LATEEF2019321, Long_2015_CVPR}. Esta arquitetura permite que a rede aceite entradas
-de qualquer tamanho e produza mapas de saída com dimensões espaciais correspondentes através de um processo de "convolucionalização" \cite{GARCIAGARCIA201841, Long_2015_CVPR}.
-Para recuperar a resolução perdida durante o downsampling, o FCN utiliza camadas de upsampling (deconvolução) e uma arquitetura
-de "pulo" (skip architecture) que combina informações semânticas grosseiras de camadas profundas com detalhes de aparência de
-camadas rasas \cite{LATEEF2019321, Long_2015_CVPR}. Assim, o FCN transformou o aprendizado de visão de uma classificação de "imagem inteira" para uma classificação
-de "pixel a pixel".
-
-Atualmente, o FCN é considerado o precursor de quase todos os modelos modernos de segmentação semântica e continua sendo uma
-referência de eficiência para aplicações em tempo real \cite{GARCIAGARCIA201841, DBLP:journals/corr/Garcia-GarciaOO17}. Embora arquiteturas mais recentes tenham surgido, a simplicidade do FCN e
-sua eficácia em aprender a partir de imagens completas fim-a-fim (end-to-end) mantêm sua relevância em benchmarks industriais \cite{Long_2015_CVPR}. Pesquisas
-atuais frequentemente utilizam variantes do FCN (como FCN-8s) como base para estudos de segmentação em ambientes florestais e urbanos
-devido ao seu equilíbrio entre custo computacional e acurácia \cite{10742323, BEYCIMEN2026113680}. Sua arquitetura é, portanto, o alicerce fundamental para a percepção
-visual densa.
-
-Para o mapeamento off-road, o FCN será utilizado para gerar os mapas de calor de probabilidade inicial das trilhas, permitindo uma
-inferência rápida e eficaz sobre o vídeo do veículo \cite{10742323, Long_2015_CVPR}. A arquitetura de salto do FCN é particularmente útil para o nosso objetivo,
-pois as trilhas off-road muitas vezes possuem bordas indefinidas que exigem a integração de detalhes finos da imagem para uma
-segmentação precisa \cite{Long_2015_CVPR}. Utilizaremos o FCN-8s para garantir que as características espaciais do caminho sejam preservadas, facilitando a
-identificação de passagens estreitas entre obstáculos \cite{Long_2015_CVPR}. Dessa maneira, o FCN provê a agilidade necessária para que o veículo reaja a
-mudanças súbitas na trilha em alta velocidade.
-\\
-
-\includegraphics[width=6cm, height=3cm]{FCN.png}
-
 \subsection{DeepLabV3}
 O DeepLabv3 é uma arquitetura avançada de segmentação semântica que introduz a convolução atrous (ou dilatada) e o
 módulo Atrous Spatial Pyramid Pooling (ASPP) para capturar contextos em múltiplas escalas de forma eficiente \cite{LATEEF2019321}. A convolução
@@ -296,15 +287,6 @@ atrous permite expandir o campo receptivo dos filtros sem aumentar o número de 
 kernel e mantendo a resolução espacial \cite{LATEEF2019321, GARCIAGARCIA201841}. O módulo ASPP complementa isso ao aplicar múltiplos filtros atrous com diferentes
 taxas de amostragem em paralelo, permitindo que a rede entenda tanto objetos pequenos quanto estruturas globais na mesma
 cena \cite{LATEEF2019321, Sgibnev2020}. Portanto, o DeepLabv3 resolve o problema de escala de imagem que frequentemente limita outros modelos de segmentação.
-
-% Diagrama do Módulo ASPP (DeepLabv3):
-
-% Feature Map --> [Atrous Conv (Rate 6)]  --+
-%             --> [Atrous Conv (Rate 12)] --+--> [CONCATENAÇÃO] --> [CONV 1x1] --> Saída
-%             --> [Atrous Conv (Rate 18)] --+
-%             --> [Global Image Pooling]  --+
-
-% Legenda: Diferentes taxas (rates) de dilatação permitem "olhar" para a imagem com campos de visão variados simultaneamente \cite{LATEEF2019321}.
 
 Hoje em dia, o DeepLabv3 e sua evolução DeepLabv3+ são considerados padrões de excelência para tarefas que exigem alta precisão
 nas bordas dos objetos e compreensão contextual profunda \cite{LATEEF2019321, KABIR2025102644}. Ao integrar decodificadores mais simples mas eficazes, o modelo consegue
@@ -318,6 +300,51 @@ vegetação e solo com maior precisão estrutural, o que é vital quando o camin
 ao redor \cite{LATEEF2019321, s19112577}. Utilizaremos o ASPP para garantir que o veículo compreenda a continuidade da estrada off-road mesmo quando ela se
 estende até o horizonte de forma irregular \cite{Sgibnev2020, LATEEF2019321}. Consequentemente, o DeepLabv3 fornecerá a robustez necessária para segmentar trilhas
 complexas onde modelos tradicionais poderiam falhar por falta de contexto global.
+
+\subsection{O Simulador Carla}
+
+O simulador Car Learning to Act (CARLA) estabelece-se como uma das ferramentas de código aberto mais robustas e fundamentais para o 
+desenvolvimento e validação de sistemas de direção autônoma em ambientes urbanos e complexos \cite{10.1145/3729420, 9288755}. Atualmente, o é amplamente 
+utilizado por pesquisadores e pela indústria para realizar treinamentos e testes rigorosos de algoritmos de percepção e controle, 
+permitindo a simulação de cenários que seriam dispendiosos ou perigosos de serem executados no mundo real \cite{9288755, 10.1145/3729420}. Através de sua arquitetura, 
+o simulador oferece um ambiente controlado onde é possível avaliar o desempenho de ponta a ponta (end-to-end) de veículos autônomos, 
+garantindo a coleta de métricas precisas antes da implementação física \cite{10.1145/3729420}. Portanto, ele atua como uma ponte experimental essencial que 
+acelera a transição tecnológica para níveis mais elevados de automação veicular.
+
+A versatilidade do CARLA permite investigações profundas sobre fusão multissensorial e arquiteturas de aprendizado profundo aplicadas 
+à percepção visual. Evidências experimentais demonstram que a simulação no CARLA é ideal para comparar o desempenho de dados 
+monomodais versus multimodais, revelando, por exemplo, que a fusão precoce de dados RGB e de profundidade resulta em uma 
+condução superior em cenários climáticos adversos \cite{10.1145/3729420}. Ao fornecer fluxos de sensores perfeitamente sincronizados e rotulados 
+automaticamente, o simulador elimina as dificuldades de anotação manual e permite que os modelos aprendam representações 
+espaciais ricas e contextuais \cite{10.1145/3729420}. Consequentemente, o uso do CARLA é indispensável para otimizar sistemas de percepção que visam a 
+robustez necessária para operar em condições de baixa visibilidade e terrenos variados.
+
+No domínio do aprendizado por reforço (RL) e da tomada de decisão tática, o simulador CARLA provê o ambiente dinâmico necessário 
+para testar a inteligência de agentes autônomos em tráfego intenso. Estudos recentes utilizaram o CARLA para validar modelos 
+avançados, como o Scene-Rep Transformer, alcançando melhorias significativas em taxas de sucesso, segurança e eficiência em 
+navegação urbana complexa \cite{10.1145/3729420}. A capacidade do simulador de emular a física realista e o comportamento de outros participantes do 
+tráfego permite que modelos de RL aprendam estratégias de condução interpretáveis e seguras através de processos de tentativa e erro \cite{10.1145/3729420}. 
+Dessa forma, o CARLA permite o refinamento contínuo das políticas de navegação, preparando os veículos para reagir de forma preditiva a 
+situações imprevistas nas estradas.
+
+Além das tarefas individuais de percepção, o simulador suporta o desenvolvimento de sistemas integrados de aprendizado multitarefa e 
+navegação de ponto a ponto. Pesquisas indicam que modelos treinados no CARLA conseguem executar simultaneamente a percepção do ambiente 
+e o controle do veículo baseando-se em rotas definidas por planejadores globais \cite{10.1145/3729420}. Essa abordagem holística permite que o sistema gerencie 
+diversas funções concorrentes, como detecção de objetos e manutenção de faixa, enquanto navega em direção a um objetivo 
+específico \cite{10.1145/3729420}. Linkando esses resultados ao nosso objetivo, o CARLA fornece a infraestrutura necessária para integrar a segmentação 
+semântica diretamente nos loops de controle do veículo.
+
+Por fim, o uso de tecnologias de simulação baseadas em motores gráficos como o Unreal Engine (base do CARLA) está se expandindo para 
+solucionar os desafios da navegação off-road. Fontes indicam que datasets simulados gerados nestes motores podem conter milhões de 
+imagens anotadas automaticamente, incluindo terrenos como florestas, montanhas e áreas alagadas \cite{Sgibnev2020}. A aplicação de pesos 
+pré-treinados em dados simulados de terrenos off-road demonstrou aumentar significativamente a acurácia de segmentação 
+semântica em testes reais, mitigando a escassez de dados anotados manualmente em trilhas naturais \cite{Sgibnev2020}. Assim, os ambientes 
+virtuais de simulação fundamentam-se como recursos críticos para garantir que modelos de Deep Learning, como o DeepLabv3, alcancem a 
+generalização necessária para operar com segurança em caminhos não estruturados\cite{Sgibnev2020}.
+
+\section{Metodologia}
+
+\section{Resultados Parciais}
 
 \section{Referências}
 \printbibliography[heading=none]
