@@ -1,6 +1,7 @@
 .vscode
 .venv
 /data*
+*.pth
 
 # gitignore do Latex
 *.aux
