@@ -7,6 +7,32 @@ from PIL import Image
 import torch.nn as nn
 import torch.nn.functional as F
 
+def calculate_metrics(preds, masks, num_classes=2):
+    """
+    Calcula Pixel Accuracy e Mean IoU.
+    """
+    with torch.no_grad():
+        # Pixel Accuracy
+        correct = (preds == masks).sum().item()
+        total = masks.numel()
+        acc = correct / total
+
+        # IoU por classe
+        iou_list = []
+        for cls in range(num_classes):
+            intersection = ((preds == cls) & (masks == cls)).sum().item()
+            union = ((preds == cls) | (masks == cls)).sum().item()
+            
+            if union == 0:
+                iou_list.append(float('nan')) # Ignora se a classe não existir na imagem
+            else:
+                iou_list.append(intersection / union)
+        
+        # Média das classes (Mean IoU)
+        miou = np.nanmean(iou_list)
+        
+    return acc, miou, iou_list
+
 # =========================
 # DATASET
 # =========================
@@ -165,8 +191,14 @@ print(f"Total de imagens de treino: {len(train_dataset)}")
 # LOOP DE TREINO
 # =========================
 def train_one_epoch(loader):
+    """
+    Treina uma época e retorna loss médio, acurácia e mIoU.
+    """
     model.train()
     total_loss = 0.0
+    total_acc = 0.0
+    total_miou = 0.0
+    num_batches = 0
 
     for batch_idx, (images, masks) in enumerate(loader):
         images = images.to(device)
@@ -180,32 +212,47 @@ def train_one_epoch(loader):
 
         total_loss += loss.item()
 
+        # Calcular métricas
+        preds = torch.argmax(outputs, dim=1)
+        acc, miou, _ = calculate_metrics(preds, masks, num_classes=2)
+        total_acc += acc
+        total_miou += miou
+        num_batches += 1
+
         if (batch_idx + 1) % 10 == 0:
-            print(f"  Batch {batch_idx+1}/{len(loader)} — loss: {loss.item():.4f}")
+            print(f"  Batch {batch_idx+1}/{len(loader)} — Loss: {loss.item():.4f} | Acc: {acc:.2%} | mIoU: {miou:.4f}")
 
-    return total_loss / len(loader)
+    # Retornar médias
+    avg_loss = total_loss / len(loader)
+    avg_acc = total_acc / num_batches
+    avg_miou = total_miou / num_batches
+
+    return avg_loss, avg_acc, avg_miou
 
 
+# =========================
+# TREINAMENTO
+# =========================
 num_epochs = 100
-best_loss  = float('inf')
+best_miou = 0.0
 
 for epoch in range(num_epochs):
     print(f"\nÉpoca {epoch+1}/{num_epochs}")
-    avg_loss = train_one_epoch(train_loader)
-    print(f"  Loss médio: {avg_loss:.4f}")
+    avg_loss, avg_acc, avg_miou = train_one_epoch(train_loader)
+    print(f"  Loss: {avg_loss:.4f} | Acurácia: {avg_acc:.2%} | mIoU: {avg_miou:.4f}")
 
-    if avg_loss < best_loss:
-        best_loss = avg_loss
-        torch.save(model.state_dict(), 'best_model.pth')
-        print(f"  ✓ Melhor modelo salvo (loss: {best_loss:.4f})")
+    if avg_miou > best_miou:
+        best_miou = avg_miou
+        torch.save(model.state_dict(), 'DeepLabV3.pth')
+        print(f"  ✓ Melhor modelo salvo! (mIoU: {best_miou:.4f})")
 
-print(f"\nTreino finalizado. Melhor loss: {best_loss:.4f}")
+print(f"\nTreino finalizado. Melhor mIoU: {best_miou:.4f}")
 
 
 # =========================
 # AJUSTE 2: DIAGNÓSTICO
 # =========================
-model.load_state_dict(torch.load('best_model.pth', map_location=device))
+model.load_state_dict(torch.load('DeepLabV3.pth', map_location=device))
 model.eval()
 
 print("\n--- Diagnóstico ---")
