@@ -344,6 +344,67 @@ generalização necessária para operar com segurança em caminhos não estrutur
 
 \section{Metodologia}
 
+A etapa inicial da nossa pesquisa concentra-se na utilização do dataset Freiburg Forest para o treinamento base em ambientes de 
+vegetação densa. Evidências na literatura apontam que este conjunto de dados é fundamental por deslocar o foco de ambientes urbanos 
+estruturados para a complexidade de terrenos naturais não estruturados, contendo aproximadamente 230 imagens 
+multiespectrais \cite{s26061944}. A riqueza deste dataset reside na sua constituição em ambientes de floresta sob diferentes condições de iluminação, 
+sombras e ângulos solares, o que desafia a robustez de qualquer modelo de visão \cite{LATEEF2019321}. Ao processar essas imagens, o sistema adquire a 
+capacidade de reconhecer padrões de solo e obstáculos naturais que são comuns em trilhas rurais \cite{s19112577}. Portanto, o Freiburg Forest atua como 
+o alicerce experimental necessário para que o modelo aprenda a segmentar classes críticas como trilhas e vegetação em cenários de alta 
+variabilidade \cite{s19112577, s26061944}.
+
+Para a execução da tarefa de segmentação, adotaremos a arquitetura DeepLabv3+, reconhecida por sua alta precisão em limites de 
+objetos. Este modelo permite expandir o campo receptivo dos filtros sem perda de resolução espacial \cite{LATEEF2019321, DBLP:journals/corr/Garcia-GarciaOO17}. Estudos comparativos indicam que a 
+família DeepLab é uma das mais sólidas, superando outros métodos em quase todos os datasets de imagens RGB por margens significativas \cite{GARCIAGARCIA201841, DBLP:journals/corr/Garcia-GarciaOO17}. A 
+utilização do DeepLabv3+ é estratégica para o nosso objetivo, pois sua capacidade de capturar contextos em múltiplas escalas é 
+indispensável para distinguir trilhas estreitas de áreas de grama visualmente similares \cite{LATEEF2019321, Sgibnev2020}. Dessa maneira, a escolha desta rede 
+garante que a segmentação pixel a pixel possua a granularidade exigida para a segurança de um veículo off-road.
+
+A fim de aumentar a generalização do modelo, a metodologia prevê a integração de um segundo dataset ao fluxo de treinamento, criando uma 
+base de dados híbrida e mais robusta \cite{s26061944}. A combinação de diferentes fontes permite que a rede neural seja exposta a uma variedade maior 
+de classes que podem ser escassas em datasets isolados \cite{BEYCIMEN2026113680}. Ao treinar o modelo com este conjunto expandido, reduzimos o viés em direção a 
+um único tipo de terreno, preparando o sistema para condições operacionais reais mais severas \cite{s26061944}. Consequentemente, essa diversificação 
+de dados é o passo metodológico que assegura a adaptabilidade do DeepLab a diferentes biomas e ecossistemas \cite{s26061944}. 
+
+O desempenho final do código será validado através de testes rigorosos no dataset da YAMAHA (YCOR), que simula condições reais de 
+operação de ATVs (All-Terrain Vehicles). O dataset YCOR é uma referência na área, composto por 1.076 imagens coletadas em diferentes 
+locais e estações, oferecendo classes específicas como trilhas suaves, solo acidentado e grama trafegável \cite{Maturana2017, s26061944}. Utilizaremos esta base para 
+verificar se a rede treinada consegue transferir o conhecimento aprendido para um novo domínio com características topográficas 
+distintas \cite{10742323}. A precisão obtida no YAMAHA servirá como o indicador definitivo de sucesso para a nossa lógica de detecção de caminho 
+navegável \cite{10742323}. Assim, o teste neste dataset específico fecha o ciclo de validação, conectando o treinamento acadêmico à aplicação 
+física em veículos utilitários de exploração \cite{Maturana2017}.
+
+Um ponto crucial da nossa metodologia é a comparação de desempenho entre o DeepLab e o modelo FCN (Fully Convolutional Network). 
+Enquanto o FCN é considerado o precursor da segmentação moderna por converter redes de classificação em predição densa pixel a pixel, 
+ele apresenta limitações em capturar informações de contexto global de forma invariante \cite{GARCIAGARCIA201841, DBLP:journals/corr/Garcia-GarciaOO17}. Em contrapartida, o DeepLab foi projetado 
+para superar essas falhas através de refinamentos espaciais e mecanismos de atenção multi-escala \cite{LATEEF2019321, GARCIAGARCIA201841}. Analisaremos métricas como o 
+tempo de inferência e a acurácia, visto que modelos FCN tendem a ser mais rápidos, porém menos precisos em bordas complexas se 
+comparados ao DeepLab \cite{Maturana2017, Long_2015_CVPR}. Essa análise comparativa permitirá justificar a escolha do modelo mais adequado para o equilíbrio entre 
+segurança e velocidade de processamento \cite{DBLP:journals/corr/Garcia-GarciaOO17, BEYCIMEN2026113680}.
+
+A análise quantitativa dos resultados será pautada na métrica de mIoU (mean Intersection over Union) e em matrizes de confusão. 
+A acurácia da segmentação é definida pela razão entre a área corretamente segmentada e a verdade fundamental (ground truth), 
+sendo o mIoU o padrão ouro para avaliar a correção espacial \cite{LATEEF2019321, 9288755}. Além disso, calcularemos o Recall e o F1-score para cada classe, 
+garantindo que o modelo não negligencie categorias minoritárias, mas críticas, como obstáculos pequenos ou poças \cite{10742323}. Esta abordagem 
+rigorosa de métricas permite identificar onde o modelo apresenta confusão sistemática entre classes visualmente ambíguas \cite{s26061944}. 
+Portanto, a avaliação detalhada fornecerá os dados necessários para refinamentos futuros na arquitetura ou no processo de 
+aumento de dados \cite{10742323, s26061944}.
+
+A integração do simulador CARLA (Car Learning to Act) em nossa metodologia de testes é fundamental para validar a robustez do 
+modelo de segmentação em um ambiente virtual controlado e altamente realista. Evidências na literatura destacam que o CARLA 
+é uma das plataformas de código aberto mais eficazes para o treinamento e validação de sistemas de direção autônoma, 
+permitindo a execução de testes rigorosos que seriam perigosos ou dispendiosos no mundo real \cite{10.1145/3729420, 9288755}. Portanto, o CARLA atua como uma 
+etapa de validação intermediária crucial, garantindo que o sistema de percepção opere de forma confiável antes de qualquer 
+implementação em veículos físicos.
+
+Por fim, a metodologia contempla a avaliação da viabilidade de processamento em tempo real para a tomada de decisão do veículo. 
+A implementação de modelos de segmentação em cenários reais exige que o tempo de inferência por frame seja baixo o suficiente para 
+acompanhar a velocidade do veículo, muitas vezes requerendo hardware especializado como GPUs embarcadas \cite{10742323, Maturana2017}. Embora o DeepLabv3+ seja 
+ligeiramente mais lento que arquiteturas simplificadas, sua robustez em condições de iluminação desafiadoras justifica o custo 
+computacional em prol da segurança \cite{10742323, Maturana2017}. Monitoraremos o desempenho temporal de ambos os modelos para garantir que a percepção 
+do ambiente ocorra em uma frequência compatível com os loops de controle de direção \cite{BEYCIMEN2026113680, Maturana2017}. Dessa forma, a metodologia 
+assegura que o sistema não apenas "enxergue" o caminho, mas o faça com a agilidade necessária para evitar acidentes em trilhas off-road \cite{10742323, s26061944}.
+
 \section{Resultados Parciais}
 
 \section{Referências}
