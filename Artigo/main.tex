@@ -157,54 +157,86 @@
 
 \section{Introdução}
 
-% TODO
-% Refatorar a introdução de acordo com os toṕicos abaixo
-% Contexto, Problemas de Pesquisa, Objetivos, Justificativa e Hipóteses
-% Metodologia de Pesquisa e Estrutura dos Capítulos
+O desenvolvimento de veículos terrestres não tripulados (UGVs) e sistemas de direção autônoma tem avançado em ritmo 
+exponencial, impulsionado pela convergência entre inteligência artificial e e
+ngenharia automotiva de alto desempenho \cite{10.1145/3729420, KABIR2025102644}. Evidências na 
+literatura apontam que a transição de sistemas assistivos para a automação de Nível 5 
+exige que os veículos possuam uma percepção sensorial equivalente ou superior à humana 
+para operar em ambientes dinâmicos \cite{10.1145/3729420, LATEEF2019321}. Essa evolução é fundamentada 
+na capacidade do sistema de interpretar visualmente o entorno em tempo real, transformando 
+fluxos de dados brutos em representações semânticas significativas para a tomada de 
+decisão \cite{LATEEF2019321, GARCIAGARCIA201841}. Portanto, a visão computacional, 
+especificamente a segmentação semântica, estabelece-se como o pilar tecnológico 
+central que viabiliza a navegação segura em cenários de alta complexidade \cite{KABIR2025102644, GARCIAGARCIA201841}.
 
-% Explicação da segmentação
-% (P)
-A área da visão computacional tem impactado diretamente os avanços do campo da segmentação semântica, quando falamos sobre essa 
-vertente em ambientes off-road os desafios são múltiplos devido a bordas indeterminadas nas trilhas, variedade de obstáculos e 
-mudanças frequentes em diferentes épocas e estações do ano.
-% (E)
-A segmentação semântica em vias off-road apresenta uma complexidade significativamente superior à das vias urbanas devido à 
-natureza não estruturada e imprevisível desses ambientes. Enquanto o cenário urbano é regido por uma geometria de faixas rigorosa, 
-características padronizadas e consistência geométrica, os ambientes off-road são caracterizados por terrenos dinâmicos, escalas de 
-objetos irregulares e a ausência total de infraestrutura de sinalização\cite{s26061944}.
-% (E)
-Com base nos artigos citados acima o mesmo modelo de segmentação teve mais dificuldade para segmentar ambientes off-road 
-comparado a ambientes urbanos, mesmo tendo um treinamento parecido.
-% (L)
-Dessa forma, o reconhecimento de vias não urbanas ainda é um desafio a ser explorado.
+Apesar do sucesso em cenários urbanos estruturados, a navegação em trilhas 
+\textit{off-road} impõe desafios críticos devido à natureza não estruturada, 
+ausência de sinalização e limites geográficos visualmente ambíguos \cite{KABIR2025102644, Maturana2017, 9551643}. Enquanto o 
+ambiente urbano é regido por uma geometria de faixas rigorosa, as vias \textit{off-road} são caracterizadas 
+por terrenos irregulares, variações extremas de iluminação sob copas de árvores e obstáculos naturais 
+cujas bordas se misturam à trilha navegável \cite{s26061944, KABIR2025102644, s19112577}. A literatura indica 
+que modelos de segmentação treinados exclusivamente em dados urbanos falham ao lidar com texturas de lama, solo 
+acidentado e vegetação densa, o que pode comprometer a integridade física do veículo \cite{KABIR2025102644, 10742323}. Dessa forma, a 
+identificação robusta do caminho navegável em terrenos naturais permanece como um problema em aberto, exigindo soluções 
+que gerenciem a incerteza intrínseca desses biomas \cite{KABIR2025102644, 9551643}.
 
-% Explicação da CNN
-% (P)
-As Redes Neurais Convolucionais (CNNs) são amplamente utilizadas em tarefas de visão computacional devido à sua 
-capacidade de extrair características relevantes de imagens, tornando-se fundamentais para aplicações como segmentação semântica.
-% (E)
-% Ainda precisamos de algum artigo nessa bomba
-Com base nesse artigo onde muitas arquiteturas de CNN são comparadas em desempenho, considerando Intersection over Union (IoU) como 
-métrica, um modelo de grande destaque foi o DeepLabV3+ \cite{BEYCIMEN2026113680}.
-% (E)
-Essa capacidade é especialmente importante em cenários off-road, onde a área visual possui muitos elemento e as fronteiras 
-entre classes são mais difíceis de interpretar, exigindo modelos mais capacitados para segmentar as imagens.
-% (L)
-Dessa forma, esse trabalho, faz uso de uma arquitetura baseada em CNN, especificamente o modelo DeepLabV3+, visando obter 
-uma segmentação mais precisa.
+A escolha estratégica por Redes Neurais Convolucionais (CNNs) profundas 
+justifica-se pela sua capacidade superior de extrair hierarquias de características 
+espaciais sem a necessidade de engenharia manual de recursos \cite{LATEEF2019321, GARCIAGARCIA201841, 10.1145/3729420}. Estudos 
+comparativos demonstram que métodos tradicionais baseados em cor ou texturas artesanais são insuficientes 
+para a percepção \textit{off-road}, enquanto arquiteturas como a ResNet e o DeepLabv3+ 
+alcançam mIoU (\textit{mean Intersection over Union}) significativamente maiores em \textit{datasets} 
+complexos \cite{BEYCIMEN2026113680, Sgibnev2020, LATEEF2019321}. Além disso, o uso de sensores geométricos puros, 
+como LiDAR, pode ser limitado pelo alto custo e pela densidade variável de pontos em terrenos naturais, 
+tornando a percepção baseada em câmeras RGB uma alternativa eficiente e rica em 
+informações \cite{KABIR2025102644, BEYCIMEN2026113680, Maturana2017}. Assim, este trabalho 
+justifica o emprego de \textit{Deep Learning} como a ferramenta mais eficaz para 
+dotar os UGVs da agilidade visual necessária para reagir às mudanças bruscas de terreno \cite{10.1145/3729420, BEYCIMEN2026113680}.
 
-% Explicação do dataset
-% (P)
-A escolha e a diversidade dos datasets utilizados no treinamento são muito relevantes para o desempenho dos modelos de segmentação, 
-especialmente em cenários off-road.
-% (E)
-% Talvez pegar um artigo que utilize uma mistura de datasets, o primeiro da lista monta um dataset sintético baseado no PASCAL VOC, talvez seja bom
-% (E)
-Nesse contexto, este trabalho utiliza uma coletânea de datasets que foram utilizados em estudos recentes da área, incluindo o 
-dataset YAMAHA, reconhecido pela sua alta complexidade, variabilidade de cenários e dificuldade na definição de classes.
-% (L)
-Dessa forma, a utilização de múltiplos datasets, com destaque para o YAMAHA, proporciona um melhor treinamento do modelo, 
-permitindo avaliar seu desempenho em diferentes condições.
+A hipótese central deste estudo sustenta que a integração da arquitetura DeepLabv3+ 
+com um módulo de \textit{Atrous Spatial Pyramid Pooling} (ASPP) pode superar a 
+variabilidade de escala inerente às trilhas florestais \cite{LATEEF2019321, Sgibnev2020}. Prevemos 
+que o uso de convoluções dilatadas permitirá ao modelo capturar contextos amplos da cena sem sacrificar a precisão 
+granular necessária para detectar pequenos obstáculos próximos \cite{LATEEF2019321, BEYCIMEN2026113680, Sgibnev2020}. Complementarmente, 
+assume-se que a técnica de \textit{Transfer Learning} aplicada a \textit{datasets} diversos, como o Freiburg Forest e o 
+Synthetic Offroad, reduzirá sistematicamente o erro de segmentação em bordas vegetais ambíguas \cite{s19112577, Sgibnev2020}. Portanto, 
+acredita-se que o equilíbrio entre contexto global e detalhamento espacial provido pelo modelo DeepLabv3+ resultará em uma 
+segmentação superior comparada a modelos puramente convolucionais como o FCN \cite{Sgibnev2020, BEYCIMEN2026113680}.
+
+O objetivo primordial desta pesquisa é desenvolver e validar um sistema de segmentação 
+semântica robusto voltado especificamente para a identificação de caminhos trafegáveis 
+em ambientes \textit{off-road} \cite{10742323, Maturana2017}. Para alcançar essa meta, 
+o trabalho propõe-se a treinar o modelo DeepLabv3+ utilizando o \textit{dataset} Freiburg 
+Forest e integrar dados sintéticos para aumentar a diversidade estatística da rede \cite{Sgibnev2020, s19112577}. 
+Adicionalmente, buscaremos comparar quantitativamente o desempenho do DeepLab com o modelo FCN, 
+utilizando o \textit{dataset} YAMAHA (YCOR) como validador definitivo da capacidade de 
+generalização em hardware robótico \cite{Maturana2017, LATEEF2019321}. Linkando esses 
+objetivos à aplicação prática, visamos garantir que a saída da segmentação possa ser 
+integrada a um loop de controle em malha fechada, permitindo a navegação autônoma realística \cite{10.1145/3729420, BEYCIMEN2026113680}.
+
+A abordagem metodológica fundamenta-se na estratégia \textit{sim-to-real}, combinando 
+dados de simulação de alta fidelidade com imagens capturadas em cenários 
+florestais reais \cite{s26061944, Sgibnev2020, KABIR2025102644}. O fluxo de trabalho 
+inicia-se com o pré-processamento das 15.000 imagens do \textit{dataset} Freiburg Forest, 
+seguido pela configuração da ResNet como \textit{backbone} para extração de 
+características profundas \cite{s19112577, Sgibnev2020, LATEEF2019321}. A validação 
+será executada através de testes rigorosos no simulador CARLA, onde conseguiremos 
+submeter o modelo a variações climáticas controladas e extrair métricas de 
+precisão absoluta (\textit{ground truth} automático) \cite{10.1145/3729420, BEYCIMEN2026113680}. Consequentemente, 
+essa diversificação de fontes de dados e ferramentas de simulação assegura que o sistema de 
+percepção seja resiliente aos "casos de borda" e sombras projetadas, garantindo a confiabilidade 
+tática em trilhas não estruturadas \cite{KABIR2025102644, s19112577}.
+
+O presente artigo está organizado de forma a prover uma compreensão progressiva do desenvolvimento 
+tecnológico e dos resultados alcançados. O Capítulo 2 detalha a revisão bibliográfica, 
+explorando o estado da arte em CNNs, segmentação semântica e os modelos específicos 
+utilizados \cite{LATEEF2019321, GARCIAGARCIA201841}. O Capítulo 3 descreve a metodologia 
+detalhada, incluindo a fusão de \textit{datasets} e o treinamento 
+via \textit{Transfer Learning} \cite{s19112577, Sgibnev2020}. No Capítulo 4, apresentam-se o 
+desenvolvimento experimental e a análise comparativa de desempenho entre os 
+modelos DeepLab e FCN \cite{BEYCIMEN2026113680, Maturana2017}. Finalmente, as conclusões e 
+as perspectivas para trabalhos futuros são sintetizadas no Capítulo 5, conectando as 
+descobertas experimentais aos desafios contínuos da autonomia robótica \cite{KABIR2025102644, 10.1145/3729420}.
 
 \includegraphics[width=6cm, height=3cm]{imagem_normal_e_segmentada.png}
 
