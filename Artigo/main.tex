@@ -238,13 +238,16 @@ modelos DeepLab e FCN \cite{BEYCIMEN2026113680, Maturana2017}. Finalmente, as co
 as perspectivas para trabalhos futuros são sintetizadas no Capítulo 5, conectando as 
 descobertas experimentais aos desafios contínuos da autonomia robótica \cite{KABIR2025102644, 10.1145/3729420}.
 
-\includegraphics[width=6cm, height=3cm]{imagem_normal_e_segmentada.png}
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{Imagem-introducao.png}
+    \caption{Fluxo principal da segmentação semântica com DeepLabV3+.}
+    \label{fig:introducao-image.png}
+\end{figure}
 
 \section{Revisão Bibliográfica}
 
 \subsection{Segmentação Semântica}
-
-% Imagens
 
 A segmentação semântica é definida como a tarefa de classificação de imagens em nível de pixel, onde cada unidade fundamental da
 imagem é atribuída a uma categoria semântica específica \cite{LATEEF2019321, Sehar2022}. Ao contrário da detecção de objetos, que utiliza caixas delimitadoras
@@ -260,6 +263,13 @@ texturas e cores para modelos híbridos que integram informações de múltiplos
 Condicionais (CRF) ou mecanismos de atenção permite capturar detalhes espaciais finos que antes eram perdidos em camadas de
 compressão de dados \cite{GARCIAGARCIA201841, Sehar2022}. Assim, a segmentação semântica moderna não apenas identifica classes, mas busca uma representação espacialmente
 precisa e contextualizada do mundo.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{SegSemantica.png}
+    \caption{Diferença entre reconhecimento de imagens \cite{Jaikumar}.}
+    \label{fig:jaikumar.png}
+\end{figure}
 
 Para o objetivo de segmentar caminhos off-road, a segmentação semântica é indispensável para distinguir superfícies navegáveis de
 obstáculos naturais complexos, como vegetação alta ou poças de lama \cite{10742323, Maturana2017}. Em ambientes onde não existem marcações de faixa ou estradas
@@ -289,6 +299,13 @@ segurança (como obstáculos pequenos ou poças), não sejam negligenciadas pela
 a otimização da segmentação semântica passa a ser uma tarefa de ajuste fino entre a acurácia estatística e a 
 relevância tática para a condução autônoma \cite{s26061944}.
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{YamahaDataset.png}
+    \caption{Imagens da Segmentação Semântica do dataset YAMAHA\cite{Maturana2017}.}
+    \label{fig:YAMAHAexemple.png}
+\end{figure}
+
 \subsection{Deep Learning}
 
 O Aprendizado Profundo (Deep Learning) revolucionou a visão computacional ao permitir que modelos aprendam hierarquias de
@@ -315,8 +332,6 @@ será capaz de aprender a reconhecer o "conceito" de um caminho navegável atrav
 em terrenos imprevisíveis.
 
 \subsection{Redes Neurais Convolucionais (CNNs)}
-
-% Melhorar imagem com refs
 
 As Redes Neurais Convolucionais (CNNs) são arquiteturas especializadas no processamento de dados com topologia de grade,
 como imagens, utilizando operações de convolução para extrair relações espaciais e estruturais \cite{s19112577}. Uma CNN típica é composta por
@@ -349,13 +364,16 @@ nossos modelos de segmentação, aproveitando sua capacidade de manter resoluç�
 capacidade das CNNs de aprender representações visuais robustas será fundamental para distinguir entre uma trilha de terra batida e uma
 área de lama instável \cite{9551643, s26061944}. Linkando as camadas convolucionais ao nosso objetivo, conseguiremos mapear o ambiente visual em representações
 matemáticas prontas para a tomada de decisão do veículo.
-\\
 
-\includegraphics[width=6cm, height=3cm]{Rede_Neural_Convolucional.png}
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{CNNextration.png}
+    \caption{Exemplo de extração de features utilizando uma CNN \cite{CNN-image}.}
+    \label{fig:CNNexample.png}
+\end{figure}
+
 
 \subsection{ResNet}
-
-% Imagens
 
 A arquitetura ResNet (Residual Network) estabelece-se como o padrão de excelência para redes neurais profundas, 
 solucionando o desafio crítico do desaparecimento do gradiente através da introdução de conexões de salto de 
@@ -443,11 +461,14 @@ equilíbrio para a navegação em trilhas não estruturadas \cite{Sgibnev2020, M
 da FCN em nossa pesquisa garantirá uma base comparativa sólida, assegurando que o sistema de percepção seja 
 testado contra os padrões mais influentes da área.
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{FCN.png}
+    \caption{Arquitetura da FCN \cite{FCN}.}
+    \label{fig:FCN example.png}
+\end{figure}
+
 \subsection{DeepLabV3}
-
-% TODO
-% Imagens
-
 O DeepLabv3 é uma arquitetura avançada de segmentação semântica que introduz a convolução atrous (ou dilatada) e o
 módulo Atrous Spatial Pyramid Pooling (ASPP) para capturar contextos em múltiplas escalas de forma eficiente \cite{LATEEF2019321}. A convolução
 atrous permite expandir o campo receptivo dos filtros sem aumentar o número de parâmetros, "pulando" pixels na aplicação do
@@ -505,6 +526,13 @@ Resultados experimentais indicam que o modelo mantém a robustez mesmo sob varia
 tecnologia ao nosso objetivo, a integração do DeepLabv3+ garante a segurança operacional necessária para que o sistema de 
 percepção identifique o caminho navegável em cenários rurais onde a geometria da estrada é mal definida.
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{DeepLab.png}
+    \caption{Arquitetura da DeepLab \cite{DeepLab-image}.}
+    \label{fig:DeepLab-example.png}
+\end{figure}
+
 
 \subsection{O Simulador Carla}
 
@@ -551,9 +579,6 @@ virtuais de simulação fundamentam-se como recursos críticos para garantir que
 generalização necessária para operar com segurança em caminhos não estruturados\cite{Sgibnev2020}.
 
 \section{Metodologia}
-
-% TODO
-% Fluxograma do projeto
 
 A etapa inicial da nossa pesquisa concentra-se na utilização do dataset Freiburg Forest para o treinamento base em ambientes de 
 vegetação densa. Evidências na literatura apontam que este conjunto de dados é fundamental por deslocar o foco de ambientes urbanos 
@@ -621,6 +646,13 @@ permitindo a execução de testes rigorosos que seriam perigosos ou dispendiosos
 etapa de validação intermediária crucial, garantindo que o sistema de percepção opere de forma confiável antes de qualquer 
 implementação em veículos físicos.
 
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{Metodologia_fluxograma.png}
+    \caption{Fluxograma da nossa metodologia.}
+    \label{fig:metodologia_fluxograma.png}
+\end{figure}
+
 Por fim, a metodologia contempla a avaliação da viabilidade de processamento em tempo real. 
 A implementação de modelos de segmentação em cenários reais exige que o tempo de inferência por frame seja baixo o suficiente para 
 acompanhar a velocidade do veículo, muitas vezes requerendo hardware especializado como GPUs embarcadas \cite{10742323, Maturana2017}. Embora o DeepLabv3+ seja 
@@ -639,6 +671,59 @@ essa abordagem ao nosso objetivo, a segmentação de vídeo em tempo real fornec
 o veículo autônomo tome decisões preditivas e fluidas em alta velocidade.
 
 \section{Resultados Parciais}
+
+A arquitetura DeepLabv3+ apresentou elevada eficiência e rápida convergência na tarefa de 
+segmentação semântica para identificação de trilhas \textit{off-road}. Evidências do treinamento 
+demonstram que a função de perda sofreu uma redução drástica, declinando de 
+aproximadamente 0,167 na primeira época para 0,037 ao final do processo, enquanto a acurácia de pixels atingiu 
+a marca de 98,57\%. Esse comportamento indica que o modelo foi capaz de aprender progressivamente as 
+hierarquias de características espaciais necessárias para distinguir solo navegável de 
+obstáculos naturais, superando desafios comuns de texturas irregulares presentes em biomas 
+como o \textit{Freiburg Forest} \cite{KABIR2025102644, s19112577}. Portanto, a estabilização das métricas 
+nas últimas épocas confirma que o modelo atingiu um estado de convergência robusto, minimizando 
+erros de classificação em cenários de alta variabilidade visual.
+
+Além da acurácia global, a métrica mIoU confirmou a precisão espacial das segmentações, evoluindo 
+de 80\% para 92,58\%. Como a mIoU é o padrão ouro para medir a sobreposição entre as predições e a 
+verdade fundamental, este resultado de 92,58\% posiciona o modelo acima de diversos \textit{baselines} da literatura, 
+como o AdapNet (88,25\%) e variantes da FCN (77,46\%) testadas em ambientes florestais \cite{LATEEF2019321, GARCIAGARCIA201841, Sgibnev2020}. A 
+superioridade do DeepLabv3+ neste aspecto decorre do uso do módulo ASPP, que permite capturar o contexto de 
+trilhas que se estendem até o horizonte enquanto preserva a delimitação exata de bordas próximas \cite{LATEEF2019321, Sgibnev2020, KABIR2025102644}. Dessa forma, 
+os resultados demonstram que o sistema não apenas classifica os pixels corretamente, mas 
+produz mapas de trafegabilidade espacialmente coerentes para o planejamento de rotas.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{../metrics/training_metrics.png}
+    \caption{Métricas do modelo DeepLabV3.}
+    \label{fig:deep-lab-metrics.png}
+\end{figure}
+
+Os desempenhos computacionais feridos indicam que a arquitetura possui viabilidade real para integração 
+em hardware embarcado e sistemas de robótica móvel. O treinamento completo foi finalizado em 
+apenas 1 minuto e 47 segundos, com um tempo médio de inferência de aproximadamente 12,85 ms por 
+quadro \cite{10742323, BEYCIMEN2026113680}. Comparativamente, este tempo de resposta é significativamente inferior aos 
+40 ms reportados em estudos recentes de direção \textit{off-road} e aos 27 ms obtidos por modelos optimizados com 
+ResNet34, sugerindo que o sistema pode operar em frequências superiores a 70 FPS \cite{10742323, Sgibnev2020}. Tal 
+agilidade é um requisito crítico para a navegação em alta velocidade, garantindo que o veículo autônomo possa reagir 
+em tempo real a obstáculos súbitos identificados no fluxo de vídeo \cite{KABIR2025102644}. Consequentemente, os 
+baixos tempos de latência aliados à alta precisão reforçam o potencial do DeepLabv3+ para aplicações práticas em 
+plataformas robóticas operando em terrenos desafiadores.
+
+Em suma, os resultados parciais fundamentam a robustez da metodologia proposta, alcançando elevados índices 
+de acurácia e mIoU com reduzido custo computacional. Esses dados 
+fornecem uma base sólida para as próximas etapas do trabalho, que incluirão a 
+validação em malha fechada no simulador CARLA e o teste de generalização 
+no \textit{dataset} YAMAHA Linkando os 
+resultados à percepção computacional, conclui-se que o modelo está apto a prover as 
+informações semânticas necessárias para uma navegação autônoma segura e eficiente em ambientes \textit{off-road} reais.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{../metrics/performance_summary.png}
+    \caption{Permformance do modelo DeepLab.}
+    \label{fig:sumary-performance.png}
+\end{figure}
 
 \section{Referências}
 \printbibliography[heading=none]
