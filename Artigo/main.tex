@@ -16,6 +16,9 @@
 \setlength{\parindent}{2em}  % Aumenta a indentação para 2em (pode ser ajustado
 \titlespacing*{\section}{0pt}{*0}{0pt}
 \usepackage{ragged2e}
+\usepackage{array}
+\usepackage[table]{xcolor}
+\usepackage{placeins}
 
 
 %-------------------------- ESTILOS NÃO ALTERAR ------------------------------------------------%
@@ -136,17 +139,17 @@
 
 \resumo{
   O campo da segmentação semântica tem crescido significativamente com os avanços da visão computacional, sua aplicação em ambientes 
-  off-road é um dos grandes desafios da área devido a dificuldade de identificar caminhos
+  \textit{off-road} é um dos grandes desafios da área devido a dificuldade de identificar caminhos
   e diferenciar diferentes obstáculos presentes nas trilhas.
   Diante desse cenário esse trabalho apresenta um modelo de segmentação semântica
   desenvolvido com a arquitetura DeepLabV3+, proposta pela Google, utilizando a ResNet152 como backbone. O modelo será
-  treinado com diversos datasets encontrados em artigos recentes na área da segmentação semântica aplicada em ambientes off-road.
-  O objetivo deste trabalho é desenvolver e treinar o modelo para obter bons resultados no dataset YAMAHA, conhecido como
-  um dos datasets mais desafiadores para segmentação. Além disso, pretendemos aplicar o modelo na segmentação de imagens
-  e vídeos de competições Baja realizadas pela equipe da FEI, utilizando como métrica principal Intersection over Union (IoU)
+  treinado com diversos \textit{datasets} encontrados em artigos recentes na área da segmentação semântica aplicada em ambientes \textit{off-road}.
+  O objetivo deste trabalho é desenvolver e treinar o modelo para obter bons resultados no \textit{dataset} YAMAHA, conhecido como
+  um dos \textit{datasets} mais desafiadores para segmentação. Além disso, pretendemos aplicar o modelo na segmentação de imagens
+  e vídeos de competições Baja realizadas pela equipe da FEI, utilizando como métrica principal Intersection over Union.
 }
 
-\keyword{Segmentação Semântica, Off-Road, DeepLabV3+, Carla, YAMAHA}
+\keyword{Segmentação Semântica, Off-Road, DeepLabV3+, Carla}
 }
 
 \end{@twocolumnfalse}
@@ -158,8 +161,8 @@
 \section{Introdução}
 
 O desenvolvimento de veículos terrestres não tripulados (UGVs) e sistemas de direção autônoma tem avançado em ritmo 
-exponencial, impulsionado pela convergência entre inteligência artificial e e
-ngenharia automotiva de alto desempenho \cite{10.1145/3729420, KABIR2025102644}. Evidências na 
+exponencial, impulsionado pela convergência entre inteligência artificial e engenharia automotiva de 
+alto desempenho \cite{10.1145/3729420, KABIR2025102644}. Evidências na 
 literatura apontam que a transição de sistemas assistivos para a automação de Nível 5 
 exige que os veículos possuam uma percepção sensorial equivalente ou superior à humana 
 para operar em ambientes dinâmicos \cite{10.1145/3729420, LATEEF2019321}. Essa evolução é fundamentada 
@@ -177,7 +180,7 @@ por terrenos irregulares, variações extremas de iluminação sob copas de árv
 cujas bordas se misturam à trilha navegável \cite{s26061944, KABIR2025102644, s19112577}. A literatura indica 
 que modelos de segmentação treinados exclusivamente em dados urbanos falham ao lidar com texturas de lama, solo 
 acidentado e vegetação densa, o que pode comprometer a integridade física do veículo \cite{KABIR2025102644, 10742323}. Dessa forma, a 
-identificação robusta do caminho navegável em terrenos naturais permanece como um problema em aberto, exigindo soluções 
+identificação robusta do caminho em terrenos naturais permanece como um problema em aberto, exigindo soluções 
 que gerenciem a incerteza intrínseca desses biomas \cite{KABIR2025102644, 9551643}.
 
 A escolha estratégica por Redes Neurais Convolucionais (CNNs) profundas 
@@ -185,7 +188,7 @@ justifica-se pela sua capacidade superior de extrair hierarquias de característ
 espaciais sem a necessidade de engenharia manual de recursos \cite{LATEEF2019321, GARCIAGARCIA201841, 10.1145/3729420}. Estudos 
 comparativos demonstram que métodos tradicionais baseados em cor ou texturas artesanais são insuficientes 
 para a percepção \textit{off-road}, enquanto arquiteturas como a ResNet e o DeepLabv3+ 
-alcançam mIoU (\textit{mean Intersection over Union}) significativamente maiores em \textit{datasets} 
+alcançam \textit{mean Intersection over Union} (mIoU) significativamente maiores em \textit{datasets} 
 complexos \cite{BEYCIMEN2026113680, Sgibnev2020, LATEEF2019321}. Além disso, o uso de sensores geométricos puros, 
 como LiDAR, pode ser limitado pelo alto custo e pela densidade variável de pontos em terrenos naturais, 
 tornando a percepção baseada em câmeras RGB uma alternativa eficiente e rica em 
@@ -198,8 +201,7 @@ com um módulo de \textit{Atrous Spatial Pyramid Pooling} (ASPP) pode superar a
 variabilidade de escala inerente às trilhas florestais \cite{LATEEF2019321, Sgibnev2020}. Prevemos 
 que o uso de convoluções dilatadas permitirá ao modelo capturar contextos amplos da cena sem sacrificar a precisão 
 granular necessária para detectar pequenos obstáculos próximos \cite{LATEEF2019321, BEYCIMEN2026113680, Sgibnev2020}. Complementarmente, 
-assume-se que a técnica de \textit{Transfer Learning} aplicada a \textit{datasets} diversos, como o Freiburg Forest e o 
-Synthetic Offroad, reduzirá sistematicamente o erro de segmentação em bordas vegetais ambíguas \cite{s19112577, Sgibnev2020}. Portanto, 
+assume-se que a técnica de \textit{Transfer Learning} aplicada a \textit{datasets} diversos reduzirá sistematicamente o erro de segmentação em bordas vegetais ambíguas \cite{s19112577, Sgibnev2020}. Portanto, 
 acredita-se que o equilíbrio entre contexto global e detalhamento espacial provido pelo modelo DeepLabv3+ resultará em uma 
 segmentação superior comparada a modelos puramente convolucionais como o FCN \cite{Sgibnev2020, BEYCIMEN2026113680}.
 
@@ -213,16 +215,17 @@ utilizando o \textit{dataset} YAMAHA (YCOR) como validador definitivo da capacid
 generalização em hardware robótico \cite{Maturana2017, LATEEF2019321}. Linkando esses 
 objetivos à aplicação prática, visamos garantir que a saída da segmentação possa ser 
 integrada a um loop de controle em malha fechada, permitindo a navegação autônoma realística \cite{10.1145/3729420, BEYCIMEN2026113680}.
+Podemos analisar na Figura 1, o fluxo principal do treinamento utilizando o DeepLabv3+.
 
 A abordagem metodológica fundamenta-se na estratégia \textit{sim-to-real}, combinando 
 dados de simulação de alta fidelidade com imagens capturadas em cenários 
 florestais reais \cite{s26061944, Sgibnev2020, KABIR2025102644}. O fluxo de trabalho 
-inicia-se com o pré-processamento das 15.000 imagens do \textit{dataset} Freiburg Forest, 
+inicia-se com o pré-processamento das 200 imagens do \textit{dataset} \textit{Freiburg Forest}, 
 seguido pela configuração da ResNet como \textit{backbone} para extração de 
 características profundas \cite{s19112577, Sgibnev2020, LATEEF2019321}. A validação 
 será executada através de testes rigorosos no simulador CARLA, onde conseguiremos 
 submeter o modelo a variações climáticas controladas e extrair métricas de 
-precisão absoluta (\textit{ground truth} automático) \cite{10.1145/3729420, BEYCIMEN2026113680}. Consequentemente, 
+precisão absoluta \cite{10.1145/3729420, BEYCIMEN2026113680}. Consequentemente, 
 essa diversificação de fontes de dados e ferramentas de simulação assegura que o sistema de 
 percepção seja resiliente aos "casos de borda" e sombras projetadas, garantindo a confiabilidade 
 tática em trilhas não estruturadas \cite{KABIR2025102644, s19112577}.
@@ -233,33 +236,38 @@ explorando o estado da arte em CNNs, segmentação semântica e os modelos espec
 utilizados \cite{LATEEF2019321, GARCIAGARCIA201841}. O Capítulo 3 descreve a metodologia 
 detalhada, incluindo a fusão de \textit{datasets} e o treinamento 
 via \textit{Transfer Learning} \cite{s19112577, Sgibnev2020}. No Capítulo 4, apresentam-se o 
-desenvolvimento experimental e a análise comparativa de desempenho entre os 
-modelos DeepLab e FCN \cite{BEYCIMEN2026113680, Maturana2017}. Finalmente, as conclusões e 
-as perspectivas para trabalhos futuros são sintetizadas no Capítulo 5, conectando as 
-descobertas experimentais aos desafios contínuos da autonomia robótica \cite{KABIR2025102644, 10.1145/3729420}.
+desenvolvimento experimental e a análise de desempenho do
+modelo DeepLab\cite{BEYCIMEN2026113680, Maturana2017}.
 
-\begin{figure}[t]
+\begin{figure*}[t]
     \centering
-    \includegraphics[width=\linewidth]{Imagem-introducao.png}
-    \caption{Fluxo principal da segmentação semântica com DeepLabV3+.}
+    \includegraphics[width=\textwidth]{Imagem-introducao.png}
+    \caption{Fluxo principal da segmentação semântica com DeepLabv3+.}
     \label{fig:introducao-image.png}
-\end{figure}
+\end{figure*}
+
+\FloatBarrier
 
 \section{Revisão Bibliográfica}
 
 \subsection{Segmentação Semântica}
 
 A segmentação semântica é definida como a tarefa de classificação de imagens em nível de pixel, onde cada unidade fundamental da
-imagem é atribuída a uma categoria semântica específica \cite{LATEEF2019321, Sehar2022}. Ao contrário da detecção de objetos, que utiliza caixas delimitadoras
-(bounding boxes), a segmentação provê uma compreensão granular da cena ao delinear as formas exatas e os limites dos objetos e
-superfícies \cite{GARCIAGARCIA201841, s19112577}. Este processo é o passo natural na evolução da inferência visual, progredindo de uma classificação global para uma
-inferência de grão fino necessária para a compreensão completa da cena \cite{Sehar2022, DBLP:journals/corr/Garcia-GarciaOO17}. Portanto, a segmentação semântica atua como a base perceptiva
-que permite a um sistema autônomo "enxergar" e categorizar cada centímetro do ambiente visível.
+imagem é atribuída a uma categoria semântica específica \cite{LATEEF2019321, Sehar2022}. Ao contrário da detecção de objetos, que 
+utiliza caixas delimitadoras
+\textit{(bounding boxes)}, a segmentação provê uma compreensão granular da cena ao delinear as formas exatas e os limites dos objetos e
+superfícies \cite{GARCIAGARCIA201841, s19112577}. Este processo é o passo natural na evolução da inferência visual, progredindo de uma 
+classificação global para uma
+inferência de grão fino necessária para a compreensão completa da cena \cite{Sehar2022, DBLP:journals/corr/Garcia-GarciaOO17}. Portanto, 
+a segmentação semântica atua como a base perceptiva
+que permite a um sistema autônomo "enxergar" e categorizar cada centímetro do ambiente visível. Como analisado na Figura 2, vemos a 
+diferença entre segmentação e a classificação e detecção de objetos.
 
 Atualmente, o estado da arte na segmentação semântica foca na superação de desafios como a variabilidade de iluminação, oclusões e a
 necessidade de processamento em tempo real \cite{BEYCIMEN2026113680}. O campo evoluiu do uso de algoritmos tradicionais baseados em
 texturas e cores para modelos híbridos que integram informações de múltiplos sensores, como câmeras RGB e LiDAR, para criar mapas
-2.5D ou 3D densos \cite{KABIR2025102644, Maturana2017}. Pesquisas recentes destacam que o refinamento dessas predições através de técnicas como Campos Aleatórios
+2.5D ou 3D densos \cite{KABIR2025102644, Maturana2017}. Pesquisas recentes destacam que o refinamento dessas predições através de 
+técnicas como Campos Aleatórios
 Condicionais (CRF) ou mecanismos de atenção permite capturar detalhes espaciais finos que antes eram perdidos em camadas de
 compressão de dados \cite{GARCIAGARCIA201841, Sehar2022}. Assim, a segmentação semântica moderna não apenas identifica classes, mas busca uma representação espacialmente
 precisa e contextualizada do mundo.
@@ -267,102 +275,122 @@ precisa e contextualizada do mundo.
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{SegSemantica.png}
-    \caption{Diferença entre reconhecimento de imagens \cite{Jaikumar}.}
+    \caption{Diferença entre os tipos de reconhecimento de imagens \cite{Jaikumar}.}
     \label{fig:jaikumar.png}
 \end{figure}
 
-Para o objetivo de segmentar caminhos off-road, a segmentação semântica é indispensável para distinguir superfícies navegáveis de
-obstáculos naturais complexos, como vegetação alta ou poças de lama \cite{10742323, Maturana2017}. Em ambientes onde não existem marcações de faixa ou estradas
+Para o objetivo de segmentar caminhos \textit{off-road}, a segmentação semântica é indispensável para distinguir superfícies navegáveis de
+obstáculos naturais complexos, como vegetação alta ou poças de lama \cite{10742323, Maturana2017}. Em ambientes onde não existem 
+marcações de faixa ou estradas
 pavimentadas, o sistema deve classificar texturas irregulares que possuem propriedades de
-trafegabilidade distintas \cite{9636033, 9551643}. Utilizaremos esta técnica para isolar a região de interesse (trilha) e fornecer ao planejador de rotas
-um mapa de custo baseado na classe de terreno identificada \cite{9551643, Maturana2017}. Dessa forma, a precisão pixel a pixel garantirá que o veículo identifique o
+trafegabilidade distintas \cite{9636033, 9551643}. Utilizaremos esta técnica para isolar a região de interesse e fornecer ao 
+planejador de rotas
+um mapa de custo baseado na classe de terreno identificada \cite{9551643, Maturana2017}. Dessa forma, a precisão 
+pixel a pixel garantirá que o veículo identifique o
 caminho seguro mesmo em cenários de alta complexidade topográfica e visual.
 
 Além do processamento pixel a pixel, a arquitetura fundamental da segmentação semântica moderna baseia-se em estruturas do tipo 
-codificador-decodificador (encoder-decoder) para equilibrar a semântica global com a precisão espacial \cite{LATEEF2019321, GARCIAGARCIA201841, 10742323, Sgibnev2020}. O 
+codificador-decodificador \textit{(encoder-decoder)} para equilibrar a semântica global com a 
+precisão espacial \cite{LATEEF2019321, GARCIAGARCIA201841, 10742323, Sgibnev2020}. O 
 codificador atua na redução progressiva das dimensões espaciais para extrair características de alto nível, 
-enquanto o decodificador recupera a resolução original através de camadas de upsampling ou convoluções 
+enquanto o decodificador recupera a resolução original através de camadas de convoluções 
 transpostas \cite{GARCIAGARCIA201841, 10742323, Sehar2022, Maturana2017}. Um componente crítico nesta 
-evolução é o uso de conexões de salto (skip connections), que permitem ao decodificador acessar informações 
+evolução é o uso de conexões de salto \textit{(skip connections)}, que permitem ao decodificador acessar informações 
 de baixa granularidade diretamente das camadas iniciais, preservando detalhes finos de bordas e 
 texturas \cite{LATEEF2019321, 10742323, Sgibnev2020}. Portanto, 
-essa configuração é vital para o nosso objetivo off-road, pois garante que o modelo identifique não 
+essa configuração é vital para o nosso objetivo \textit{off-road}, pois garante que o modelo identifique não 
 apenas a presença de uma trilha, mas também sua delimitação exata em relação à vegetação densa ao redor \cite{10742323}.
 
 A eficácia do treinamento desses modelos depende intrinsecamente da escolha de funções de perda (loss functions) que lidem com o 
 desbalanceamento de classes, um desafio onipresente em ambientes naturais \cite{GARCIAGARCIA201841, 10742323, s26061944}. Enquanto modelos 
-tradicionais utilizam a entropia cruzada (cross-entropy), abordagens inovadoras como a Perda Consciente de 
-Confusão (Confusion-Aware Loss - CAL) têm sido propostas para penalizar erros sistemáticos entre classes 
-visualmente similares, como terra e cascalho \cite{s26061944}. Em cenários off-road, onde a classe "céu" ou "vegetação" 
+tradicionais utilizam a entropia cruzada, abordagens inovadoras como a Perda Consciente de 
+Confusão têm sido propostas para penalizar erros sistemáticos entre classes 
+visualmente similares, como terra e cascalho \cite{s26061944}. Em cenários \textit{off-road}, onde a classe "céu" ou "vegetação" 
 pode dominar a maior parte dos pixels, essas funções garantem que classes minoritárias, mas críticas para a 
-segurança (como obstáculos pequenos ou poças), não sejam negligenciadas pela rede \cite{GARCIAGARCIA201841, 9551643, s26061944}. Assim, 
+segurança não sejam negligenciadas pela rede \cite{GARCIAGARCIA201841, 9551643, s26061944}. Assim, 
 a otimização da segmentação semântica passa a ser uma tarefa de ajuste fino entre a acurácia estatística e a 
 relevância tática para a condução autônoma \cite{s26061944}.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{YamahaDataset.png}
-    \caption{Imagens da Segmentação Semântica do dataset YAMAHA\cite{Maturana2017}.}
+    \caption{Imagens da Segmentação Semântica do \textit{dataset} YAMAHA \cite{Maturana2017}.}
     \label{fig:YAMAHAexemple.png}
 \end{figure}
 
 \subsection{Deep Learning}
 
-O Aprendizado Profundo (Deep Learning) revolucionou a visão computacional ao permitir que modelos aprendam hierarquias de
-características diretamente dos dados brutos, eliminando a necessidade de engenharia manual de recursos
-(hand-crafted features) \cite{GARCIAGARCIA201841, 10.1145/3729420}. Baseado em redes neurais profundas, o Deep Learning utiliza múltiplas camadas de
-processamento para extrair representações cada vez mais abstratas e complexas da entrada visual \cite{10.1145/3729420}. O sucesso desta abordagem foi
+O \textit{Deep Learning} revolucionou a visão computacional ao permitir que modelos aprendam hierarquias de
+características diretamente dos dados brutos, eliminando a necessidade de engenharia manual de recursos \cite{GARCIAGARCIA201841, 10.1145/3729420}. 
+Baseado em redes neurais profundas, o \textit{Deep Learning} utiliza múltiplas camadas de
+processamento para extrair representações cada vez mais abstratas e complexas da entrada visual \cite{10.1145/3729420}. O sucesso 
+desta abordagem foi
 impulsionado pelo aumento massivo da disponibilidade de dados e pelo poder computacional das GPUs, que permitem o treinamento de
-redes com milhões de parâmetros \cite{KABIR2025102644, LATEEF2019321}. Consequentemente, o Deep Learning tornou-se o paradigma dominante para resolver problemas de
+redes com milhões de parâmetros \cite{KABIR2025102644, LATEEF2019321}. Consequentemente, o \textit{Deep Learning} tornou-se o 
+paradigma dominante para resolver problemas de
 percepção que exigem alto nível de generalização.
 
-Hoje em dia, o Deep Learning em sistemas autônomos caminha para arquiteturas de ponta a ponta (end-to-end) e o uso de modelos
-pré-treinados via Transfer Learning \cite{10.1145/3729420, s19112577}. O uso de transferênca de aprendizado permite que redes treinadas em grandes bases de dados,
-como ImageNet, adaptem seus pesos para tarefas específicas com conjuntos de dados menores, acelerando a convergência e aumentando
-a precisão \cite{GARCIAGARCIA201841, s19112577}. Além disso, novas tendências como o aprendizado autossupervisionado e o uso de Transformers estão permitindo que os
-modelos capturem dependências contextuais globais de forma mais eficiente do que as redes neurais tradicionais \cite{10.1145/3729420, s26061944}. Este progresso
+Hoje em dia, o \textit{Deep Learning} em sistemas autônomos caminha para arquiteturas de ponta a ponta e o uso de modelos
+pré-treinados via \textit{Transfer Learning} \cite{10.1145/3729420, s19112577}. O uso de transferênca de aprendizado 
+permite que redes treinadas em grandes bases de dados adaptem seus pesos para tarefas específicas com conjuntos de dados menores, 
+acelerando a convergência e aumentando
+a precisão \cite{GARCIAGARCIA201841, s19112577}. Além disso, novas tendências como o aprendizado 
+autossupervisionado e o uso de \textit{Transformers} estão permitindo que os
+modelos capturem dependências contextuais globais de forma mais eficiente do que as redes neurais 
+tradicionais \cite{10.1145/3729420, s26061944}. Este progresso
 tecnológico assegura que as máquinas possam lidar com uma variedade de tarefas de percepção e decisão com desempenho próximo ou
 superior ao humano.
 
-No contexto de navegação off-road, utilizaremos o Deep Learning para gerenciar a incerteza e a variabilidade intrínseca dos
-terrenos naturais \cite{10742323, s26061944}. Ambientes rurais apresentam padrões visuais que mudam drasticamente com as estações e o clima, exigindo a
-robustez que apenas redes neurais profundas treinadas em datasets diversos podem oferecer \cite{KABIR2025102644, 10742323}. Nosso objetivo será aplicar o Deep Learning
-para realizar a extração automática de características de trafegabilidade a partir de imagens de vídeo em tempo real \cite{10742323, Sehar2022}. Assim, o modelo
+No contexto de navegação \textit{off-road}, utilizaremos o \textit{Deep Learning} para gerenciar a incerteza e a variabilidade dos
+terrenos naturais \cite{10742323, s26061944}. Ambientes rurais apresentam padrões visuais que mudam drasticamente 
+com as estações e o clima, exigindo a
+robustez que apenas redes neurais profundas treinadas em \textit{datasets} diversos podem oferecer \cite{KABIR2025102644, 10742323}. Nosso 
+objetivo será aplicar o \textit{Deep Learning}
+para realizar a extração automática de características de trafegabilidade a partir de imagens de vídeo em 
+tempo real \cite{10742323, Sehar2022}. Assim, o modelo
 será capaz de aprender a reconhecer o "conceito" de um caminho navegável através de milhares de exemplos, garantindo uma direção segura
 em terrenos imprevisíveis.
 
-\subsection{Redes Neurais Convolucionais (CNNs)}
+\subsection{Redes Neurais Convolucionais}
 
-As Redes Neurais Convolucionais (CNNs) são arquiteturas especializadas no processamento de dados com topologia de grade,
-como imagens, utilizando operações de convolução para extrair relações espaciais e estruturais \cite{s19112577}. Uma CNN típica é composta por
-camadas convolucionais (que aplicam filtros para detectar bordas, formas e texturas), camadas de ativação não-linear (como ReLU) e
-camadas de agrupamento ou pooling (que reduzem a dimensionalidade e conferem invariância a pequenas translações) \cite{s19112577, GARCIAGARCIA201841}.
+As CNNs são arquiteturas especializadas no processamento de dados com topologia de grade,
+como imagens, utilizando operações de convolução para extrair relações espaciais e estruturais \cite{s19112577}. Uma CNN 
+típica é composta por
+camadas convolucionais, camadas de ativação não-linear e
+camadas de agrupamento ou \textit{pooling} \cite{s19112577, GARCIAGARCIA201841}.
 Através do compartilhamento de pesos e interações esparsas, as CNNs são eficientes computacionalmente para analisar padrões visuais
 complexos \cite{s19112577}. Portanto, elas formam a "espinha dorsal" visual de quase todos os sistemas modernos de visão de robótica.
 
 O núcleo do sucesso do Aprendizado Profundo na segmentação semântica reside na capacidade das CNNs de extrair hierarquias de 
-características espaciais automaticamente \cite{LATEEF2019321, 10.1145/3729420}. Modelos baseados em Deep 
-Learning utilizam camadas convolucionais para detectar padrões básicos em níveis 
-rasos e semântica complexa (como formas e contextos de terreno) em níveis profundos, mapeando a entrada
+características espaciais automaticamente \cite{LATEEF2019321, 10.1145/3729420}. Modelos baseados em \textit{Deep Learning} 
+utilizam camadas convolucionais para detectar padrões básicos em níveis 
+rasos e semântica complexa em níveis profundos, mapeando a entrada
 visual diretamente em predições densas pixel a pixel \cite{GARCIAGARCIA201841, 10742323}. Esta extração 
 automatizada permite que o sistema identifique texturas sutis que definem os limites de uma estrada 
-ff-road, superando as limitações dos algoritmos tradicionais que dependiam de engenharia manual de 
+\textit{off-road}, superando as limitações dos algoritmos tradicionais que dependiam de engenharia manual de 
 recursos \cite{KABIR2025102644, Sehar2022}. Consequentemente, as arquiteturas profundas tornam-se o motor 
 fundamental para transformar imagens brutas de sensores em mapas de trafegabilidade precisos, essenciais para a 
 percepção confiável em terrenos naturais.
 
 Atualmente, a evolução das CNNs foca em aumentar a profundidade da rede enquanto mitiga o problema do desaparecimento do gradiente
-através de conexões de salto (skip connections), como visto na arquitetura ResNet \cite{LATEEF2019321, Sgibnev2020}. Modelos contemporâneos também exploram convoluções
-separáveis em profundidade e blocos de "Squeeze \& Excitation" para otimizar o tempo de inferência sem sacrificar a precisão, tornando-os
-viáveis para hardware embarcado \cite{10.1145/3729420, Sgibnev2020}. Além disso, a integração de CNNs com modelos de memória (como LSTM) permite que o sistema considere a
-continuidade temporal em sequências de vídeo \cite{LATEEF2019321, Sehar2022}. Essa sofisticação permite que as CNNs modernas operem de forma rápida e precisa em
+através de conexões de salto como visto na arquitetura ResNet \cite{LATEEF2019321, Sgibnev2020}. Modelos contemporâneos também 
+exploram convoluções
+separáveis em profundidade e blocos de "Squeeze \& Excitation" para otimizar o tempo de inferência sem sacrificar a precisão, 
+tornando-os
+viáveis para hardware embarcado \cite{10.1145/3729420, Sgibnev2020}. Além disso, a integração de CNNs com 
+modelos de memória permite que o sistema considere a
+continuidade temporal em sequências de vídeo \cite{LATEEF2019321, Sehar2022}. Essa sofisticação 
+permite que as CNNs modernas operem de forma rápida e precisa em
 dispositivos móveis e robôs.
 
-Em nosso projeto, as CNNs atuarão como o motor de extração de características para identificar padrões de terreno off-road,
-como a densidade da vegetação ou a irregularidade do solo \cite{Maturana2017, 10742323}. Utilizaremos arquiteturas como a ResNet como base (backbone) para
-nossos modelos de segmentação, aproveitando sua capacidade de manter resoluções espaciais ricas através de suas conexões residuais \cite{Sgibnev2020, 10742323}. A
+Em nosso projeto, as CNNs atuarão como o motor de extração de características para identificar padrões de terreno \textit{off-road},
+como a densidade da vegetação ou a irregularidade do solo \cite{Maturana2017, 10742323}. Utilizaremos a arquitetura ResNet 
+como base para
+nossos modelos de segmentação, aproveitando sua capacidade de manter resoluções espaciais ricas através de suas conexões 
+residuais \cite{Sgibnev2020, 10742323}. A
 capacidade das CNNs de aprender representações visuais robustas será fundamental para distinguir entre uma trilha de terra batida e uma
-área de lama instável \cite{9551643, s26061944}. Linkando as camadas convolucionais ao nosso objetivo, conseguiremos mapear o ambiente visual em representações
+área de lama instável \cite{9551643, s26061944}. Linkando as camadas convolucionais ao nosso objetivo, conseguiremos mapear o 
+ambiente visual em representações
 matemáticas prontas para a tomada de decisão do veículo.
 
 \begin{figure}[t]
@@ -375,7 +403,7 @@ matemáticas prontas para a tomada de decisão do veículo.
 
 \subsection{ResNet}
 
-A arquitetura ResNet (Residual Network) estabelece-se como o padrão de excelência para redes neurais profundas, 
+A arquitetura ResNet \textit{(Residual Network)} estabelece-se como o padrão de excelência para redes neurais profundas, 
 solucionando o desafio crítico do desaparecimento do gradiente através da introdução de conexões de salto de 
 identidade \cite{Sgibnev2020, LATEEF2019321, GARCIAGARCIA201841}. Diferente das redes puramente sequenciais, os blocos 
 residuais da ResNet permitem que as camadas aprendam funções residuais em relação às entradas originais, 
@@ -388,18 +416,16 @@ características complexas de imagens com alta fidelidade.
 No cenário atual da segmentação semântica, a ResNet é amplamente utilizada como a espinha dorsal predileta para a extração 
 automática de hierarquias de características em diversos \textit{benchmarks} \cite{Sgibnev2020, BEYCIMEN2026113680, LATEEF2019321, KABIR2025102644}. 
 Evidências apontam que sua capacidade de manter resoluções espaciais ricas a torna ideal para tarefas que exigem precisão 
-pixel a pixel, servindo como base para arquiteturas de percepção em sistemas de direção autônoma \cite{10742323, Sgibnev2020, LATEEF2019321}. 
-Atualmente, variantes como ResNet34, ResNet50 e ResNet152 são componentes fundamentais para identificar 
-classes críticas como solo navegável e obstáculos naturais \cite{10742323, BEYCIMEN2026113680, LATEEF2019321}. Assim, a 
-robustez da ResNet consolida-se como o motor de percepção indispensável para transformar dados visuais 
+pixel a pixel, servindo como base para arquiteturas de percepção em sistemas de direção 
+autônoma \cite{10742323, Sgibnev2020, LATEEF2019321}. Assim, a robustez da ResNet consolida-se como o motor de percepção indispensável para transformar dados visuais 
 brutos em representações matemáticas discriminativas.
 
-Em nossa metodologia de segmentação off-road, utilizaremos a ResNet como o codificador para capturar as texturas e padrões 
+Em nossa metodologia de segmentação \textit{off-road}, utilizaremos a ResNet como o codificador para capturar as texturas e padrões 
 irregulares do terreno \cite{10742323, BEYCIMEN2026113680, Sgibnev2020}. A escolha justifica-se pela alta retenção de detalhes 
 permitida por suas conexões de salto, o que é vital para distinguir trilhas de terra de vegetação visualmente similar em 
 florestas densas \cite{10742323, Sgibnev2020, Maturana2017}. Através da extração de características em múltiplos 
 níveis, o modelo conseguirá lidar com a variabilidade de iluminação e as sombras projetadas por árvores, 
-desafios típicos do \textit{dataset} Freiburg Forest \cite{Sgibnev2020, KABIR2025102644, LATEEF2019321}. Linkando essa 
+desafios típicos do \textit{dataset} \textit{Freiburg Forest} \cite{Sgibnev2020, KABIR2025102644, LATEEF2019321}. Linkando essa 
 arquitetura ao nosso objetivo, a ResNet garantirá que o sistema de percepção possua a granularidade necessária 
 para gerar mapas de trafegabilidade confiáveis.
 
@@ -415,9 +441,9 @@ um veículo robótico em movimento.
 
 Finalmente, a integração da ResNet com o modelo DeepLabv3 será fundamental para capturar contextos multi-escala em 
 cenários onde a estrada se estende até o horizonte \cite{Sgibnev2020, BEYCIMEN2026113680, LATEEF2019321}. O DeepLabv3 utiliza a 
-ResNet para alimentar o módulo ASPP (\textit{Atrous Spatial Pyramid Pooling}), permitindo que o sistema identifique tanto 
+ResNet para alimentar o módulo ASPP, permitindo que o sistema identifique tanto 
 pequenos obstáculos próximos quanto grandes áreas de solo distante simultaneamente \cite{Sgibnev2020, BEYCIMEN2026113680, LATEEF2019321}. 
-Resultados experimentais em ambientes off-road indicam que o uso de pesos pré-treinados da ResNet em dados simulados e 
+Resultados experimentais em ambientes \textit{off-road} indicam que o uso de pesos pré-treinados da ResNet em dados simulados e 
 urbanos aumenta significativamente a acurácia final em trilhas reais \cite{Sgibnev2020, BEYCIMEN2026113680, LATEEF2019321}. 
 Consequentemente, a sinergia entre o refinamento espacial do DeepLab e a robustez da ResNet garantirá que o 
 veículo autônomo navegue com segurança, minimizando ambiguidades sistemáticas em ambientes não estruturados.
@@ -429,17 +455,17 @@ predição densa pixel a pixel \cite{LATEEF2019321, GARCIAGARCIA201841, Long2015
 central introduzido por Long et al. consiste na "convolucionalização" de arquiteturas consagradas, substituindo as camadas 
 totalmente conectadas por camadas convolucionais \cite{Long2015, DBLP:journals/corr/Garcia-GarciaOO17, 10742323}. Esse 
 processo permite que a rede aceite entradas de qualquer tamanho e produza mapas de calor espaciais 
-correspondentes às dimensões da imagem original através de um aprendizado fim-a-fim (\textit{end-to-end}) 
+correspondentes às dimensões da imagem original através de um aprendizado fim-a-fim 
 \cite{Long2015, s19112577, Maturana2017}. Portanto, a FCN atua como o alicerce metodológico que transformou o 
 aprendizado profundo de uma classificação global de imagem para uma inferência granular necessária para a percepção visual robótica.
 
 Um diferencial crítico da FCN para a precisão espacial é a sua arquitetura de salto, 
-que soluciona a tensão intrínseca entre semântica global e localização detalhada \cite{Long2015, GARCIAGARCIA201841}. Evidências 
-mostram que, enquanto as camadas profundas extraem o "quê" (informação semântica grosseira), as camadas rasas 
-preservam o "onde" (detalhes de aparência e bordas) \cite{Long2015, Sehar2022, Maturana2017}. Ao fundir predições de
+que soluciona a tensão entre semântica global e localização detalhada \cite{Long2015, GARCIAGARCIA201841}. Evidências 
+mostram que, enquanto as camadas profundas extraem a informação semântica grosseira, as camadas rasas 
+preservam os detalhes de aparência e bordas \cite{Long2015, Sehar2022, Maturana2017}. Ao fundir predições de
 diferentes níveis o modelo consegue recuperar informações espaciais perdidas durante o processo de \textit{downsampling} 
 por \textit{pooling} \cite{Long2015, LATEEF2019321, 10742323}. Assim, essa capacidade de 
-combinar escalas é vital para o nosso objetivo off-road, garantindo que o veículo identifique não 
+combinar escalas é vital para o nosso objetivo \textit{off-road}, garantindo que o veículo identifique não 
 apenas a trilha em si, mas também seus limites irregulares em relação à vegetação densa.
 
 Em termos de eficiência computacional, a FCN supera métodos tradicionais de treinamento 
@@ -452,9 +478,9 @@ significativamente mais rápida, permitindo tempos de inferência em frações d
 um pré-requisito para sistemas de direção autônoma em tempo real \cite{Long2015, Maturana2017, 10742323}. Consequentemente, a 
 eficiência da FCN torna-a uma escolha robusta para a segmentação de terrenos dinâmicos onde o tempo de reação do ATV é limitado.
 
-No contexto da nossa metodologia de segmentação off-road, a FCN servirá como o \textit{baseline} de desempenho para validar a 
-detecção do caminho navegável nos \textit{datasets} Freiburg Forest e YAMAHA \cite{Maturana2017, LATEEF2019321, s19112577}. 
-Resultados na literatura apontam que a FCN-8s alcançou mIoU de 77,46\% no \textit{dataset} Freiburg Forest, demonstrando 
+No contexto da nossa metodologia de segmentação \textit{off-road}, a FCN servirá como o \textit{baseline} de desempenho para validar a 
+detecção do caminho navegável nos \textit{datasets} \textit{Freiburg Forest} e YAMAHA \cite{Maturana2017, LATEEF2019321, s19112577}. 
+Resultados na literatura apontam que a FCN-8s alcançou mIoU de 77,46\% no \textit{dataset} \textit{Freiburg Forest}, demonstrando 
 sua competência em ambientes florestais sob condições de iluminação desafiadoras \cite{LATEEF2019321}. Utilizaremos este 
 modelo para comparar sua agilidade e precisão em relação ao DeepLabv3+, identificando qual arquitetura oferece o melhor 
 equilíbrio para a navegação em trilhas não estruturadas \cite{Sgibnev2020, Maturana2017}. Dessa forma, a aplicação 
@@ -468,34 +494,39 @@ testado contra os padrões mais influentes da área.
     \label{fig:FCN example.png}
 \end{figure}
 
-\subsection{DeepLabV3}
+\subsection{DeepLabv3+}
 O DeepLabv3 é uma arquitetura avançada de segmentação semântica que introduz a convolução atrous (ou dilatada) e o
-módulo Atrous Spatial Pyramid Pooling (ASPP) para capturar contextos em múltiplas escalas de forma eficiente \cite{LATEEF2019321}. A convolução
+módulo ASPP para capturar contextos em múltiplas escalas de forma eficiente \cite{LATEEF2019321}. A convolução
 atrous permite expandir o campo receptivo dos filtros sem aumentar o número de parâmetros, "pulando" pixels na aplicação do
-kernel e mantendo a resolução espacial \cite{LATEEF2019321, GARCIAGARCIA201841}. O módulo ASPP complementa isso ao aplicar múltiplos filtros atrous com diferentes
+kernel e mantendo a resolução espacial \cite{LATEEF2019321, GARCIAGARCIA201841}. O ASPP complementa isso ao aplicar 
+múltiplos filtros atrous com diferentes
 taxas de amostragem em paralelo, permitindo que a rede entenda tanto objetos pequenos quanto estruturas globais na mesma
-cena \cite{LATEEF2019321, Sgibnev2020}. Portanto, o DeepLabv3 resolve o problema de escala de imagem que frequentemente limita outros modelos de segmentação.
+cena \cite{LATEEF2019321, Sgibnev2020}. Portanto, o DeepLabv3+ resolve o problema de escala de imagem que frequentemente limita outros modelos de segmentação.
 
 Hoje em dia, o DeepLabv3 e sua evolução DeepLabv3+ são considerados padrões de excelência para tarefas que exigem alta precisão
-nas bordas dos objetos e compreensão contextual profunda \cite{LATEEF2019321, KABIR2025102644}. Ao integrar decodificadores mais simples mas eficazes, o modelo consegue
-produzir segmentações nítidas mesmo em classes visualmente ambíguas \cite{LATEEF2019321, BEYCIMEN2026113680}. Ele é amplamente utilizado em benchmarks de direção autônoma
+nas bordas dos objetos e compreensão contextual profunda \cite{LATEEF2019321, KABIR2025102644}. Ao integrar decodificadores mais 
+simples mas eficazes, o modelo consegue
+produzir segmentações nítidas mesmo em classes visualmente ambíguas \cite{LATEEF2019321, BEYCIMEN2026113680}. Ele é amplamente 
+utilizado em benchmarks de direção autônoma
 de ponta, como o Cityscapes, onde o desempenho em limites de objetos é crítico para a segurança \cite{LATEEF2019321}. Sua capacidade de lidar com
 informações multi-escala tornou-o uma ferramenta essencial para a pesquisa em IA visual.
 
-No projeto de segmentação off-road, o DeepLabv3 será empregado para lidar com o desafio das diferentes escalas de obstáculos e
-caminhos (ex: uma pequena pedra de perto vs. uma grande montanha ao fundo) \cite{Sgibnev2020, BEYCIMEN2026113680}. A convolução atrous nos permitirá extrair características de
+No projeto de segmentação \textit{off-road}, o DeepLabv3+ será empregado para lidar com o desafio das diferentes escalas de obstáculos e
+caminhos \cite{Sgibnev2020, BEYCIMEN2026113680}. A convolução nos permitirá extrair características de
 vegetação e solo com maior precisão estrutural, o que é vital quando o caminho se mistura visualmente com o ambiente
-ao redor \cite{LATEEF2019321, s19112577}. Utilizaremos o ASPP para garantir que o veículo compreenda a continuidade da estrada off-road mesmo quando ela se
-estende até o horizonte de forma irregular \cite{Sgibnev2020, LATEEF2019321}. Consequentemente, o DeepLabv3 fornecerá a robustez necessária para segmentar trilhas
+ao redor \cite{LATEEF2019321, s19112577}. Utilizaremos o ASPP para garantir que o veículo compreenda a continuidade da 
+estrada \textit{off-road} mesmo quando ela se
+estende até o horizonte de forma irregular \cite{Sgibnev2020, LATEEF2019321}. Consequentemente, o DeepLabv3+ fornecerá a 
+robustez necessária para segmentar trilhas
 complexas onde modelos tradicionais poderiam falhar por falta de contexto global.
 
-A arquitetura DeepLabv3 estabelece-se como uma evolução crítica na segmentação semântica ao introduzir 
-a convolução atrous e o módulo \textit{Atrous Spatial Pyramid Pooling (ASPP)} para capturar contextos em múltiplas escalas de 
+A arquitetura DeepLabv3+ estabelece-se como uma evolução crítica na segmentação semântica ao introduzir 
+a convolução atrous e o módulo ASPP para capturar contextos em múltiplas escalas de 
 forma eficiente \cite{LATEEF2019321, GARCIAGARCIA201841}. A evidência técnica demonstra que o
 módulo ASPP aplica múltiplos filtros atrous com diferentes taxas de amostragem em paralelo, permitindo que a 
 rede agregue informações contextuais globais e locais simultaneamente \cite{LATEEF2019321, Sgibnev2020, BEYCIMEN2026113680}. 
 Este mecanismo explica como o modelo supera o desafio da variabilidade de escala, conseguindo identificar com precisão tanto 
-pequenos obstáculos próximos quanto grandes estruturas ao horizonte \cite{LATEEF2019321, Sgibnev2020}. Portanto, o DeepLabv3 atua 
+pequenos obstáculos próximos quanto grandes estruturas ao horizonte \cite{LATEEF2019321, Sgibnev2020}. Portanto, o DeepLabv3+ atua 
 como uma solução robusta para a extração de características densas, eliminando a necessidade de reduzir drasticamente a 
 resolução espacial para entender o contexto global da cena.
 
@@ -517,48 +548,45 @@ segmentações significativamente mais nítidas e precisas nos contornos das cla
 DeepLabv3+ solidifica-se como o padrão de excelência para tarefas que exigem alta fidelidade na forma exata das 
 superfícies segmentadas em ambientes reais.
 
-No contexto específico da navegação off-road, o DeepLabv3+ é empregado para gerenciar a incerteza e a 
+No contexto específico da navegação \textit{off-road}, o DeepLabv3+ é empregado para gerenciar a incerteza e a 
 complexidade visual de terrenos não estruturados \cite{Sgibnev2020, BEYCIMEN2026113680, s19112577}. O uso do ASPP permite que o 
 veículo compreenda a continuidade de uma estrada de terra que se estende de forma irregular, 
 enquanto a convolução atrous extrai características de solo e vegetação com alta precisão estrutural \cite{Sgibnev2020, s19112577}. 
 Resultados experimentais indicam que o modelo mantém a robustez mesmo sob variações extremas de iluminação e sombras projetadas por 
-árvores, desafios típicos do \textit{dataset} Freiburg Forest \cite{LATEEF2019321, Sgibnev2020, s19112577}. Linkando essa 
+árvores, desafios típicos do \textit{dataset} \textit{Freiburg Forest} \cite{LATEEF2019321, Sgibnev2020, s19112577}. Linkando essa 
 tecnologia ao nosso objetivo, a integração do DeepLabv3+ garante a segurança operacional necessária para que o sistema de 
 percepção identifique o caminho navegável em cenários rurais onde a geometria da estrada é mal definida.
 
 \begin{figure}[t]
     \centering
     \includegraphics[width=\linewidth]{DeepLab.png}
-    \caption{Arquitetura da DeepLab \cite{DeepLab-image}.}
+    \caption{Arquitetura do modelo DeepLabv3+ \cite{DeepLab-image}.}
     \label{fig:DeepLab-example.png}
 \end{figure}
 
 
 \subsection{O Simulador Carla}
 
-% TODO
-% Imagens do simulador
-
 O simulador Car Learning to Act (CARLA) estabelece-se como uma das ferramentas de código aberto mais robustas e fundamentais para o 
 desenvolvimento e validação de sistemas de direção autônoma em ambientes urbanos e complexos \cite{10.1145/3729420, 9288755}. Atualmente, o é amplamente 
 utilizado por pesquisadores e pela indústria para realizar treinamentos e testes rigorosos de algoritmos de percepção e controle, 
 permitindo a simulação de cenários que seriam dispendiosos ou perigosos de serem executados no mundo real \cite{9288755, 10.1145/3729420}. Através de sua arquitetura, 
-o simulador oferece um ambiente controlado onde é possível avaliar o desempenho de ponta a ponta (end-to-end) de veículos autônomos, 
+o simulador oferece um ambiente controlado onde é possível avaliar o desempenho de ponta a ponta de veículos autônomos, 
 garantindo a coleta de métricas precisas antes da implementação física \cite{10.1145/3729420}. Portanto, ele atua como uma ponte experimental essencial que 
 acelera a transição tecnológica para níveis mais elevados de automação veicular.
 
 A versatilidade do CARLA permite investigações profundas sobre fusão multissensorial e arquiteturas de aprendizado profundo aplicadas 
 à percepção visual. Evidências experimentais demonstram que a simulação no CARLA é ideal para comparar o desempenho de dados 
 monomodais versus multimodais, revelando, por exemplo, que a fusão precoce de dados RGB e de profundidade resulta em uma 
-condução superior em cenários climáticos adversos \cite{10.1145/3729420}. Ao fornecer fluxos de sensores perfeitamente sincronizados e rotulados 
+condução superior em cenários climáticos adversos \cite{10.1145/3729420}. Ao fornecer fluxos de sensores perfeitamente 
+sincronizados e rotulados 
 automaticamente, o simulador elimina as dificuldades de anotação manual e permite que os modelos aprendam representações 
-espaciais ricas e contextuais \cite{10.1145/3729420}. Consequentemente, o uso do CARLA é indispensável para otimizar sistemas de percepção que visam a 
+espaciais ricas e contextuais \cite{10.1145/3729420}. Consequentemente, o uso do CARLA é indispensável para otimizar 
+sistemas de percepção que visam a 
 robustez necessária para operar em condições de baixa visibilidade e terrenos variados.
 
 No domínio do aprendizado por reforço (RL) e da tomada de decisão tática, o simulador CARLA provê o ambiente dinâmico necessário 
-para testar a inteligência de agentes autônomos em tráfego intenso. Estudos recentes utilizaram o CARLA para validar modelos 
-avançados, como o Scene-Rep Transformer, alcançando melhorias significativas em taxas de sucesso, segurança e eficiência em 
-navegação urbana complexa \cite{10.1145/3729420}. A capacidade do simulador de emular a física realista e o comportamento de outros participantes do 
+para testar a inteligência de agentes autônomos \cite{10.1145/3729420}. A capacidade do simulador de emular a física realista e o comportamento de outros participantes do 
 tráfego permite que modelos de RL aprendam estratégias de condução interpretáveis e seguras através de processos de tentativa e erro \cite{10.1145/3729420}. 
 Dessa forma, o CARLA permite o refinamento contínuo das políticas de navegação, preparando os veículos para reagir de forma preditiva a 
 situações imprevistas nas estradas.
@@ -567,91 +595,97 @@ Além das tarefas individuais de percepção, o simulador suporta o desenvolvime
 navegação de ponto a ponto. Pesquisas indicam que modelos treinados no CARLA conseguem executar simultaneamente a percepção do ambiente 
 e o controle do veículo baseando-se em rotas definidas por planejadores globais \cite{10.1145/3729420}. Essa abordagem holística permite que o sistema gerencie 
 diversas funções concorrentes, como detecção de objetos e manutenção de faixa, enquanto navega em direção a um objetivo 
-específico \cite{10.1145/3729420}. Linkando esses resultados ao nosso objetivo, o CARLA fornece a infraestrutura necessária para integrar a segmentação 
-semântica diretamente nos loops de controle do veículo.
+específico \cite{10.1145/3729420}.
 
-Por fim, o uso de tecnologias de simulação baseadas em motores gráficos como o Unreal Engine (base do CARLA) está se expandindo para 
-solucionar os desafios da navegação off-road. Fontes indicam que datasets simulados gerados nestes motores podem conter milhões de 
-imagens anotadas automaticamente, incluindo terrenos como florestas, montanhas e áreas alagadas \cite{Sgibnev2020}. A aplicação de pesos 
-pré-treinados em dados simulados de terrenos off-road demonstrou aumentar significativamente a acurácia de segmentação 
+Por fim, o uso de tecnologias de simulação baseadas em motores gráficos como o Unreal Engine está se expandindo para 
+solucionar os desafios da navegação \textit{off-road}. Fontes indicam que \textit{datasets} simulados gerados nestes motores podem 
+conter milhões de 
+imagens anotadas automaticamente, incluindo terrenos como florestas, montanhas e áreas alagadas \cite{Sgibnev2020}. 
+A aplicação de pesos 
+pré-treinados em dados simulados de terrenos \textit{off-road} demonstrou aumentar significativamente a acurácia de segmentação 
 semântica em testes reais, mitigando a escassez de dados anotados manualmente em trilhas naturais \cite{Sgibnev2020}. Assim, os ambientes 
-virtuais de simulação fundamentam-se como recursos críticos para garantir que modelos de Deep Learning, como o DeepLabv3, alcancem a 
+virtuais de simulação fundamentam-se como recursos críticos para garantir que modelos de \textit{Deep Learning}, como o DeepLabv3, alcancem a 
 generalização necessária para operar com segurança em caminhos não estruturados\cite{Sgibnev2020}.
 
 \section{Metodologia}
 
-A etapa inicial da nossa pesquisa concentra-se na utilização do dataset Freiburg Forest para o treinamento base em ambientes de 
+A etapa inicial da nossa pesquisa concentra-se na utilização do \textit{dataset} \textit{Freiburg Forest} para o treinamento base em ambientes de 
 vegetação densa. Evidências na literatura apontam que este conjunto de dados é fundamental por deslocar o foco de ambientes urbanos 
-estruturados para a complexidade de terrenos naturais não estruturados, contendo aproximadamente 230 imagens 
-multiespectrais \cite{s26061944}. A riqueza deste dataset reside na sua constituição em ambientes de floresta sob diferentes condições de iluminação, 
-sombras e ângulos solares, o que desafia a robustez de qualquer modelo de visão \cite{LATEEF2019321}. Ao processar essas imagens, o sistema adquire a 
-capacidade de reconhecer padrões de solo e obstáculos naturais que são comuns em trilhas rurais \cite{s19112577}. Portanto, o Freiburg Forest atua como 
+estruturados para a complexidade de terrenos naturais não estruturados, contendo aproximadamente 200 imagens 
+multiespectrais \cite{s26061944}. A riqueza deste \textit{dataset} reside na sua constituição em ambientes de floresta sob diferentes condições de iluminação, 
+sombras e ângulos solares, o que desafia a robustez de qualquer modelo de visão \cite{LATEEF2019321}. Ao processar 
+essas imagens, o sistema adquire a 
+capacidade de reconhecer padrões de solo e obstáculos naturais que são comuns em trilhas 
+rurais \cite{s19112577}. Portanto, o \textit{Freiburg Forest} atua como 
 o alicerce experimental necessário para que o modelo aprenda a segmentar classes críticas como trilhas e vegetação em cenários de alta 
 variabilidade \cite{s19112577, s26061944}.
 
 Para a execução da tarefa de segmentação, adotaremos a arquitetura DeepLabv3+, reconhecida por sua alta precisão em limites de 
 objetos. Este modelo permite expandir o campo receptivo dos filtros sem perda de resolução espacial \cite{LATEEF2019321, DBLP:journals/corr/Garcia-GarciaOO17}. Estudos comparativos indicam que a 
-família DeepLab é uma das mais sólidas, superando outros métodos em quase todos os datasets de imagens RGB por margens significativas \cite{GARCIAGARCIA201841, DBLP:journals/corr/Garcia-GarciaOO17}. A 
+família DeepLab é uma das mais sólidas, superando outros métodos em quase todos os \textit{datasets} de imagens 
+RGB por margens significativas \cite{GARCIAGARCIA201841, DBLP:journals/corr/Garcia-GarciaOO17}. A 
 utilização do DeepLabv3+ é estratégica para o nosso objetivo, pois sua capacidade de capturar contextos em múltiplas escalas é 
 indispensável para distinguir trilhas estreitas de áreas de grama visualmente similares \cite{LATEEF2019321, Sgibnev2020}. Dessa maneira, a escolha desta rede 
-garante que a segmentação pixel a pixel possua a granularidade exigida para a segurança de um veículo off-road.
+garante que a segmentação pixel a pixel possua a granularidade exigida para a segurança de um veículo \textit{off-road}.
 
-A fim de aumentar a generalização do modelo, a metodologia prevê a integração de um segundo dataset ao fluxo de treinamento, criando uma 
-base de dados híbrida e mais robusta \cite{s26061944}. A combinação de diferentes fontes permite que a rede neural seja exposta a uma variedade maior 
-de classes que podem ser escassas em datasets isolados \cite{BEYCIMEN2026113680}. Ao treinar o modelo com este conjunto expandido, reduzimos o viés em direção a 
+A fim de aumentar a generalização do modelo, a metodologia prevê a integração de um segundo \textit{dataset} ao 
+fluxo de treinamento, criando uma 
+base de dados híbrida e mais robusta \cite{s26061944}. A combinação de diferentes fontes 
+permite que a rede neural seja exposta a uma variedade maior 
+de classes que podem ser escassas em \textit{datasets} isolados \cite{BEYCIMEN2026113680}. Ao treinar o modelo com este conjunto expandido, reduzimos o viés em direção a 
 um único tipo de terreno, preparando o sistema para condições operacionais reais mais severas \cite{s26061944}. Consequentemente, essa diversificação 
-de dados é o passo metodológico que assegura a adaptabilidade do DeepLab a diferentes biomas e ecossistemas \cite{s26061944}. 
+de dados é o passo metodológico que assegura a adaptabilidade do DeepLabv3+ a diferentes biomas e ecossistemas \cite{s26061944}. 
 
-A escassez de dados anotados pixel a pixel em ambientes off-road é mitigada pelo uso estratégico de Transfer Learning e 
-datasets de referência como o Freiburg Forest \cite{s19112577, 10742323}. O Freiburg Forest é 
+A escassez de dados anotados pixel a pixel em ambientes \textit{off-road} é mitigada pelo uso estratégico de \textit{Transfer Learning} e 
+\textit{datasets} de referência \cite{s19112577, 10742323}. O \textit{Freiburg Forest} é 
 amplamente utilizado como alicerce por conter milhares de imagens multiespectrais que capturam 
-variações extremas de iluminação e vegetação densa, enquanto o dataset YAMAHA fornece uma validação 
-crítica para veículos do tipo ATV em trilhas reais acidentadas \cite{Maturana2017, s19112577}. Evidências 
+variações extremas de iluminação e vegetação densa, enquanto o \textit{dataset} YAMAHA fornece uma validação 
+crítica em trilhas reais acidentadas \cite{Maturana2017, s19112577}. Evidências 
 demonstram que inicializar modelos com pesos pré-treinados em ImageNet e realizar o ajuste fino nestas 
-bases específicas permite que o DeepLabv3 e a FCN aprendam a distinguir solo navegável de obstáculos 
+bases específicas permite que o DeepLabv3+ e a FCN aprendam a distinguir solo navegável de obstáculos 
 naturais com alta precisão estatística \cite{10742323, s26061944}. Dessa forma, a combinação dessas bases 
 de dados garante que a rede neural desenvolva a generalização necessária para operar sob copas de árvores 
 e em trilhas rurais com características visuais distintas.
-A integração de dados sintéticos, como o dataset Synthetic Offroad, surge como uma solução 
-metodológica para preencher lacunas de informação e lidar com "casos de borda" (*edge cases*) \cite{s26061944, s19112577}. 
+A integração de dados sintéticos, como o \textit{dataset} Synthetic Offroad, surge como uma solução 
+metodológica para preencher lacunas de informação e lidar com "casos de borda" \cite{s26061944, s19112577}. 
 
-O desempenho final do código será validado através de testes rigorosos no dataset da YAMAHA (YCOR), que simula condições reais de 
-operação de ATVs (All-Terrain Vehicles). O dataset YCOR é uma referência na área, composto por 1.076 imagens coletadas em diferentes 
+O desempenho final do código será validado através de testes rigorosos no \textit{dataset} da YAMAHA, que simula condições reais de 
+operação de ATVs. O \textit{dataset} YCOR é uma referência na área, composto por imagens coletadas em diferentes 
 locais e estações, oferecendo classes específicas como trilhas suaves, solo acidentado e grama trafegável \cite{Maturana2017, s26061944}. Utilizaremos esta base para 
 verificar se a rede treinada consegue transferir o conhecimento aprendido para um novo domínio com características topográficas 
 distintas \cite{10742323}. A precisão obtida no YAMAHA servirá como o indicador definitivo de sucesso para a nossa lógica de detecção de caminho 
-navegável \cite{10742323}. Assim, o teste neste dataset específico fecha o ciclo de validação, conectando o treinamento acadêmico à aplicação 
+navegável \cite{10742323}. Assim, o teste neste \textit{dataset} específico fecha o ciclo de validação, conectando o treinamento acadêmico à aplicação 
 física em veículos utilitários de exploração \cite{Maturana2017}.
 
-Um ponto crucial da nossa metodologia é a comparação de desempenho entre o DeepLab e o modelo FCN (Fully Convolutional Network). 
+Um ponto crucial da nossa metodologia é a comparação de desempenho entre o DeepLabv3+ e o modelo FCN. 
 Enquanto o FCN é considerado o precursor da segmentação moderna por converter redes de classificação em predição densa pixel a pixel, 
 ele apresenta limitações em capturar informações de contexto global de forma invariante \cite{GARCIAGARCIA201841, DBLP:journals/corr/Garcia-GarciaOO17}. Em contrapartida, o DeepLab foi projetado 
 para superar essas falhas através de refinamentos espaciais e mecanismos de atenção multi-escala \cite{LATEEF2019321, GARCIAGARCIA201841}. Analisaremos métricas como o 
 tempo de inferência e a acurácia, visto que modelos FCN tendem a ser mais rápidos, porém menos precisos em bordas complexas se 
-comparados ao DeepLab \cite{Maturana2017, Long_2015_CVPR}. Essa análise comparativa permitirá justificar a escolha do modelo mais adequado para o equilíbrio entre 
+comparados ao DeepLabv3+ \cite{Maturana2017, Long_2015_CVPR}. Essa análise comparativa permitirá justificar a escolha do modelo mais adequado para o equilíbrio entre 
 segurança e velocidade de processamento \cite{DBLP:journals/corr/Garcia-GarciaOO17, BEYCIMEN2026113680}.
 
-A análise quantitativa dos resultados será pautada na métrica de mIoU (mean Intersection over Union) e em matrizes de confusão. 
-A acurácia da segmentação é definida pela razão entre a área corretamente segmentada e a verdade fundamental (ground truth), 
+A análise quantitativa dos resultados será pautada na métrica de mIoU e em matrizes de confusão. 
+A acurácia da segmentação é definida pela razão entre a área corretamente segmentada e a verdade fundamental, 
 sendo o mIoU o padrão ouro para avaliar a correção espacial \cite{LATEEF2019321, 9288755}. Além disso, calcularemos o Recall e o F1-score para cada classe, 
 garantindo que o modelo não negligencie categorias minoritárias, mas críticas, como obstáculos pequenos ou poças \cite{10742323}. Esta abordagem 
 rigorosa de métricas permite identificar onde o modelo apresenta confusão sistemática entre classes visualmente ambíguas \cite{s26061944}. 
 Portanto, a avaliação detalhada fornecerá os dados necessários para refinamentos futuros na arquitetura ou no processo de 
 aumento de dados \cite{10742323, s26061944}.
 
-A integração do simulador CARLA (Car Learning to Act) em nossa metodologia de testes é fundamental para validar a robustez do 
+A integração do simulador CARLA em nossa metodologia de testes é fundamental para validar a robustez do 
 modelo de segmentação em um ambiente virtual controlado e altamente realista. Evidências na literatura destacam que o CARLA 
 é uma das plataformas de código aberto mais eficazes para o treinamento e validação de sistemas de direção autônoma, 
 permitindo a execução de testes rigorosos que seriam perigosos ou dispendiosos no mundo real \cite{10.1145/3729420, 9288755}. Portanto, o CARLA atua como uma 
 etapa de validação intermediária crucial, garantindo que o sistema de percepção opere de forma confiável antes de qualquer 
-implementação em veículos físicos.
+implementação em veículos físicos. Podemos observar na imagem 7 o fluxograma de ilustração do passo a passo da nossa metodologia.
 
-\begin{figure}[t]
+\begin{figure*}[t]
     \centering
-    \includegraphics[width=\linewidth]{Metodologia_fluxograma.png}
-    \caption{Fluxograma da nossa metodologia.}
+    \includegraphics[width=\textwidth]{Metodologia_fluxograma.png}
+    \caption{Fluxograma para ilustração da nossa metodologia.}
     \label{fig:metodologia_fluxograma.png}
-\end{figure}
+\end{figure*}
 
 Por fim, a metodologia contempla a avaliação da viabilidade de processamento em tempo real. 
 A implementação de modelos de segmentação em cenários reais exige que o tempo de inferência por frame seja baixo o suficiente para 
@@ -659,16 +693,18 @@ acompanhar a velocidade do veículo, muitas vezes requerendo hardware especializ
 ligeiramente mais lento que arquiteturas simplificadas, sua robustez em condições de iluminação desafiadoras justifica o custo 
 computacional em prol da segurança \cite{10742323, Maturana2017}. Monitoraremos o desempenho temporal de ambos os modelos para garantir que a percepção 
 do ambiente ocorra em uma frequência compatível com os loops de controle de direção \cite{BEYCIMEN2026113680, Maturana2017}. Dessa forma, a metodologia 
-assegura que o sistema não apenas "enxergue" o caminho, mas o faça com a agilidade necessária para evitar acidentes em trilhas off-road \cite{10742323, s26061944}.
+assegura que o sistema não apenas "enxergue" o caminho, mas o faça com a agilidade necessária para evitar acidentes em trilhas \textit{off-road} \cite{10742323, s26061944}.
 
 A segmentação semântica aplicada a sequências de vídeo expande a capacidade de percepção ao introduzir a análise da 
 continuidade temporal e consistência de movimento \cite{LATEEF2019321, s26061944}. Em vez de processar cada quadro como uma 
 imagem isolada, técnicas avançadas de Aprendizado Profundo exploram as correlações temporais entre frames sucessivos para 
 garantir que o caminho identificado não oscile visualmente durante o deslocamento rápido do veículo \cite{GARCIAGARCIA201841, Sehar2022}. Isso é vital em contextos 
-off-road, onde a trepidação da câmera e mudanças súbitas de perspectiva podem gerar ruído na segmentação, exigindo que o 
+\textit{off-road}, onde a trepidação da câmera e mudanças súbitas de perspectiva podem gerar ruído na segmentação, exigindo que o 
 modelo mantenha um fluxo estável de mapas de trafegabilidade para o controle de direção \cite{10742323, s26061944}. Linkando 
 essa abordagem ao nosso objetivo, a segmentação de vídeo em tempo real fornece a segurança operacional necessária para que 
 o veículo autônomo tome decisões preditivas e fluidas em alta velocidade.
+
+\FloatBarrier
 
 \section{Resultados Parciais}
 
@@ -676,7 +712,7 @@ A arquitetura DeepLabv3+ apresentou elevada eficiência e rápida convergência 
 segmentação semântica para identificação de trilhas \textit{off-road}. Evidências do treinamento 
 demonstram que a função de perda sofreu uma redução drástica, declinando de 
 aproximadamente 0,167 na primeira época para 0,037 ao final do processo, enquanto a acurácia de pixels atingiu 
-a marca de 98,57\%. Esse comportamento indica que o modelo foi capaz de aprender progressivamente as 
+a marca de 98,57\%, como vistos na figura 8. Esse comportamento indica que o modelo foi capaz de aprender progressivamente as 
 hierarquias de características espaciais necessárias para distinguir solo navegável de 
 obstáculos naturais, superando desafios comuns de texturas irregulares presentes em biomas 
 como o \textit{Freiburg Forest} \cite{KABIR2025102644, s19112577}. Portanto, a estabilização das métricas 
@@ -685,38 +721,35 @@ erros de classificação em cenários de alta variabilidade visual.
 
 Além da acurácia global, a métrica mIoU confirmou a precisão espacial das segmentações, evoluindo 
 de 80\% para 92,58\%. Como a mIoU é o padrão ouro para medir a sobreposição entre as predições e a 
-verdade fundamental, este resultado de 92,58\% posiciona o modelo acima de diversos \textit{baselines} da literatura, 
-como o AdapNet (88,25\%) e variantes da FCN (77,46\%) testadas em ambientes florestais \cite{LATEEF2019321, GARCIAGARCIA201841, Sgibnev2020}. A 
-superioridade do DeepLabv3+ neste aspecto decorre do uso do módulo ASPP, que permite capturar o contexto de 
+verdade fundamental, este resultado de 92,58\% posiciona o modelo acima de diversos \textit{baselines} da literatura \cite{LATEEF2019321, GARCIAGARCIA201841, Sgibnev2020}. Os 
+resultados do DeepLabv3+ neste aspecto decorre ao uso do módulo ASPP, que permite capturar o contexto de 
 trilhas que se estendem até o horizonte enquanto preserva a delimitação exata de bordas próximas \cite{LATEEF2019321, Sgibnev2020, KABIR2025102644}. Dessa forma, 
 os resultados demonstram que o sistema não apenas classifica os pixels corretamente, mas 
 produz mapas de trafegabilidade espacialmente coerentes para o planejamento de rotas.
 
-\begin{figure}[t]
+\begin{figure*}[t]
     \centering
-    \includegraphics[width=\linewidth]{../metrics/training_metrics.png}
-    \caption{Métricas do modelo DeepLabV3.}
+    \includegraphics[width=\textwidth]{../metrics/training_metrics.png}
+    \caption{Métricas do modelo DeepLabv3+.}
     \label{fig:deep-lab-metrics.png}
-\end{figure}
+\end{figure*}
 
-Os desempenhos computacionais feridos indicam que a arquitetura possui viabilidade real para integração 
-em hardware embarcado e sistemas de robótica móvel. O treinamento completo foi finalizado em 
+Os desempenhos computacionais medidos, apresentados na figura 9, indicam que a arquitetura possui viabilidade real para integração 
+em hardware embarcado e sistemas de robótica móvel. O treinamento completo de apenas 4 épocas foi finalizado em 
 apenas 1 minuto e 47 segundos, com um tempo médio de inferência de aproximadamente 12,85 ms por 
-quadro \cite{10742323, BEYCIMEN2026113680}. Comparativamente, este tempo de resposta é significativamente inferior aos 
-40 ms reportados em estudos recentes de direção \textit{off-road} e aos 27 ms obtidos por modelos optimizados com 
-ResNet34, sugerindo que o sistema pode operar em frequências superiores a 70 FPS \cite{10742323, Sgibnev2020}. Tal 
-agilidade é um requisito crítico para a navegação em alta velocidade, garantindo que o veículo autônomo possa reagir 
+quadro \cite{10742323, BEYCIMEN2026113680}. Tal agilidade é um requisito crítico para a navegação em alta velocidade, garantindo que o veículo autônomo possa reagir 
 em tempo real a obstáculos súbitos identificados no fluxo de vídeo \cite{KABIR2025102644}. Consequentemente, os 
 baixos tempos de latência aliados à alta precisão reforçam o potencial do DeepLabv3+ para aplicações práticas em 
 plataformas robóticas operando em terrenos desafiadores.
+
+O treinamento foi realizado no computador, cujo as especificações de hardware são: Intel-Core I9 de 12° geração, 32GB de RAM e uma placa de
+vídeo dedicada NVIDIA RTX 3080.
 
 Em suma, os resultados parciais fundamentam a robustez da metodologia proposta, alcançando elevados índices 
 de acurácia e mIoU com reduzido custo computacional. Esses dados 
 fornecem uma base sólida para as próximas etapas do trabalho, que incluirão a 
 validação em malha fechada no simulador CARLA e o teste de generalização 
-no \textit{dataset} YAMAHA Linkando os 
-resultados à percepção computacional, conclui-se que o modelo está apto a prover as 
-informações semânticas necessárias para uma navegação autônoma segura e eficiente em ambientes \textit{off-road} reais.
+no \textit{dataset} YCOR.
 
 \begin{figure}[t]
     \centering
@@ -725,11 +758,90 @@ informações semânticas necessárias para uma navegação autônoma segura e e
     \label{fig:sumary-performance.png}
 \end{figure}
 
+\FloatBarrier
+
+\section{Cronograma}
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1}
+\setlength{\tabcolsep}{4pt}
+
+\begin{tabular}{|p{4cm}|c|c|c|c|c|c|c|c|c|c|c|c|}
+\hline
+\textbf{Atividade} &
+\textbf{1} & \textbf{2} & \textbf{3} & \textbf{4} &
+\textbf{5} & \textbf{6} & \textbf{7} & \textbf{8} &
+\textbf{9} & \textbf{10} & \textbf{11} & \textbf{12} \\ \hline
+
+Revisão da literatura apresentada
+& \cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& & & & & & & & & & \\ \hline
+
+Pesquisa de datasets off-roads
+& \cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& & & & & & & & & \\ \hline
+
+Busca de modelos de Deep Learning para segmentação semântica
+& &
+& \cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& & & & & & & \\ \hline
+
+Treinamento do modelo DeepLabv3+
+& & &
+& &
+\cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& & & & & \\ \hline
+
+Treinamento do modelo FCN
+& & & & & &
+\cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& & & & \\ \hline
+
+Comparação e avaliação dos modelos
+& & & & & & &
+\cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& & & \\ \hline
+
+Teste dos modelos no simulador CARLA
+& & & & & & & & &
+\cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& \\ \hline
+
+Desenvolvimento da segmentação semântica em vídeo com o modelo selecionado
+& & & & & & & & & &
+\cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7} \\ \hline
+
+Análise dos resultados e redação do relatório/artigo
+& & & & & & & & & &
+& \cellcolor[gray]{0.7}
+& \cellcolor[gray]{0.7} \\ \hline
+
+\end{tabular}
+
+\caption{Cronograma de atividades para 12 meses.}
+\label{tab:cronograma}
+\end{table*}
+
+\FloatBarrier
+
 \section{Referências}
 \printbibliography[heading=none]
-
-\section*{Agradecimentos}
-A seção de agradecimentos é opcional.\textbf{ Autores (incluindo o professor orientador) não devem ser incluídos nos agradecimentos. }
-
 
 \end{document}
