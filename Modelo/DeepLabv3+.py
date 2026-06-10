@@ -553,7 +553,7 @@ def train_one_epoch(loader):
 # =========================
 # TREINAMENTO COM RASTREAMENTO
 # =========================
-num_epochs = 100
+num_epochs = 80
 best_miou = 0.0
 
 metrics_tracker.start_training()
