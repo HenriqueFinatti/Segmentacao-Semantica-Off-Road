@@ -14,8 +14,8 @@ if __name__ == '__main__':
     create_dataset_folder()
     
     scripts = [
-        "scripts/cleaners/freiburg_forest.py",
-        "scripts/cleaners/synthetic_offroad.py",
+        "scripts/builders/freiburg_forest.py",
+        "scripts/builders/synthetic_offroad.py",
     ]
 
     start = time.perf_counter()

@@ -3,57 +3,40 @@ import shutil
 
 SYNTHETIC_DATASET = './data/raw/synthetic_offroad/dataset'
 
-def rename_synthetic_files():
+def copy_and_rename_synthetic_dataset():
     prefix = "Synthetic_Offroad_"
     index = 0
+    splits = ['test', 'train', 'val']
 
-    splits = ['test', 'train']
-    
     for split in splits:
-        path_original = os.path.join('data', 'dataset', split, 'original')
-        path_segmentation = os.path.join('data', 'dataset', split, 'original_segmentation')
+        root_rgb = os.path.join(SYNTHETIC_DATASET, split, 'rgb')
+        root_mask = os.path.join(SYNTHETIC_DATASET, split, 'mask')
+
+        if split == 'val': 
+            split = 'train'
         
-        for file in os.listdir(path_original):
-            name, extension = os.path.splitext(file)
+        dest_original = os.path.join('data', 'dataset', split, 'original')
+        dest_segmentation = os.path.join('data', 'dataset', split, 'original_segmentation')
 
-            if "Freiburg_Forest_" not in name:
-                old_original_file = os.path.join(path_original, file)
-                old_segmentation_file = os.path.join(path_segmentation, file)
-                
-                new_name = f"{prefix}{index}{extension}"
-                new_file_original = os.path.join(path_original, new_name)
-                new_file_segmentation = os.path.join(path_segmentation, new_name)
-                
-                os.rename(old_original_file, new_file_original)
-                os.rename(old_segmentation_file, new_file_segmentation)
-                
-                index += 1   
+        for file_rgb in os.listdir(root_rgb):
+            src_rgb = os.path.join(root_rgb, file_rgb)
+            
+            name_rgb, extension = os.path.splitext(file_rgb)
+            
+            id_part = name_rgb.split('_', 1)[1]
+            
+            file_mask = f"segmentation_{id_part}{extension}"
+            src_mask = os.path.join(root_mask, file_mask)
 
-def copy_synthetic_dataset():
-    splits = ['test', 'train']
-    pastas_mapeadas = {
-        'rgb': 'original',
-        'mask': 'original_segmentation',
-    }
+            new_name = f"{prefix}{index}{extension}"
+            
+            dest_rgb = os.path.join(dest_original, new_name)
+            dest_mask = os.path.join(dest_segmentation, new_name)
 
-    for split in splits:
-        for origem_nome, destino_nome in pastas_mapeadas.items():
-            root_path = os.path.join(SYNTHETIC_DATASET, split, origem_nome)
-            dest_path = os.path.join('data', 'dataset', split, destino_nome)
-
-            for file in os.listdir(root_path):
-                root_file = os.path.join(root_path, file)
-                
-                name, extension = os.path.splitext(file)                        
-                novo_nome_base = name.split('_', 1)[1]
-                novo_nome_completo = f"{novo_nome_base}{extension}"
-
-                dest_file = os.path.join(dest_path, novo_nome_completo)
-                
-                shutil.copy2(root_file, dest_file)
-
+            shutil.copy2(src_rgb, dest_rgb)
+            shutil.copy2(src_mask, dest_mask)
+            
+            index += 1
 
 if __name__ == '__main__':
-
-    copy_synthetic_dataset()
-    rename_synthetic_files()
+    copy_and_rename_synthetic_dataset()
