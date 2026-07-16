@@ -8,8 +8,10 @@ import torch.nn as nn
 import time
 from models.deeplabv3 import DeepLabV3Plus
 from models.dataset import OffRoadDataset
-
-EPOCHS = 2
+from models.early_stopping import EarlyStopping
+from metrics.statistics import Statistics
+EPOCHS = 200
+stats_calculator = Statistics()
 
 img_transform = transforms.Compose([
     transforms.Resize((512, 512)),
@@ -35,6 +37,12 @@ print(f"Total de imagens de treino: {len(train_dataset)}")
 def train_one_epoch(loader):
     model.train()
     start_time = time.time()
+    
+    total_loss = 0.0
+    total_acc = 0.0
+    total_miou = 0.0
+    num_batches = 0
+
     for batch_idx, (images, masks) in enumerate(loader):
         images = images.to(device)
         masks = masks.to(device)
@@ -45,25 +53,64 @@ def train_one_epoch(loader):
         loss.backward()
         optimizer.step()
 
+        total_loss += loss.item()
+        
+        preds = torch.argmax(outputs, dim=1)
+        
+        acc = stats_calculator.calculate_pixel_accuracy(preds, masks)
+        miou = stats_calculator.calculate_mean_iou(preds, masks, num_classes=2)
+        
+        total_acc += acc
+        total_miou += miou
+        num_batches += 1
+
     end_time = time.time()
     epoch_duration = end_time - start_time
 
-    mins, secs = divmod(epoch_duration, 60)
-    print(f"-> Tempo da Época: {int(mins)}m {secs:.2f}s")
+    avg_loss = total_loss / num_batches
+    avg_acc = total_acc / num_batches
+    avg_miou = total_miou / num_batches
+
+    return avg_loss, avg_acc, avg_miou, epoch_duration
 
 def train_model():
     total_train_start = time.time()
+    best_miou = 0.0
+    early_stopping = EarlyStopping(patience=10)
+    GREEN = "\033[92m"
+    RESET = "\033[0m"
+
     for epoch in range(EPOCHS):
-        print(f"\nÉpoca {epoch+1}/{EPOCHS}")
-        train_one_epoch(train_loader)    
+        epoch_num = epoch + 1
+        
+        avg_loss, avg_acc, avg_miou, duration = train_one_epoch(train_loader)
+        
+        is_best = avg_miou > best_miou
+        if is_best:
+            best_miou = avg_miou
+            path = "results\deeplabv3+\model.pth"
+            torch.save(model.state_dict(), path)
+
+        if is_best:
+            epoch_header = f"{GREEN}Época {epoch_num}/{EPOCHS}{RESET}"
+        else:
+            epoch_header = f"Época {epoch_num}/{EPOCHS}"
+
+        mins, secs = divmod(duration, 60)
+        print(f"\n{epoch_header}")
+        print(f"Loss: {avg_loss:.4f} | Acurácia: {avg_acc:.2%} | mIoU: {avg_miou:.4f} | Tempo de Treino: {int(mins)}m {secs:.2f}s")
+        
+        early_stopping(avg_miou)
+        if early_stopping.should_stop:
+            break
         
     total_train_end = time.time()
     total_duration = total_train_end - total_train_start
-
     total_mins, total_secs = divmod(total_duration, 60)
 
-    print(f"==========================")
+    print(f"\n==========================")
     print(f"Tempo total de treinamento: {int(total_mins)}m {total_secs:.2f}s")
+    print(f"Melhor mIoU alcançado: {best_miou:.4f}")
     print(f"==========================")
 
 def save_results():
