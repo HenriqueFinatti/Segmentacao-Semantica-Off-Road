@@ -2,6 +2,7 @@ import os
 import time
 from files.freiburg_forest import FreiburgForest
 from files.synthetic_offroad import SyntheticOffroad
+from masks.gerador_mask import generate_all_masks
 
 def create_dataset_folder():
     os.makedirs("./data/raw", exist_ok=True)
@@ -24,10 +25,15 @@ if __name__ == '__main__':
 
     print('Baixando Synthetic Offroad...')
     synthetic_offroad.download_full_dataset()
-
+    synthetic_offroad.delete_unnecessary_files()
+    
     print('Movendo arquivos para o dataset final...')
-    synthetic_offroad.move_raw_dataset_to_final_dataset()
     freiburg_forest.move_raw_dataset_to_final_dataset()
+    synthetic_offroad.move_raw_dataset_to_final_dataset()
+
+    print('Gerando mascaras')
+    total_generated, total_skipped = generate_all_masks()
+    print(f"Máscaras geradas: {total_generated}")
 
     end_time = time.time()
     elapsed_time = end_time - start_time

@@ -16,6 +16,13 @@ class SyntheticOffroad():
 
         shutil.copytree(downloaded_path, destination)
 
+    def delete_unnecessary_files(self):
+        splits = ['test', 'train', 'val']
+        
+        for split in splits:
+            mask_labels_path = os.path.join(self.SYNTHETIC_DATASET, split, 'mask_labels')
+            shutil.rmtree(mask_labels_path)
+            
     def move_raw_dataset_to_final_dataset(self):
         prefix = "Synthetic_Offroad_"
         index = 0
