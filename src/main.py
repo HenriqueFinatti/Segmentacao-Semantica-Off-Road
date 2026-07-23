@@ -10,6 +10,7 @@ from entities.dataset import OffRoadDataset
 from entities.early_stopping import EarlyStopping
 from entities.settings import Settings
 from metrics.metrics import MetricsTracker
+from metrics.charts import plot_charts
 
 settings = Settings()
 metrics_tracker = MetricsTracker()
@@ -98,3 +99,4 @@ def save_results():
 if __name__ == "__main__":
     train_model()
     save_results()
+    plot_charts(metrics_tracker, "./results/deeplabv3+/images")

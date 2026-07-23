@@ -9,35 +9,42 @@ Segmentacao-Semantica-Off-Road/
 |-- artigo/
 |   |   ...
 |-- data/
-|   |-- raw/
-|   |   |--  original/
-|   |   |--  mask/
-|   |   |--  segmentation/
 |   |-- dataset/
-|   |   |--  original/
-|   |   |--  mask/
-|   |   |--  original_segmentation/
-|   |   |--  new_segmentation/
-|-- results/
-|   |-- models/
-|   |   |-- deeplabv3+/
-|   |   |   |   ...
-|   |   |-- fcn/
-|   |   |   |   ...  
-|   |-- images/
+|   |   |-- test
+|   |   |   |--  mask/
+|   |   |   |--  new_segmentation/
+|   |   |   |--  original/
+|   |   |   |--  original_segmentation/
+|   |   |-- train
+|   |   |   |--  mask/
+|   |   |   |--  new_segmentation/
+|   |   |   |--  original/
+|   |   |   |--  original_segmentation/
+|   |-- raw/
 |   |   |   ...
+|-- results/
+|   |-- deeplabv3+/
+|   |   |-- images/
+|   |   |   |   ...
+|   |   |-- statistics/
+|   |   |   |   ...  
+|   |-- fcn/
+|   |   |-- images/
+|   |   |   |   ...
+|   |   |-- statistics/
+|   |   |   |   ...  
 |-- scripst/
 |   |-- files/
 |   |   |   ...
 |   |-- masks/
 |   |   |   ...
 |-- src/
-|   |-- models/
-|   |   |-- deeplabv3+/
-|   |   |   |   ...
-|   |   |-- fcn/
-|   |   |   |   ...
+|   |-- entities/
+|   |   |   ...
+|   |-- metrics/
+|   |   |   ...
 |-- .gitignore
 |-- README.me
 |-- requirements.txt
+|-- settings.json
 ```

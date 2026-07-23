@@ -14,9 +14,10 @@ class MetricsTracker:
         self.best_miou = 0.0
         
         self.num_batches = 0
-        self.training_start_time = 0
         self.start_epoch_time = 0
-        
+        self.training_start_time = 0
+        self.total_training_time = 0
+
         self.epochs = []
         self.losses = []
         self.accuracies = []
@@ -105,8 +106,8 @@ class MetricsTracker:
         self.training_start_time = time.time()
     
     def end_training(self):
-        total_training_time = time.time() - self.training_start_time
-        total_mins, total_secs = divmod(total_training_time, 60)
+        self.total_training_time = time.time() - self.training_start_time
+        total_mins, total_secs = divmod(self.total_training_time, 60)
 
         print(f"\n==========================")
         print(f"Tempo total de treinamento: {int(total_mins)}m {total_secs:.2f}s")
