@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 import time
-from entities.settings import Settings
+from configs.settings import Settings
 GREEN = "\033[92m"
 RESET = "\033[0m"
 

@@ -1,17 +1,18 @@
-from entities.settings import Settings
+from configs.settings import Settings
 
 class EarlyStopping:
     def __init__(self):
         self.settings = Settings()
 
-        self.patience = self.settings.getPatience()
+        self.patience = self.settings.get_patience()
         self.min_delta = 0.0
         self.counter = 0
         self.best_miou = None
         self.should_stop = False
 
+
     def __call__(self, current_miou):
-        if not self.settings.isEarlyStoppingOn():
+        if not self.settings.is_early_stopping_on():
             return
 
         if self.best_miou is None:
