@@ -12,10 +12,10 @@ from ..earlyStopping import EarlyStopping
 from .model.deeplabv3 import DeepLabV3Plus
 
 from configs.settings import Settings
-from src.metrics.metrics import MetricsTracker
+from metrics import MetricsTracker, Charts
 
 settings = Settings()
-metrics_tracker = MetricsTracker()
+charts = Charts()
 early_stopping = EarlyStopping()
 
 EPOCHS = settings.get_epochs()
@@ -39,12 +39,13 @@ print(f"Total de imagens de treino: {len(train_dataset)}")
 
 class DeepLabV3Trainer():
     def __init__(self):
+        self.metrics_tracker = MetricsTracker()
         pass
         
     def train_one_epoch(self, loader, epoch_num):
         model.train()
 
-        metrics_tracker.start_epoch()
+        self.metrics_tracker.start_epoch()
         for batch_idx, (images, masks) in enumerate(loader):
             images = images.to(device)
             masks = masks.to(device)
@@ -55,15 +56,15 @@ class DeepLabV3Trainer():
             loss.backward()
             optimizer.step()
 
-            metrics_tracker.update_metrics(loss.item(), outputs, masks)
+            self.metrics_tracker.update_metrics(loss.item(), outputs, masks)
             
-        metrics_tracker.end_epoch(epoch_num)
-        early_stopping(metrics_tracker.avg_miou)
+        self.metrics_tracker.end_epoch(epoch_num)
+        early_stopping(self.metrics_tracker.avg_miou)
 
 
     def train_model(self):
 
-        metrics_tracker.start_training()
+        self.metrics_tracker.start_training()
         for epoch in range(EPOCHS):
             epoch_num = epoch + 1
             
@@ -73,11 +74,11 @@ class DeepLabV3Trainer():
             if early_stopping.should_stop:
                 break
             
-        metrics_tracker.end_training()
+        self.metrics_tracker.end_training()
 
 
     def save_best_model(self):
-        if metrics_tracker.is_best:
+        if self.metrics_tracker.is_best:
             path = "results\deeplabv3+\model.pth"
             torch.save(model.state_dict(), path)
 

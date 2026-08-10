@@ -1,20 +1,26 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from entities.settings import Settings
+from configs.settings import Settings
 
 settings = Settings()
-def plot_charts(metrics_tracker, save_dir):
-    if settings.isChartsOn():
-        plot_loss(metrics_tracker, save_dir)
-        plot_accuracy(metrics_tracker, save_dir)
-        plot_iou(metrics_tracker, save_dir)
-        plot_convergence(metrics_tracker, save_dir)
-        plot_training_time(metrics_tracker.total_training_time, save_dir)
-        plot_best_iou(metrics_tracker, save_dir)
-        plot_best_accuracy(metrics_tracker, save_dir)
 
-def plot_loss(metrics_tracker, save_dir):
+class Charts:
+    def __init__(self):
+        pass
+
+    def plot_charts(self, metrics_tracker, save_dir = "./results/deeplabv3+/images"):
+        if settings.is_charts_on():
+            self.plot_loss(metrics_tracker, save_dir)
+            self.plot_accuracy(metrics_tracker, save_dir)
+            self.plot_iou(metrics_tracker, save_dir)
+            self.plot_convergence(metrics_tracker, save_dir)
+            self.plot_training_time(metrics_tracker.total_training_time, save_dir)
+            self.plot_best_iou(metrics_tracker, save_dir)
+            self.plot_best_accuracy(metrics_tracker, save_dir)
+
+
+    def plot_loss(self, metrics_tracker, save_dir):
         fig, ax = plt.subplots(figsize=(10, 6))
         
         ax.plot(metrics_tracker.epochs, metrics_tracker.losses, 'b-', linewidth=2.5, marker='o', markersize=5)
@@ -24,7 +30,6 @@ def plot_loss(metrics_tracker, save_dir):
         ax.grid(True, alpha=0.3)
         ax.set_facecolor('#f0f0f0')
         
-        # Anotação do melhor valor
         best_loss_idx = np.argmin(metrics_tracker.losses)
         ax.annotate(f'Min: {metrics_tracker.losses[best_loss_idx]:.4f}', 
                         xy=(metrics_tracker.epochs[best_loss_idx], metrics_tracker.losses[best_loss_idx]),
@@ -36,7 +41,8 @@ def plot_loss(metrics_tracker, save_dir):
         plt.savefig(os.path.join(save_dir, '01_loss.png'), dpi=300, bbox_inches='tight')
         plt.close()
 
-def plot_accuracy(metrics_tracker, save_dir):
+
+    def plot_accuracy(self, metrics_tracker, save_dir):
         fig, ax = plt.subplots(figsize=(10, 6))
         
         ax.plot(metrics_tracker.epochs, metrics_tracker.accuracies, 'c-', linewidth=2.5, marker='s', markersize=5)
@@ -59,7 +65,8 @@ def plot_accuracy(metrics_tracker, save_dir):
         plt.savefig(os.path.join(save_dir, '02_accuracy.png'), dpi=300, bbox_inches='tight')
         plt.close()
 
-def plot_iou(metrics_tracker, save_dir):
+
+    def plot_iou(self, metrics_tracker, save_dir):
         fig, ax = plt.subplots(figsize=(10, 6))
         
         ax.plot(metrics_tracker.epochs, metrics_tracker.mious, 'r-', linewidth=2.5, marker='^', markersize=5)
@@ -82,7 +89,8 @@ def plot_iou(metrics_tracker, save_dir):
         plt.savefig(os.path.join(save_dir, '03_iou.png'), dpi=300, bbox_inches='tight')
         plt.close()
 
-def plot_convergence(metrics_tracker, save_dir):
+
+    def plot_convergence(self, metrics_tracker, save_dir):
         fig, ax = plt.subplots(figsize=(10, 6))
         
         # Normalizar para visualização conjunta
@@ -106,7 +114,8 @@ def plot_convergence(metrics_tracker, save_dir):
         plt.savefig(os.path.join(save_dir, '04_convergence.png'), dpi=300, bbox_inches='tight')
         plt.close()
 
-def plot_training_time(training_time, save_dir):
+
+    def plot_training_time(self, training_time, save_dir):
         fig, ax = plt.subplots(figsize=(10, 6))
         
         hours = int(training_time // 3600)
@@ -124,7 +133,8 @@ def plot_training_time(training_time, save_dir):
         plt.savefig(os.path.join(save_dir, '05_training_time.png'), dpi=300, bbox_inches='tight')
         plt.close()
 
-def plot_best_iou(metrics_tracker, save_dir):
+
+    def plot_best_iou(self, metrics_tracker, save_dir):
         fig, ax = plt.subplots(figsize=(10, 6))
         
         best_miou = max(metrics_tracker.mious)
@@ -144,7 +154,8 @@ def plot_best_iou(metrics_tracker, save_dir):
         plt.savefig(os.path.join(save_dir, '07_best_iou.png'), dpi=300, bbox_inches='tight')
         plt.close()
 
-def plot_best_accuracy(metrics_tracker, save_dir):
+
+    def plot_best_accuracy(self, metrics_tracker, save_dir):
         fig, ax = plt.subplots(figsize=(10, 6))
 
         best_acc = max(metrics_tracker.accuracies)
