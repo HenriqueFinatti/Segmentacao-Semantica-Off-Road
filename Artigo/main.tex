@@ -144,12 +144,13 @@
   Diante desse cenário esse trabalho apresenta um modelo de segmentação semântica
   desenvolvido com a arquitetura DeepLabV3+, proposta pela Google, utilizando a ResNet152 como backbone. O modelo será
   treinado com diversos \textit{datasets} encontrados em artigos recentes na área da segmentação semântica aplicada em ambientes \textit{off-road}.
-  O objetivo deste trabalho é desenvolver e treinar o modelo para obter bons resultados no \textit{dataset} YAMAHA, conhecido como
-  um dos \textit{datasets} mais desafiadores para segmentação. Além disso, pretendemos aplicar o modelo na segmentação de imagens
-  e vídeos de competições Baja realizadas pela equipe da FEI, utilizando como métrica principal Intersection over Union.
+  O objetivo deste trabalho é desenvolver, treinar e comparar os modelos para obter bons resultados no \textit{dataset} YAMAHA, conhecido como
+  um dos \textit{datasets} mais desafiadores para segmentação. Utilizaremos o CARLA, um simulador gráfico de direção,
+  para testar o desempenho dos modelos desenvolvidos. Além disso, pretendemos aplicar o modelo na segmentação de imagens
+  e vídeos de competições Baja realizadas pela equipe da FEI.
 }
 
-\keyword{Segmentação Semântica, Off-Road, DeepLabV3+, Carla}
+\keyword{Segmentação Semântica, Off-Road, DeepLabV3+, CARLA}
 }
 
 \end{@twocolumnfalse}
@@ -565,7 +566,7 @@ percepção identifique o caminho navegável em cenários rurais onde a geometri
 \end{figure}
 
 
-\subsection{O Simulador Carla}
+\subsection{O Simulador CARLA}
 
 O simulador Car Learning to Act (CARLA) estabelece-se como uma das ferramentas de código aberto mais robustas e fundamentais para o 
 desenvolvimento e validação de sistemas de direção autônoma em ambientes urbanos e complexos \cite{10.1145/3729420, 9288755}. Atualmente, o é amplamente 
