@@ -84,7 +84,7 @@ class DeepLabV3Trainer():
 
 
     def save_results(self):
-        output_dir = 'data/dataset/train/new_segmentation'
+        output_dir = 'data/dataset/train/new_segmentation/deeplabv3+'
 
         infer_loader = DataLoader(train_dataset, batch_size=4, shuffle=False, num_workers=0)
         global_idx = 0
