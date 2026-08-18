@@ -1,8 +1,0 @@
-{
-    "EarlyStopping": true
-    ,"Freiburg_Forest": false
-    ,"Synthetic_Offroad": false
-    ,"Charts": true
-    ,"Epochs": 200
-    ,"Patience": 3  
-}

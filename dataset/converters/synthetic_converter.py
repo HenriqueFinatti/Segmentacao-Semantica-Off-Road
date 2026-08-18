@@ -1,29 +1,15 @@
 
-import kagglehub
 import shutil
 import os
 
-class SyntheticOffroad():
-    OUTPUT_DIR = "./data/raw"
+class SyntheticConverter():
     SYNTHETIC_DATASET = './data/raw/synthetic_offroad/dataset'
     
     def __init__(self):
         pass
-
-    def download_full_dataset(self):
-        downloaded_path = kagglehub.dataset_download("konrmal94/synthetic-offroad-image-dataset")
-        destination = os.path.join(self.OUTPUT_DIR, "synthetic_offroad")
-
-        shutil.copytree(downloaded_path, destination)
-
-    def delete_unnecessary_files(self):
-        splits = ['test', 'train', 'val']
-        
-        for split in splits:
-            mask_labels_path = os.path.join(self.SYNTHETIC_DATASET, split, 'mask_labels')
-            shutil.rmtree(mask_labels_path)
             
-    def move_raw_dataset_to_final_dataset(self):
+            
+    def move_synthetic_files(self):
         prefix = "Synthetic_Offroad_"
         index = 0
         splits = ['test', 'train', 'val']

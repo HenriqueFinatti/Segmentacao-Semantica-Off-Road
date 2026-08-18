@@ -1,7 +1,8 @@
 import torch
 import numpy as np
 import time
-from entities.settings import Settings
+from configs.settings import Settings
+
 GREEN = "\033[92m"
 RESET = "\033[0m"
 
@@ -24,12 +25,14 @@ class MetricsTracker:
         self.mious = []
         pass
 
+
     def calculate_pixel_accuracy(self, preds, masks):
         with torch.no_grad():
             correct = (preds == masks).sum().item()
             total = masks.numel()
             acc = correct / total
         return acc
+
 
     def calculate_mean_iou(self, preds, masks, num_classes=2):
         with torch.no_grad():
@@ -46,6 +49,7 @@ class MetricsTracker:
             miou = np.nanmean(iou_list)
         return miou
     
+
     def update_metrics(self, loss, outputs, masks):
         self.total_loss += loss
         
@@ -54,6 +58,7 @@ class MetricsTracker:
         self.total_acc += self.calculate_pixel_accuracy(preds, masks)
         self.total_miou += self.calculate_mean_iou(preds, masks, num_classes=2)
         self.num_batches += 1
+
 
     def add_epoch(self, epoch, duration):
         mins, secs = divmod(duration, 60)
@@ -72,6 +77,7 @@ class MetricsTracker:
 
         self.reset_values(avg_miou)
 
+
     def calculate_avg(self):
         avg_loss = self.total_loss / self.num_batches
         avg_acc = self.total_acc / self.num_batches
@@ -79,12 +85,14 @@ class MetricsTracker:
 
         return avg_loss, avg_acc, avg_miou
     
+
     def reset_values(self, avg_miou):
         self.avg_miou = avg_miou
         self.total_loss = 0.0
         self.total_acc = 0.0
         self.total_miou = 0.0
         self.num_batches = 0
+
 
     def build_epoch_header(self, avg_miou, epoch_num):
         self.is_best = avg_miou > self.best_miou
@@ -95,15 +103,19 @@ class MetricsTracker:
 
         return f"Época {epoch_num}"
 
+
     def start_epoch(self):
         self.start_epoch_time = time.time()
+
 
     def end_epoch(self, epoch_num):
         duration = time.time() - self.start_epoch_time
         self.add_epoch(epoch_num, duration)
 
+
     def start_training(self):
         self.training_start_time = time.time()
+  
     
     def end_training(self):
         self.total_training_time = time.time() - self.training_start_time

@@ -1,0 +1,20 @@
+{
+    "EarlyStopping": true
+    ,"Freiburg_Forest": false
+    ,"Synthetic_Offroad": false
+    ,"Charts": true
+    ,"Epochs": 200
+    ,"Patience": 3
+    ,"Datasets_Labels": {
+        "Freiburg_Forest": {
+            "color":     [170, 170, 170],
+            "label":     "Trail",
+            "tolerance": 10
+        },
+        "Synthetic_Offroad": {
+            "color":     [207, 149, 30],
+            "label":     "Trail",
+            "tolerance": 10
+        }
+    }  
+}

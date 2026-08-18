@@ -4,7 +4,7 @@ import numpy as np
 from torch.utils.data import Dataset
 from torchvision import transforms
 from PIL import Image
-from entities.settings import Settings
+from configs.settings import Settings
 
 class OffRoadDataset(Dataset):
     def __init__(self, root_dir, img_transform=None):
@@ -12,12 +12,14 @@ class OffRoadDataset(Dataset):
         self.rgb_dir  = os.path.join(root_dir, "original")
         self.mask_dir = os.path.join(root_dir, "mask")
 
-        self.images = self.getImages()
+        self.images = self.get_images()
 
         self.img_transform = img_transform
     
+
     def __len__(self):
         return len(self.images)
+
 
     def __getitem__(self, idx):
         img_name  = self.images[idx]
@@ -41,12 +43,13 @@ class OffRoadDataset(Dataset):
 
         return image, mask
     
-    def getImages(self):
+
+    def get_images(self):
         temp_images = sorted(os.listdir(self.rgb_dir))
         images = []
 
-        isFreiburgOn = self.settings.isFreiburgForestOn()
-        isSyntheticOn = self.settings.isSyntheticOffRoadOn()
+        isFreiburgOn = self.settings.is_freiburg_forest_on()
+        isSyntheticOn = self.settings.is_synthetic_off_road_on()
 
         if isSyntheticOn or isFreiburgOn:
             for img in temp_images:
@@ -59,6 +62,7 @@ class OffRoadDataset(Dataset):
                 if "synthetic" in img_name and isSyntheticOn:
                     images.append(img)
                     continue
+
             return images
 
         for i in range(0, 20):
