@@ -7,3 +7,9 @@
 ```
 python -B -m app.main
 ```
+
+## To-do
+
+[] Melhorar o metrics tracker para escrever as métricas em um txt para cada modelo.
+[] Remover os arquivos __init__.py
+[] Verificar se dá para integrar os gráficos ao métrics tracker

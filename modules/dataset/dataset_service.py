@@ -2,19 +2,21 @@ import os
 
 from configs.settings import Settings
 
-from dataset import (
-    FreiburgDownloader,
-    FreiburgCleaner,
-    FreiburgConverter,
-    SyntheticDownloader,
-    SyntheticCleaner,
-    SyntheticConverter,
-    MaskGenerator,
-)
+from modules.dataset.generators.mask_generator import MaskGenerator
+from modules.dataset.cleaners.post_download_cleaner import PostDownloadCleaner
+
+from modules.dataset.cleaners.freiburg_cleaner import FreiburgCleaner
+from modules.dataset.converters.freiburg_converter import FreiburgConverter
+from modules.dataset.downloaders.freiburg_downloader import FreiburgDownloader
+
+from modules.dataset.cleaners.synthetic_cleaner import SyntheticCleaner
+from modules.dataset.converters.synthetic_converter import SyntheticConverter
+from modules.dataset.downloaders.synthetic_downloader import SyntheticDownloader
 
 settings = Settings()
 
 maskGenerator = MaskGenerator(settings)
+postDownloadCleaner = PostDownloadCleaner()
 
 freiburgDownloader = FreiburgDownloader()
 freiburgCleaner = FreiburgCleaner()
@@ -86,3 +88,7 @@ class DatasetService():
 
     def convert_synthetic(self):
         syntheticConverter.move_synthetic_files()
+
+    
+    def post_download_clean():
+        postDownloadCleaner.delete_raw_dataset()

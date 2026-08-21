@@ -7,18 +7,22 @@ from PIL import Image
 from torchvision import transforms
 from torch.utils.data import DataLoader
 
-from ..dataset import OffRoadDataset
-from ..earlyStopping import EarlyStopping
-from .model.fcn import FCN 
-from .model.deeplabv3 import DeepLabV3Plus
-
 from configs.settings import Settings
-from metrics import MetricsTracker, Charts
+
+from modules.training.dataset.off_road_dataset import OffRoadDataset
+
+from modules.training.trainer.model.fcn import FCN
+from modules.training.trainer.model.deeplabv3 import DeepLabV3Plus
+from modules.training.earlyStopping.early_stopping import EarlyStopping
+
+from modules.metrics.chart import Charts
+from modules.metrics.metrics_tracker import MetricsTracker
 
 
 class Trainer():
-    def __init__(self, model):
-        self.metrics_tracker = MetricsTracker()
+    def __init__(self, model: str):
+        self.current_model = model.upper()
+        self.metrics_tracker = MetricsTracker(self.current_model)
         self.settings = Settings()
         self.charts = Charts()
         self.early_stopping = EarlyStopping()

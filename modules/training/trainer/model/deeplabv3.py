@@ -1,7 +1,7 @@
-import torchvision.models as models
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision.models as models
 
 class DeepLabV3Plus(nn.Module):
     def __init__(self, num_classes):

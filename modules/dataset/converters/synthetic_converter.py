@@ -1,6 +1,5 @@
-
-import shutil
 import os
+import shutil
 
 class SyntheticConverter():
     SYNTHETIC_DATASET = './data/raw/synthetic_offroad/dataset'

@@ -1,7 +1,5 @@
-from training import (
-    Trainer
-)
-from metrics import Charts
+from modules.metrics.chart import Charts
+from modules.training.trainer.trainer import Trainer
 
 charts = Charts()
 

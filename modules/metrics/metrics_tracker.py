@@ -1,13 +1,17 @@
 import torch
-import numpy as np
 import time
+import numpy as np
+
 from configs.settings import Settings
 
+BLUE = "\033[94m"
 GREEN = "\033[92m"
 RESET = "\033[0m"
 
 class MetricsTracker:
-    def __init__(self):
+    def __init__(self, current_model):
+        self.current_model = current_model
+
         self.settings = Settings()
         self.total_loss = 0.0
         self.total_acc = 0.0
@@ -23,7 +27,6 @@ class MetricsTracker:
         self.losses = []
         self.accuracies = []
         self.mious = []
-        pass
 
 
     def calculate_pixel_accuracy(self, preds, masks):
@@ -99,9 +102,15 @@ class MetricsTracker:
 
         if self.is_best:
             self.best_miou = avg_miou
-            return f"{GREEN}Época {epoch_num}{RESET}"
 
-        return f"Época {epoch_num}"
+        model = f"{BLUE}{self.current_model}{RESET}"
+
+        if self.is_best:
+            epoch = f"{GREEN}Época {epoch_num}{RESET}"
+        else:
+            epoch = f"Época {epoch_num}"
+
+        return f"{model}: {epoch}"
 
 
     def start_epoch(self):
@@ -125,3 +134,11 @@ class MetricsTracker:
         print(f"Tempo total de treinamento: {int(total_mins)}m {total_secs:.2f}s")
         print(f"Melhor mIoU alcançado: {self.best_miou:.4f}")
         print(f"==========================")
+
+
+    def results_path(self):
+        if self.current_model.upper() == 'FCN':
+            return 'results/fcn/statistcs/stats.md'
+        
+        if self.current_model.upper() == 'DEEPLABV3+':
+            return 'results/deeplabv3+/statistcs/stats.md'

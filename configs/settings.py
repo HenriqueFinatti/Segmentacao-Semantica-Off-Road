@@ -1,7 +1,8 @@
 import json
 import numpy as np
 
-from schemas import DatasetLabel, SettingsConfig
+from schemas.dataset_label import DatasetLabel
+from schemas.settings_config import SettingsConfig
 
 class Settings():
 

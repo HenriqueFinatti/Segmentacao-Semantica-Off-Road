@@ -1,9 +1,10 @@
 import os
 import torch
 import numpy as np
-from torch.utils.data import Dataset
-from torchvision import transforms
+
 from PIL import Image
+from torchvision import transforms
+from torch.utils.data import Dataset
 from configs.settings import Settings
 
 class OffRoadDataset(Dataset):

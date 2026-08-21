@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+
 from configs.settings import Settings
 
 settings = Settings()
