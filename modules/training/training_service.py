@@ -9,15 +9,16 @@ class TrainingService():
         pass
 
     def train_models(self):
+        print('Treinando FCN...')
         self.train_fcn()
-        print('=======================================================================================')
+
+        print('Treinando DeepLabV3+...')
         self.train_deep_lab()
 
     def train_deep_lab(self):
         trainer = Trainer('deeplabv3+')
         trainer.train_model()
         trainer.save_results()
-        # charts.plot_charts(trainer.metrics_tracker)
 
     def train_fcn(self):
         trainer = Trainer('fcn')

@@ -91,6 +91,7 @@ class Trainer():
                 break
             
         self.metrics_tracker.end_training()
+        self.charts.plot_charts(self.metrics_tracker, self.current_model)
 
 
     def save_best_model(self):

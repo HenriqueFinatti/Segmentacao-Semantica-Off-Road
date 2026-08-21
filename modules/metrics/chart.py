@@ -10,7 +10,11 @@ class Charts:
     def __init__(self):
         pass
 
-    def plot_charts(self, metrics_tracker, save_dir = "./results/deeplabv3+/images"):
+    def plot_charts(self, metrics_tracker, current_model):
+
+        save_dir = self.get_result_path(current_model.upper())
+        os.makedirs(save_dir, exist_ok=True)
+
         if settings.is_charts_on():
             self.plot_loss(metrics_tracker, save_dir)
             self.plot_accuracy(metrics_tracker, save_dir)
@@ -175,3 +179,11 @@ class Charts:
         plt.tight_layout()
         plt.savefig(os.path.join(save_dir, '08_best_accuracy.png'), dpi=300, bbox_inches='tight')
         plt.close()
+
+
+    def get_result_path(self, model):
+        if model == 'FCN':
+            return 'results/fcn/images'
+        
+        if model == 'DEEPLABV3+':
+            return 'results/deeplabv3+/images'

@@ -34,9 +34,11 @@ class DatasetService():
     def download_dataset(self):
         self.create_raw_dataset_folder()
 
+        print('Baixando Freiburg Forest...')
         self.download_freiburg()
         self.clean_freiburg()
 
+        print('Baixando Synthetic Offroad...')
         self.download_synthetic()
         self.clean_synthetic()
 
@@ -44,9 +46,11 @@ class DatasetService():
     def build_dataset(self):
         self.create_final_dataset_folder()
 
+        print('Padronizando e movendo imagens...')
         self.convert_freiburg()
         self.convert_synthetic()
 
+        print('Gerando máscaras...')
         self.generate_dataset_masks()
 
 
@@ -90,5 +94,6 @@ class DatasetService():
         syntheticConverter.move_synthetic_files()
 
     
-    def post_download_clean():
+    def post_download_clean(self):
+        print('Apagando arquivos originais...')
         postDownloadCleaner.delete_raw_dataset()
