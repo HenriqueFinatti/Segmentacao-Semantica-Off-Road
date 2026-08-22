@@ -13,6 +13,8 @@ from modules.dataset.cleaners.synthetic_cleaner import SyntheticCleaner
 from modules.dataset.converters.synthetic_converter import SyntheticConverter
 from modules.dataset.downloaders.synthetic_downloader import SyntheticDownloader
 
+from modules.dataset.converters.yamaha_converter import YamahaConverter
+
 settings = Settings()
 
 maskGenerator = MaskGenerator(settings)
@@ -26,42 +28,39 @@ syntheticDownloader = SyntheticDownloader()
 syntheticCleaner = SyntheticCleaner()
 syntheticConverter = SyntheticConverter()
 
+yamahaConverter = YamahaConverter()
+
 class DatasetService():
 
     def __init__(self):
         pass
 
     def download_dataset(self):
-        self.create_raw_dataset_folder()
-
         print('Baixando Freiburg Forest...')
-        self.download_freiburg()
-        self.clean_freiburg()
+        # self.download_freiburg()
+        # self.clean_freiburg()
 
         print('Baixando Synthetic Offroad...')
-        self.download_synthetic()
-        self.clean_synthetic()
+        # self.download_synthetic()
+        # self.clean_synthetic()
 
 
     def build_dataset(self):
         self.create_final_dataset_folder()
 
         print('Padronizando e movendo imagens...')
-        self.convert_freiburg()
-        self.convert_synthetic()
+        # self.convert_freiburg()
+        # self.convert_synthetic()
+        # self.convert_yamaha()
 
         print('Gerando máscaras...')
         self.generate_dataset_masks()
 
 
-    def create_raw_dataset_folder(self):
-        os.makedirs("./data/raw", exist_ok=True)
-
-
     def create_final_dataset_folder(self):
         for split in ['train', 'test']:
             for sub in ['mask', 'new_segmentation', 'original', 'original_segmentation']:
-                os.makedirs(f'data/dataset/{split}/{sub}', exist_ok=True)
+                os.makedirs(f'dataset/{split}/{sub}', exist_ok=True)
 
 
     def generate_dataset_masks(self):
@@ -85,6 +84,10 @@ class DatasetService():
         syntheticCleaner.delete_raw_mask_labels()
 
 
+    def convert_yamaha(self):
+        yamahaConverter.move_yamaha_files()
+
+        
     def convert_freiburg(self):
         freiburgConverter.move_freiburg_files()
         freiburgConverter.rename_freiburg_files()

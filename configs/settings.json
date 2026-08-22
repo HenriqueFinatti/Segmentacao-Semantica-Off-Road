@@ -4,7 +4,7 @@
     ,"Synthetic_Offroad": false
     ,"Charts": true
     ,"Epochs": 200
-    ,"Patience": 3
+    ,"Patience": 5
     ,"Datasets_Labels": {
         "Freiburg_Forest": {
             "color":     [170, 170, 170],
@@ -15,6 +15,11 @@
             "color":     [207, 149, 30],
             "label":     "Trail",
             "tolerance": 10
+        },
+        "Yamaha": {
+            "color":     [178, 176, 153],
+            "label":     "Trail",
+            "tolerance": 10
         }
-    }  
+    }
 }

@@ -10,6 +10,7 @@ if __name__ == '__main__':
     print('1 - Baixar Datasets')
     print('2 - Treinar Modelos')
     print('3 - Processo Completo')
+    print('4 - Yamaha')
     print('===================')
     op = input('Digite a operação: ')
     print('\n')
@@ -28,3 +29,6 @@ if __name__ == '__main__':
         dataset_service.post_download_clean()
 
         training_service.train_models()
+
+    elif op == '4':
+        dataset_service.convert_yamaha()

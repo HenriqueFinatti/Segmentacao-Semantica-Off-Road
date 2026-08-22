@@ -2,7 +2,7 @@ import os
 import shutil
 
 class SyntheticConverter():
-    SYNTHETIC_DATASET = './data/raw/synthetic_offroad/dataset'
+    SYNTHETIC_DATASET = './raw/synthetic_offroad/dataset'
     
     def __init__(self):
         pass
@@ -20,8 +20,8 @@ class SyntheticConverter():
             if split == 'val': 
                 split = 'train'
             
-            dest_original = os.path.join('data', 'dataset', split, 'original')
-            dest_segmentation = os.path.join('data', 'dataset', split, 'original_segmentation')
+            dest_original = os.path.join('dataset', split, 'original')
+            dest_segmentation = os.path.join('dataset', split, 'original_segmentation')
 
             for file_rgb in os.listdir(root_rgb):
                 src_rgb = os.path.join(root_rgb, file_rgb)
