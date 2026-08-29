@@ -1,0 +1,3 @@
+class RoiMethod:
+	def(self, frame):
+		self.frame = frame

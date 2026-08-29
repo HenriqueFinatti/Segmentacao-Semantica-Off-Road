@@ -1,3 +1,5 @@
+from optimizer import Optimizer
+
 class Segmenter:
     def __init__(self, model):
         self.model = model
