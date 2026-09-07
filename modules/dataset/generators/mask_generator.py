@@ -44,8 +44,8 @@ class MaskGenerator:
         total_skipped = 0
 
         for split in splits:
-            source_folder = f"./data/dataset/{split}/original_segmentation"
-            dest_folder = f"./data/dataset/{split}/mask"
+            source_folder = f"./dataset/{split}/original_segmentation"
+            dest_folder = f"./dataset/{split}/mask"
 
             os.makedirs(dest_folder, exist_ok=True)
 

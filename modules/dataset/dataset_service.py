@@ -32,8 +32,6 @@ class DatasetService():
         pass
 
     def download_dataset(self):
-        self.create_raw_dataset_folder()
-
         print('Baixando Freiburg Forest...')
         self.download_freiburg()
         self.clean_freiburg()
@@ -54,14 +52,10 @@ class DatasetService():
         self.generate_dataset_masks()
 
 
-    def create_raw_dataset_folder(self):
-        os.makedirs("./data/raw", exist_ok=True)
-
-
     def create_final_dataset_folder(self):
         for split in ['train', 'test']:
             for sub in ['mask', 'new_segmentation', 'original', 'original_segmentation']:
-                os.makedirs(f'data/dataset/{split}/{sub}', exist_ok=True)
+                os.makedirs(f'dataset/{split}/{sub}', exist_ok=True)
 
 
     def generate_dataset_masks(self):
@@ -93,7 +87,7 @@ class DatasetService():
     def convert_synthetic(self):
         syntheticConverter.move_synthetic_files()
 
-    
+
     def post_download_clean(self):
         print('Apagando arquivos originais...')
         postDownloadCleaner.delete_raw_dataset()

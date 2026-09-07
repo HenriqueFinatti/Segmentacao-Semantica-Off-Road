@@ -4,7 +4,7 @@ import tarfile
 
 class FreiburgDownloader():
 
-    BASE_DIR = "./data/raw"
+    BASE_DIR = "./raw"
     FINAL_FILE = os.path.join(BASE_DIR, "freiburg_forest_annotated.tar.gz")
     BASE_URL = "https://deepscene.cs.uni-freiburg.de/static/datasets/"
 

@@ -18,10 +18,10 @@ if __name__ == '__main__':
         dataset_service.download_dataset()
         dataset_service.build_dataset()
         dataset_service.post_download_clean()
-    
+
     elif op == '2':
         training_service.train_models()
-    
+
     elif op == '3':
         dataset_service.download_dataset()
         dataset_service.build_dataset()

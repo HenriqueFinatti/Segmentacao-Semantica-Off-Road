@@ -1,8 +1,8 @@
 import shutil
 
 class PostDownloadCleaner():
-    RAW_DATASET = './data/raw/'
-    
+    RAW_DATASET = './raw/'
+
     def __init__(self):
         pass
 

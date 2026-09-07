@@ -12,39 +12,39 @@ class FreiburgConverter():
         index = 0
 
         splits = ['test', 'train']
-        
+
         for split in splits:
-            path_original = os.path.join('data', 'dataset', split, 'original')
-            path_segmentation = os.path.join('data', 'dataset', split, 'original_segmentation')
-            
+            path_original = os.path.join('dataset', split, 'original')
+            path_segmentation = os.path.join('dataset', split, 'original_segmentation')
+
             mapa_segmentation = {
-                os.path.splitext(f)[0]: f 
-                for f in os.listdir(path_segmentation) 
+                os.path.splitext(f)[0]: f
+                for f in os.listdir(path_segmentation)
                 if os.path.isfile(os.path.join(path_segmentation, f))
             }
 
             for file in os.listdir(path_original):
                 old_original_file = os.path.join(path_original, file)
-                
+
                 name, extension_orig = os.path.splitext(file)
-                
+
                 nome_completo_seg = mapa_segmentation[name]
                 old_segmentation_file = os.path.join(path_segmentation, nome_completo_seg)
-                
+
                 _, extension_seg = os.path.splitext(nome_completo_seg)
-                
+
                 new_name_orig = f"{prefix}{index}{extension_orig}"
                 new_name_seg = f"{prefix}{index}{extension_seg}"
-                
+
                 new_file_original = os.path.join(path_original, new_name_orig)
                 new_file_segmentation = os.path.join(path_segmentation, new_name_seg)
-                
+
                 os.rename(old_original_file, new_file_original)
                 os.rename(old_segmentation_file, new_file_segmentation)
-                
-                index += 1        
-             
-                
+
+                index += 1
+
+
     def move_freiburg_files(self):
         splits = ['test', 'train']
         pastas_mapeadas = {
@@ -54,13 +54,13 @@ class FreiburgConverter():
 
         for split in splits:
             for origem_nome, destino_nome in pastas_mapeadas.items():
-                root_path = os.path.join('./data/raw/freiburg_forest_annotated', split, origem_nome)
-                dest_path = os.path.join('data', 'dataset', split, destino_nome)
-                
+                root_path = os.path.join('./raw/freiburg_forest_annotated', split, origem_nome)
+                dest_path = os.path.join('dataset', split, destino_nome)
+
                 for file in os.listdir(root_path):
                     root_file = os.path.join(root_path, file)
                     dest_file = os.path.join(dest_path, file)
-                    
+
                     name, extension = os.path.splitext(file)
 
                     new_name = name

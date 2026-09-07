@@ -3,8 +3,8 @@ import shutil
 import kagglehub
 
 class SyntheticDownloader():
-    BASE_DIR = "./data/raw"
-    
+    BASE_DIR = "./raw"
+
     def __init__(self):
         pass
 
