@@ -28,11 +28,9 @@ class Trainer():
         self.charts = Charts()
         self.early_stopping = EarlyStopping()
 
-        if self.settings.is_test_execution_on():
-            self.batch_size = 2
-        else:
-            self.batch_size = 4
+        self.batch_size = self.settings.get_batch_size()
 
+        print(f"Batch size: {self.batch_size}")
         self.EPOCHS = self.settings.get_epochs()
 
         img_transform = transforms.Compose([
@@ -98,7 +96,7 @@ class Trainer():
             self.train_one_epoch(self.train_loader, epoch_num)
             self.save_best_model()
 
-            if self.settings.is_test_execution_on() and epoch_num == 5:
+            if self.settings.is_test_execution_on() and epoch_num == 3:
                 break
 
             if self.early_stopping.should_stop:

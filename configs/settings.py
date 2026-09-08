@@ -39,6 +39,10 @@ class Settings():
         return self.settings['Patience']
 
 
+    def get_batch_size(self) -> int:
+        return self.settings['BATCH_SIZE']
+
+
     def get_dataset_labels(self) -> dict[str, DatasetLabel]:
         dataset_labels = self.settings['Datasets_Labels']
 

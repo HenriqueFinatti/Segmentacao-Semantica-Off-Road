@@ -50,7 +50,7 @@ class OffRoadDataset(Dataset):
         images = []
 
         if self.settings.is_test_execution_on():
-            for i in range(0, 5):
+            for i in range(0, 2):
                 images.append(temp_images[i])
 
             return images

@@ -6,6 +6,7 @@
     ,"Charts": true
     ,"Epochs": 200
     ,"Patience": 2
+    ,"BATCH_SIZE": 3
     ,"Datasets_Labels": {
         "Freiburg_Forest": {
             "color":     [170, 170, 170],
