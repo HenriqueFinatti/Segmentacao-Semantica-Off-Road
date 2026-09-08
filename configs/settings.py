@@ -27,6 +27,10 @@ class Settings():
         return self.settings['Synthetic_Offroad']
 
 
+    def is_test_execution_on(self) -> bool:
+        return self.settings['Test_Execution']
+
+
     def get_epochs(self) -> int:
         return self.settings['Epochs']
 

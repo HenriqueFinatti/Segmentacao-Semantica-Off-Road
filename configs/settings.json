@@ -1,10 +1,11 @@
 {
     "EarlyStopping": true
+    ,"Test_Execution": true
     ,"Freiburg_Forest": false
     ,"Synthetic_Offroad": false
     ,"Charts": true
     ,"Epochs": 200
-    ,"Patience": 5
+    ,"Patience": 2
     ,"Datasets_Labels": {
         "Freiburg_Forest": {
             "color":     [170, 170, 170],

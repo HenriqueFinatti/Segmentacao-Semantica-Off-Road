@@ -39,7 +39,7 @@ class FreiburgDownloader():
             for chunk in response.iter_content(chunk_size=1024 * 1024):
                 if chunk:
                     f.write(chunk)
-    
+
 
     def merge_files(self):
         with open(self.FINAL_FILE, "wb") as outfile:

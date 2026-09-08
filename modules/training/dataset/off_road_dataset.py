@@ -16,7 +16,7 @@ class OffRoadDataset(Dataset):
         self.images = self.get_images()
 
         self.img_transform = img_transform
-    
+
 
     def __len__(self):
         return len(self.images)
@@ -43,11 +43,17 @@ class OffRoadDataset(Dataset):
         mask = torch.as_tensor(mask, dtype=torch.long)
 
         return image, mask
-    
+
 
     def get_images(self):
         temp_images = sorted(os.listdir(self.rgb_dir))
         images = []
+
+        if self.settings.is_test_execution_on():
+            for i in range(0, 5):
+                images.append(temp_images[i])
+
+            return images
 
         isFreiburgOn = self.settings.is_freiburg_forest_on()
         isSyntheticOn = self.settings.is_synthetic_off_road_on()
@@ -65,8 +71,3 @@ class OffRoadDataset(Dataset):
                     continue
 
             return images
-
-        for i in range(0, 20):
-            images.append(temp_images[i])
-
-        return images
