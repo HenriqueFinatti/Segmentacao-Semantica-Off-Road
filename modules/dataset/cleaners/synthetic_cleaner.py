@@ -3,7 +3,6 @@ import shutil
 
 class SyntheticCleaner():
     SYNTHETIC_DATASET = './raw/synthetic_offroad/dataset'
-
     def __init__(self):
         pass
 

@@ -17,6 +17,11 @@
             "color":     [207, 149, 30],
             "label":     "Trail",
             "tolerance": 10
+        },
+        "Yamaha": {
+            "color":     [178, 176, 153],
+            "label":     "Trail",
+            "tolerance": 10
         }
     }
 }

@@ -4,7 +4,6 @@ import kagglehub
 
 class SyntheticDownloader():
     BASE_DIR = "./raw"
-
     def __init__(self):
         pass
 
