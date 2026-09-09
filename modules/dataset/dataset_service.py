@@ -54,7 +54,7 @@ class DatasetService():
 
     def create_final_dataset_folder(self):
         for split in ['train', 'test']:
-            for sub in ['mask', 'new_segmentation', 'original', 'original_segmentation']:
+            for sub in ['mask', 'original', 'original_segmentation']:
                 os.makedirs(f'dataset/{split}/{sub}', exist_ok=True)
 
 
@@ -91,3 +91,6 @@ class DatasetService():
     def post_download_clean(self):
         print('Apagando arquivos originais...')
         postDownloadCleaner.delete_raw_dataset()
+
+        print('Apagando segmentação original do dataset de treino')
+        postDownloadCleaner.delete_unnecessary_folders()

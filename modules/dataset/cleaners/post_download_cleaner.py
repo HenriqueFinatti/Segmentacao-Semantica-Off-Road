@@ -1,3 +1,4 @@
+import os
 import shutil
 
 class PostDownloadCleaner():
@@ -9,3 +10,7 @@ class PostDownloadCleaner():
 
     def delete_raw_dataset(self):
         shutil.rmtree(self.RAW_DATASET)
+
+
+    def delete_unnecessary_folders(self):
+        shutil.rmtree(os.path.join('dataset', 'train', 'original_segmentation'))

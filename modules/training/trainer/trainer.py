@@ -44,17 +44,20 @@ class Trainer():
 
         self.class_weights = torch.tensor([1.0, 9.0]).to(self.device)
         self.criterion = nn.CrossEntropyLoss(weight=self.class_weights)
+
         self.train_dataset = OffRoadDataset('dataset/train', img_transform)
+        self.test_dataset = OffRoadDataset('dataset/test', img_transform)
+
         self.train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=0)
 
         if model.upper() == 'FCN':
             self.model = FCN(num_classes=2).to(self.device)
             self.final_model_path = os.path.join("results", "fcn", "model.pth")
-            self.output_dir = os.path.join("dataset", "train", "new_segmentation", "fcn")
+            self.output_dir = os.path.join("dataset", "test", "new_segmentation", "fcn")
         else:
             self.model = DeepLabV3Plus(num_classes=2).to(self.device)
             self.final_model_path = os.path.join("results", "deeplabv3+", "model.pth")
-            self.output_dir = os.path.join("dataset", "train", "new_segmentation", "deeplabv3+")
+            self.output_dir = os.path.join("dataset", "test", "new_segmentation", "deeplabv3+")
 
         os.makedirs(self.output_dir, exist_ok=True)
         os.makedirs(os.path.dirname(self.final_model_path), exist_ok=True)
@@ -112,7 +115,7 @@ class Trainer():
 
 
     def save_results(self):
-        infer_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=False, num_workers=0)
+        infer_loader = DataLoader(self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=0)
         global_idx = 0
 
         with torch.no_grad():
@@ -122,7 +125,7 @@ class Trainer():
                 preds = torch.argmax(outputs, dim=1).cpu().numpy()
 
                 for i in range(preds.shape[0]):
-                    img_name = self.train_dataset.images[global_idx]
+                    img_name = self.test_dataset.images[global_idx]
                     base_name = os.path.splitext(img_name)[0]
                     output_path = os.path.join(self.output_dir, base_name + ".png")
 
