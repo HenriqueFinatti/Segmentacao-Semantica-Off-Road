@@ -1,12 +1,12 @@
 {
     "EarlyStopping": true
-    ,"Test_Execution": true
-    ,"Freiburg_Forest": false
-    ,"Synthetic_Offroad": false
+    ,"Test_Execution": false
+    ,"Freiburg_Forest": true
+    ,"Synthetic_Offroad": true
     ,"Charts": true
     ,"Epochs": 200
-    ,"Patience": 2
-    ,"BATCH_SIZE": 1
+    ,"Patience": 3
+    ,"BATCH_SIZE": 4
     ,"Datasets_Labels": {
         "Freiburg_Forest": {
             "color":     [170, 170, 170],
@@ -15,11 +15,6 @@
         },
         "Synthetic_Offroad": {
             "color":     [207, 149, 30],
-            "label":     "Trail",
-            "tolerance": 10
-        },
-        "Yamaha": {
-            "color":     [178, 176, 153],
             "label":     "Trail",
             "tolerance": 10
         }
