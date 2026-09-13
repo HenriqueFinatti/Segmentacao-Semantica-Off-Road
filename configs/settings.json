@@ -1,6 +1,6 @@
 {
     "EarlyStopping": true
-    ,"Test_Execution": false
+    ,"Test_Execution": true
     ,"Freiburg_Forest": true
     ,"Synthetic_Offroad": true
     ,"Charts": true

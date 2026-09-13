@@ -20,6 +20,7 @@ if __name__ == '__main__':
     print('2 - Treinar Modelos')
     print('3 - Processo Completo')
     print('4 - Segmentar Imagens')
+    print('5 - Segmentar Dataset de Teste')
     print('===================')
     op = input('Digite a operação: ')
     print('\n')
@@ -59,6 +60,12 @@ if __name__ == '__main__':
         training_elapsed = time.perf_counter() - training_start
         print(f"\n[METRICA] Etapa de Treinamento concluída em: {format_time(training_elapsed)}")
 
+        # Segmentation
+        segmentation_start = time.perf_counter()
+        segmentation_service.segment_test_dataset()
+        segmentation_elapsed = time.perf_counter() - segmentation_start
+        print(f"\n[METRICA] Tempo total da Segmentação: {format_time(segmentation_elapsed)}")
+
         total_elapsed = time.perf_counter() - total_start
         print(f"\n[METRICA] Processo Completo finalizado em: {format_time(total_elapsed)}")
 
@@ -66,6 +73,14 @@ if __name__ == '__main__':
         start_time = time.perf_counter()
 
         segmentation_service.segment_images()
+
+        elapsed = time.perf_counter() - start_time
+        print(f"\n[METRICA] Tempo total da Segmentação: {format_time(elapsed)}")
+
+    elif op == '5':
+        start_time = time.perf_counter()
+
+        segmentation_service.segment_test_dataset()
 
         elapsed = time.perf_counter() - start_time
         print(f"\n[METRICA] Tempo total da Segmentação: {format_time(elapsed)}")

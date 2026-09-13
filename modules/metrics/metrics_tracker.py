@@ -186,7 +186,7 @@ class MetricsTracker:
 
     def get_result_path(self):
         if self.current_model.upper() == 'FCN':
-            return 'results/fcn/statistcs/stats.md'
+            return 'results/fcn/statistics/stats.md'
         
         if self.current_model.upper() == 'DEEPLABV3+':
-            return 'results/deeplabv3+/statistcs/stats.md'
+            return 'results/deeplabv3+/statistics/stats.md'

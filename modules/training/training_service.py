@@ -18,9 +18,7 @@ class TrainingService():
     def train_deep_lab(self):
         trainer = Trainer('deeplabv3+')
         trainer.train_model()
-        trainer.save_results()
 
     def train_fcn(self):
         trainer = Trainer('fcn')
         trainer.train_model()
-        trainer.save_results()
