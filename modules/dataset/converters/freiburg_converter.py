@@ -70,4 +70,4 @@ class FreiburgConverter():
                     new_name = f"{new_name}{extension}"
 
                     dest_file = os.path.join(dest_path, new_name)
-                    shutil.copy2(root_file, dest_file)
+                    shutil.move(root_file, dest_file)

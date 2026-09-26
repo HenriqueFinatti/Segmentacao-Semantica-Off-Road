@@ -38,7 +38,7 @@ class SyntheticConverter():
                 dest_rgb = os.path.join(dest_original, new_name)
                 dest_mask = os.path.join(dest_segmentation, new_name)
 
-                shutil.copy2(src_rgb, dest_rgb)
-                shutil.copy2(src_mask, dest_mask)
+                shutil.move(src_rgb, dest_rgb)
+                shutil.move(src_mask, dest_mask)
 
                 index += 1

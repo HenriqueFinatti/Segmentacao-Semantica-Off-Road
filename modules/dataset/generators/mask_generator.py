@@ -1,4 +1,5 @@
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
 from PIL import Image
@@ -37,6 +38,21 @@ class MaskGenerator:
         return 100 * mask.sum() / mask.size
 
 
+    def _process_image(self, source_folder, dest_folder, image_name):
+        prefix, config = self.get_prefix_config(image_name)
+        if config is None:
+            return None, None
+
+        src = os.path.join(source_folder, image_name)
+        dst = os.path.join(
+            dest_folder,
+            os.path.splitext(image_name)[0] + ".png"
+        )
+
+        pct = self.generate_binary_mask(src, dst, config)
+        return prefix, pct
+
+
     def generate_masks(self):
         splits = ["test", "train"]
 
@@ -54,21 +70,18 @@ class MaskGenerator:
             results = {prefix: [] for prefix in self.dataset_labels.keys()}
             skipped = []
 
-            for image_name in images:
-                prefix, config = self.get_prefix_config(image_name)
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                futures = {
+                    executor.submit(self._process_image, source_folder, dest_folder, img): img
+                    for img in images
+                }
 
-                if config is None:
-                    skipped.append(image_name)
-                    continue
-
-                src = os.path.join(source_folder, image_name)
-                dst = os.path.join(
-                    dest_folder,
-                    os.path.splitext(image_name)[0] + ".png"
-                )
-
-                pct = self.generate_binary_mask(src, dst, config)
-                results[prefix].append(pct)
+                for future in as_completed(futures):
+                    prefix, pct = future.result()
+                    if prefix is None:
+                        skipped.append(futures[future])
+                    else:
+                        results[prefix].append(pct)
 
             generated_in_split = sum(len(values) for values in results.values())
 

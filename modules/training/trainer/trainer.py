@@ -46,7 +46,14 @@ class Trainer():
 
         self.train_dataset = OffRoadDataset('dataset/train', img_transform)
 
-        self.train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=0)
+        use_cuda = torch.cuda.is_available()
+        self.train_loader = DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=2,
+            pin_memory=use_cuda,
+        )
 
         if model.upper() == 'FCN':
             self.model = FCN(num_classes=2).to(self.device)

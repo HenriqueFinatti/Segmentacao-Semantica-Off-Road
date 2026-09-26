@@ -14,6 +14,10 @@ class OffRoadDataset(Dataset):
         self.mask_dir = os.path.join(root_dir, "mask")
 
         self.images = self.get_images()
+        self.mask_paths = [
+            os.path.join(self.mask_dir, os.path.splitext(img)[0] + ".png")
+            for img in self.images
+        ]
 
         self.img_transform = img_transform
 
@@ -23,10 +27,8 @@ class OffRoadDataset(Dataset):
 
 
     def __getitem__(self, idx):
-        img_name  = self.images[idx]
-        img_path  = os.path.join(self.rgb_dir, img_name)
-        base      = os.path.splitext(img_name)[0]
-        mask_path = os.path.join(self.mask_dir, base + ".png")
+        img_path  = os.path.join(self.rgb_dir, self.images[idx])
+        mask_path = self.mask_paths[idx]
 
         if not os.path.exists(mask_path):
             raise FileNotFoundError(f"Máscara não encontrada: {mask_path}")
@@ -38,8 +40,7 @@ class OffRoadDataset(Dataset):
             image = self.img_transform(image)
 
         mask = transforms.Resize((512, 512), interpolation=Image.NEAREST)(mask)
-        mask = np.array(mask)
-        mask = (mask > 0).astype(np.int64)
+        mask = (np.asarray(mask) > 0).astype(np.int64)
         mask = torch.as_tensor(mask, dtype=torch.long)
 
         return image, mask
