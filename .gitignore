@@ -12,6 +12,7 @@ __pycache__/
 dataset/
 results/
 images/
+video/
 *.pth
 
 ##############################
