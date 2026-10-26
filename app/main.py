@@ -1,5 +1,4 @@
 import time
-import os
 from modules.dataset.dataset_service import DatasetService
 from modules.training.training_service import TrainingService
 from modules.segmentation.segmentation_service import SegmentationService
@@ -8,7 +7,7 @@ from processing.video import Video
 dataset_service = DatasetService()
 training_service = TrainingService()
 segmentation_service = SegmentationService()
-video_processing = Video("../video/video.mp4","../video/output/")
+video_processing = Video(r"video\video.mp4","video\\output\\")
 
 def format_time(seconds: float) -> str:
     hrs = int(seconds // 3600)
@@ -92,6 +91,12 @@ if __name__ == '__main__':
     elif op == '6':
         frames = video_processing.extract_video()
         print(f"\nForam extraidos {frames} frames")
+
+        # Training steps
+        training_start = time.perf_counter()
+        training_service.train_models()
+        training_elapsed = time.perf_counter() - training_start
+        print(f"\n[METRICA] Etapa de Treinamento concluída em: {format_time(training_elapsed)}")
 
         segmentation_service.segment_images()
 
