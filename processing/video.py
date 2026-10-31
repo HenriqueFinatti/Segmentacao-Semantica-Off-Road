@@ -97,5 +97,9 @@ class Video:
 
 
     def make_segmented_video(self):
-        self._build_video("fcn")
-        self._build_video("deeplabv3+")
+        for model in ["fcn", "deeplabv3+"]:
+            if not os.path.isdir(os.path.join(self.segmented_images_dir, model)):
+                print(f"Pulando vídeo do {model.upper()}: nenhuma imagem segmentada.")
+                continue
+
+            self._build_video(model)

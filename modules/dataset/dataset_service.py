@@ -31,6 +31,44 @@ class DatasetService():
     def __init__(self):
         pass
 
+    def download_all_datasets(self):
+        self.download_dataset()
+        self.build_dataset()
+        self.post_download_clean()
+
+
+    def download_freiburg_dataset(self):
+        print('Baixando Freiburg Forest...')
+        self.download_freiburg()
+        self.clean_freiburg()
+
+        self.create_final_dataset_folder()
+
+        print('Padronizando e movendo imagens...')
+        self.convert_freiburg()
+
+        print('Gerando máscaras...')
+        self.generate_dataset_masks()
+
+        self.post_download_clean()
+
+
+    def download_synthetic_dataset(self):
+        print('Baixando Synthetic Offroad...')
+        self.download_synthetic()
+        self.clean_synthetic()
+
+        self.create_final_dataset_folder()
+
+        print('Padronizando e movendo imagens...')
+        self.convert_synthetic()
+
+        print('Gerando máscaras...')
+        self.generate_dataset_masks()
+
+        self.post_download_clean()
+
+
     def download_dataset(self):
         print('Baixando Freiburg Forest...')
         self.download_freiburg()

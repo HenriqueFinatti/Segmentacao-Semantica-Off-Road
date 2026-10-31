@@ -34,12 +34,7 @@ class SegmentationService():
         dataset = InferenceDataset(self.input_dir, self.img_transform)
         self.validate_dataset(dataset)
 
-        fcn_result = self.segment_with_model('fcn', FCN, dataset, self.output_base)
-        self.generate_metrics(fcn_result, 'fcn')
-
-        deeplab_result = self.segment_with_model('deeplabv3+', DeepLabV3Plus, dataset, self.output_base)
-        self.generate_metrics(deeplab_result, 'deeplabv3+')
-
+        self.segment_with_all_models(dataset, self.output_base)
         self.print_summary()
 
     def segment_test_dataset(self):
@@ -50,13 +45,25 @@ class SegmentationService():
         dataset = InferenceDataset(test_dir, self.img_transform)
         self.validate_dataset(dataset)
 
-        fcn_result = self.segment_with_model('fcn', FCN, dataset, self.test_output_base)
-        self.generate_metrics(fcn_result, 'fcn')
-
-        deeplab_result = self.segment_with_model('deeplabv3+', DeepLabV3Plus, dataset, self.test_output_base)
-        self.generate_metrics(deeplab_result, 'deeplabv3+')
-
+        self.segment_with_all_models(dataset, self.test_output_base)
         self.print_summary()
+
+    def segment_with_all_models(self, dataset, output_base):
+        models = [('fcn', FCN), ('deeplabv3+', DeepLabV3Plus)]
+        segmented = 0
+
+        for model_name, model_class in models:
+            result = self.segment_with_model(model_name, model_class, dataset, output_base)
+
+            if result is None:
+                print(f"Pulando {model_name.upper()}: modelo ainda não foi treinado.")
+                continue
+
+            self.generate_metrics(result, model_name)
+            segmented += 1
+
+        if segmented == 0:
+            raise FileNotFoundError("Nenhum modelo treinado encontrado em results/. Treine pelo menos um modelo antes de segmentar.")
 
     def validate_input_dir(self, input_dir):
         if not os.path.exists(input_dir):
@@ -67,10 +74,13 @@ class SegmentationService():
             raise ValueError("Nenhuma imagem encontrada na pasta de entrada.")
 
     def segment_with_model(self, model_name, model_class, dataset, output_base):
+        model = self.load_model(model_name, model_class)
+
+        if model is None:
+            return None
+
         output_dir = os.path.join(output_base, model_name)
         os.makedirs(output_dir, exist_ok=True)
-
-        model = self.load_model(model_name, model_class)
 
         return self.run_inference(model, dataset, output_dir, model_name)
 

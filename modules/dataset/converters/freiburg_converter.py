@@ -24,6 +24,10 @@ class FreiburgConverter():
             }
 
             for file in os.listdir(path_original):
+                # Ignora arquivos já padronizados (ex.: Synthetic Offroad baixado antes)
+                if file.startswith(("Freiburg_Forest_", "Synthetic_Offroad_")):
+                    continue
+
                 old_original_file = os.path.join(path_original, file)
 
                 name, extension_orig = os.path.splitext(file)

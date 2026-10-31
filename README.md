@@ -28,11 +28,11 @@ pip install -r requirements.txt --extra-index-url https://download.pytorch.org/w
 - [ ] **Não há avaliação no teste.** `segment_test_dataset` gera as predições em `dataset/test/new_segmentation/`, mas nunca as compara com `dataset/test/mask`. Calcular acurácia, mIoU (e Recall/F1/matriz de confusão) no teste.
 - [ ] **Sem split de validação.** O melhor modelo (`save_best_model`) e o early stopping usam o mIoU de treino. Separar validação e usar o mIoU dela.
 #### Bugs
-- [ ] **Caminhos estilo Windows** em `app/main.py:10` (`r"video\video.mp4"`, `"video\\output\\"`): no Linux criam a pasta literal `video\output\` na raiz e o vídeo não é encontrado. Usar `os.path.join`. Apagar a pasta `video\output\` criada por engano.
-- [ ] `Video(...)` é instanciado no import de `app/main.py`, criando pastas em toda execução, qualquer que seja a opção escolhida.
-- [ ] **Opção 6 retreina os dois modelos** antes de segmentar o vídeo; deveria usar os `model.pth` já treinados.
+- [x] **Caminhos estilo Windows** em `app/main.py:10` (`r"video\video.mp4"`, `"video\\output\\"`): no Linux criam a pasta literal `video\output\` na raiz e o vídeo não é encontrado. Usar `os.path.join`. Apagar a pasta `video\output\` criada por engano.
+- [x] `Video(...)` é instanciado no import de `app/main.py`, criando pastas em toda execução, qualquer que seja a opção escolhida.
+- [x] **Opção 6 retreina os dois modelos** antes de segmentar o vídeo; deveria usar os `model.pth` já treinados.
 - [ ] **Predições ficam em 512×512**: não voltam ao tamanho original da imagem, então o vídeo gerado sai em 512×512 e só com a máscara preto/branco. Redimensionar e, idealmente, sobrepor a máscara no frame original.
-- [ ] `SegmentationService.load_model` retorna `None` se o `.pth` não existe, e `run_inference` quebra com um erro confuso. Lançar `FileNotFoundError` claro.
+- [x] `SegmentationService.load_model` retorna `None` se o `.pth` não existe, e `run_inference` quebra com um erro confuso. Lançar `FileNotFoundError` claro.
 - [ ] `modules/metrics/metrics_tracker.py:177`: "Tempo Médio por Época" usa `total_secs` em vez de `avg_secs`.
 - [ ] `schemas/settings_config.py` não bate com `settings.json`: `Dataset_Labels` vs `Datasets_Labels`, e faltam `Test_Execution` e `BATCH_SIZE`.
 - [ ] `OffRoadDataset.get_images` retorna `None` quando os dois datasets estão desligados.
