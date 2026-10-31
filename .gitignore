@@ -9,7 +9,7 @@ __pycache__/
 ##############################
 # Source Code
 ##############################
-dataset/
+/dataset/
 results/
 images/
 video
