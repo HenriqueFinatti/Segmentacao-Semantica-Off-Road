@@ -40,8 +40,8 @@ def segment_video():
     frames = video_processing.extract_video()
     print(f"\nForam extraidos {frames} frames")
 
-    segmentation_service.segment_images()
-    video_processing.make_segmented_video()
+    results = segmentation_service.segment_images(context='video')
+    video_processing.make_segmented_video(results)
 
 
 # Treinar e segmentar

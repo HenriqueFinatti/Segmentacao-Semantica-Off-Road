@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 from configs.settings import Settings
 
@@ -178,6 +179,75 @@ class Charts:
 
         plt.tight_layout()
         plt.savefig(os.path.join(save_dir, '08_best_accuracy.png'), dpi=300, bbox_inches='tight')
+        plt.close()
+
+
+    def plot_inference_times(self, result, model, context):
+        if not settings.is_charts_on():
+            return
+
+        save_dir = self.get_result_path(model.upper())
+        os.makedirs(save_dir, exist_ok=True)
+
+        times = list(result['inference_times'].values())
+        stats = result['inference_stats']
+        frames = range(1, len(times) + 1)
+
+        fig, (ax_line, ax_hist) = plt.subplots(1, 2, figsize=(14, 6), gridspec_kw={'width_ratios': [2, 1]})
+
+        ax_line.plot(frames, times, 'b-', linewidth=1, alpha=0.8)
+        ax_line.axhline(stats['mean'], color='r', linestyle='--', linewidth=2, label=f"Média: {stats['mean']:.2f} ms ({stats['fps']:.1f} FPS)")
+        ax_line.axhline(stats['p95'], color='orange', linestyle=':', linewidth=2, label=f"P95: {stats['p95']:.2f} ms")
+        ax_line.set_xlabel('Frame', fontsize=13, fontweight='bold')
+        ax_line.set_ylabel('Tempo de Inferência (ms)', fontsize=13, fontweight='bold')
+        ax_line.set_title(f'Tempo de Inferência por Frame - {model.upper()}', fontsize=15, fontweight='bold')
+        ax_line.xaxis.set_major_locator(MaxNLocator(integer=True))
+        ax_line.legend(fontsize=11, loc='best')
+        ax_line.grid(True, alpha=0.3)
+        ax_line.set_facecolor('#f0f0f0')
+
+        ax_hist.hist(times, bins=30, color='#1976D2', edgecolor='white')
+        ax_hist.axvline(stats['mean'], color='r', linestyle='--', linewidth=2)
+        ax_hist.set_xlabel('Tempo de Inferência (ms)', fontsize=13, fontweight='bold')
+        ax_hist.set_ylabel('Frames', fontsize=13, fontweight='bold')
+        ax_hist.set_title('Distribuição', fontsize=15, fontweight='bold')
+        ax_hist.grid(True, alpha=0.3)
+        ax_hist.set_facecolor('#f0f0f0')
+
+        plt.tight_layout()
+        plt.savefig(os.path.join(save_dir, f'09_tempo_inferencia_{context}.png'), dpi=300, bbox_inches='tight')
+        plt.close()
+
+
+    def plot_inference_comparison(self, results, context):
+        if not settings.is_charts_on():
+            return
+
+        save_dir = os.path.join('results', 'comparacao')
+        os.makedirs(save_dir, exist_ok=True)
+
+        models = [model.upper() for model in results]
+        means = [result['inference_stats']['mean'] for result in results.values()]
+        stds = [result['inference_stats']['std'] for result in results.values()]
+        fps = [result['inference_stats']['fps'] for result in results.values()]
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        bars = ax.bar(models, means, yerr=stds, capsize=10, color=['#1976D2', '#D32F2F'][:len(models)], alpha=0.85)
+        for bar, mean, model_fps in zip(bars, means, fps):
+            ax.annotate(f'{mean:.2f} ms\n{model_fps:.1f} FPS',
+                        xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                        xytext=(0, 15), textcoords='offset points', ha='center',
+                        fontsize=12, fontweight='bold')
+
+        ax.set_ylabel('Tempo Médio de Inferência (ms)', fontsize=13, fontweight='bold')
+        ax.set_title('Comparação do Tempo de Inferência por Frame', fontsize=15, fontweight='bold')
+        ax.set_ylim([0, max(m + s for m, s in zip(means, stds)) * 1.35])
+        ax.grid(True, axis='y', alpha=0.3)
+        ax.set_facecolor('#f0f0f0')
+
+        plt.tight_layout()
+        plt.savefig(os.path.join(save_dir, f'tempo_inferencia_{context}.png'), dpi=300, bbox_inches='tight')
         plt.close()
 
 

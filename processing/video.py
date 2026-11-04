@@ -45,7 +45,16 @@ class Video:
 
         return frame_count
 
-    def _build_video(self, model):
+    def _draw_inference_time(self, frame, model, inference_ms):
+        # Fontes do OpenCV não suportam acentos
+        text = f"{model.upper()} | Inferencia: {inference_ms:.1f} ms ({1000 / inference_ms:.1f} FPS)"
+        position = (10, 25)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+
+        cv2.putText(frame, text, position, font, 0.6, (0, 0, 0), 4, cv2.LINE_AA)
+        cv2.putText(frame, text, position, font, 0.6, (0, 255, 255), 1, cv2.LINE_AA)
+
+    def _build_video(self, model, inference_times=None):
         images_path = os.path.join(self.segmented_images_dir, model)
         frames = sorted(
             filename for filename in os.listdir(images_path) if filename.endswith(".png")
@@ -91,15 +100,22 @@ class Video:
                 if len(frame.shape) == 2:
                     frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2BGR)
 
+                frame_name = os.path.splitext(filename)[0]
+                if inference_times and frame_name in inference_times:
+                    self._draw_inference_time(frame, model, inference_times[frame_name])
+
                 writer.write(frame)
         finally:
             writer.release()
 
 
-    def make_segmented_video(self):
+    def make_segmented_video(self, segmentation_results=None):
+        segmentation_results = segmentation_results or {}
+
         for model in ["fcn", "deeplabv3+"]:
             if not os.path.isdir(os.path.join(self.segmented_images_dir, model)):
                 print(f"Pulando vídeo do {model.upper()}: nenhuma imagem segmentada.")
                 continue
 
-            self._build_video(model)
+            inference_times = segmentation_results.get(model, {}).get('inference_times')
+            self._build_video(model, inference_times)

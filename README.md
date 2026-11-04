@@ -22,6 +22,7 @@ pip install -r requirements.txt --extra-index-url https://download.pytorch.org/w
 - [ ] **Inconsistência no tamanho do Freiburg Forest**: a Metodologia diz "aproximadamente 200 imagens" e, mais adiante, "milhares de imagens multiespectrais".
 - [ ] Referência "imagem 7" para o fluxograma da metodologia: usar `\ref{}` em vez de número fixo.
 - [ ] Erro de digitação na legenda: "Permformance do modelo DeepLab".
+- [ ] **Tempo de inferência (12,85 ms)** em "Resultados Parciais": medir de novo com a nova métrica (batch 1, com aquecimento, sincronizado com a GPU) e usar os relatórios `results/<modelo>/statistics/segmentation_<contexto>.md` e os gráficos `results/comparacao/tempo_inferencia_<contexto>.png`.
 
 ### Código
 #### Avaliação
