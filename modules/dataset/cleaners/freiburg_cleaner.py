@@ -1,9 +1,11 @@
 import os
 import shutil
 
+from configs import paths
+
 class FreiburgCleaner():
 
-    BASE_DIR = "./raw"
+    BASE_DIR = paths.RAW_DIR
 
     def __init__(self):
         pass
@@ -18,7 +20,7 @@ class FreiburgCleaner():
 
     def delete_unused_folders(self):
         for split in ['test', 'train']:
-            split_path = os.path.join("./raw/freiburg_forest_annotated", split)
+            split_path = os.path.join(paths.FREIBURG_RAW_DIR, split)
 
             for folder in os.listdir(split_path):
                 full_folder_path = os.path.join(split_path, folder)

@@ -1,17 +1,12 @@
 import os
 import time
+
+from configs import paths
 from modules.dataset.dataset_service import DatasetService
+from modules.driving.server import DrivingServer, RunConfig
 from modules.training.training_service import TrainingService
 from modules.segmentation.segmentation_service import SegmentationService
 from processing.video import Video
-
-VIDEO_PATH = os.path.join("video", "video.mp4")
-VIDEO_OUTPUT_DIR = os.path.join("video", "output")
-IMAGES_TO_SEGMENT_DIR = os.path.join("images", "images_to_segment")
-
-dataset_service = DatasetService()
-training_service = TrainingService()
-segmentation_service = SegmentationService()
 
 
 def format_time(seconds: float) -> str:
@@ -29,84 +24,104 @@ def run_step(label, step):
 
 
 def has_images_to_segment():
-    return os.path.isdir(IMAGES_TO_SEGMENT_DIR) and len(os.listdir(IMAGES_TO_SEGMENT_DIR)) > 0
+    return os.path.isdir(paths.IMAGES_TO_SEGMENT_DIR) and len(os.listdir(paths.IMAGES_TO_SEGMENT_DIR)) > 0
 
 
-# Segmentação
+class Application:
 
-def segment_video():
-    video_processing = Video(VIDEO_PATH, VIDEO_OUTPUT_DIR)
-
-    frames = video_processing.extract_video()
-    print(f"\nForam extraidos {frames} frames")
-
-    results = segmentation_service.segment_images(context='video')
-    video_processing.make_segmented_video(results)
+    def __init__(self):
+        self.dataset_service = DatasetService()
+        self.training_service = TrainingService()
+        self.segmentation_service = SegmentationService()
 
 
-# Treinar e segmentar
+    # Segmentação
 
-def train_and_segment_images():
-    run_step('Treinamento', training_service.train_models)
-    run_step('Segmentação de imagens', segmentation_service.segment_images)
+    def segment_video(self):
+        video_processing = Video(paths.VIDEO_PATH, paths.VIDEO_OUTPUT_DIR)
 
+        frames = video_processing.extract_video()
+        print(f"\nForam extraidos {frames} frames")
 
-def train_and_segment_test_dataset():
-    run_step('Treinamento', training_service.train_models)
-    run_step('Segmentação do dataset de teste', segmentation_service.segment_test_dataset)
-
-
-def train_and_segment_video():
-    run_step('Treinamento', training_service.train_models)
-    run_step('Segmentação de vídeo', segment_video)
+        results = self.segmentation_service.segment_images(context='video')
+        video_processing.make_segmented_video(results)
 
 
-# Processo completo
+    # Treinar e segmentar
 
-def full_process():
-    run_step('Download dos datasets', dataset_service.download_all_datasets)
-    run_step('Treinamento', training_service.train_models)
-    run_step('Segmentação do dataset de teste', segmentation_service.segment_test_dataset)
-
-    if os.path.exists(VIDEO_PATH):
-        # O vídeo extrai os frames para images_to_segment, então também segmenta as imagens que já estavam lá
-        run_step('Segmentação de vídeo', segment_video)
-    elif has_images_to_segment():
-        run_step('Segmentação de imagens', segmentation_service.segment_images)
-    else:
-        print(f"\nNenhum vídeo em {VIDEO_PATH} nem imagens em {IMAGES_TO_SEGMENT_DIR}. Pulando essas segmentações.")
+    def train_and_segment_images(self):
+        run_step('Treinamento', self.training_service.train_models)
+        run_step('Segmentação de imagens', self.segmentation_service.segment_images)
 
 
-MENU = [
-    ('Datasets', [
-        ('1', 'Baixar todos os datasets', dataset_service.download_all_datasets),
-        ('2', 'Baixar Freiburg Forest', dataset_service.download_freiburg_dataset),
-        ('3', 'Baixar Synthetic Offroad', dataset_service.download_synthetic_dataset),
-    ]),
-    ('Treinamento', [
-        ('4', 'Treinar todos os modelos', training_service.train_models),
-        ('5', 'Treinar FCN', training_service.train_fcn),
-        ('6', 'Treinar DeepLabV3+', training_service.train_deep_lab),
-    ]),
-    ('Segmentação', [
-        ('7', 'Segmentar imagens', segmentation_service.segment_images),
-        ('8', 'Segmentar dataset de teste', segmentation_service.segment_test_dataset),
-        ('9', 'Segmentar vídeo', segment_video),
-    ]),
-    ('Treinar e Segmentar', [
-        ('10', 'Treinar todos os modelos e segmentar imagens', train_and_segment_images),
-        ('11', 'Treinar todos os modelos e segmentar dataset de teste', train_and_segment_test_dataset),
-        ('12', 'Treinar todos os modelos e segmentar vídeo', train_and_segment_video),
-    ]),
-    ('Completo', [
-        ('13', 'Processo completo (baixar, treinar e segmentar tudo)', full_process),
-    ]),
-]
+    def train_and_segment_test_dataset(self):
+        run_step('Treinamento', self.training_service.train_models)
+        run_step('Segmentação do dataset de teste', self.segmentation_service.segment_test_dataset)
 
 
-def print_menu():
+    def train_and_segment_video(self):
+        run_step('Treinamento', self.training_service.train_models)
+        run_step('Segmentação de vídeo', self.segment_video)
+
+
+    # Processo completo
+
+    def full_process(self):
+        run_step('Download dos datasets', self.dataset_service.download_all_datasets)
+        run_step('Treinamento', self.training_service.train_models)
+        run_step('Segmentação do dataset de teste', self.segmentation_service.segment_test_dataset)
+
+        if os.path.exists(paths.VIDEO_PATH):
+            # O vídeo extrai os frames para images_to_segment, então também segmenta as imagens que já estavam lá
+            run_step('Segmentação de vídeo', self.segment_video)
+        elif has_images_to_segment():
+            run_step('Segmentação de imagens', self.segmentation_service.segment_images)
+        else:
+            print(f"\nNenhum vídeo em {paths.relative(paths.VIDEO_PATH)} nem imagens em {paths.relative(paths.IMAGES_TO_SEGMENT_DIR)}. Pulando essas segmentações.")
+
+
+    # CARLA
+
+    def drive_in_carla(self):
+        defaults = RunConfig()
+        weather = input(f'Clima [{defaults.weather}]: ').strip() or defaults.weather
+        DrivingServer(RunConfig(weather=weather)).serve()
+
+
+    def build_menu(self):
+        return [
+            ('Datasets', [
+                ('1', 'Baixar todos os datasets', self.dataset_service.download_all_datasets),
+                ('2', 'Baixar Freiburg Forest', self.dataset_service.download_freiburg_dataset),
+                ('3', 'Baixar Synthetic Offroad', self.dataset_service.download_synthetic_dataset),
+            ]),
+            ('Treinamento', [
+                ('4', 'Treinar todos os modelos', self.training_service.train_models),
+                ('5', 'Treinar FCN', self.training_service.train_fcn),
+                ('6', 'Treinar DeepLabV3+', self.training_service.train_deep_lab),
+            ]),
+            ('Segmentação', [
+                ('7', 'Segmentar imagens', self.segmentation_service.segment_images),
+                ('8', 'Segmentar dataset de teste', self.segmentation_service.segment_test_dataset),
+                ('9', 'Segmentar vídeo', self.segment_video),
+            ]),
+            ('Treinar e Segmentar', [
+                ('10', 'Treinar todos os modelos e segmentar imagens', self.train_and_segment_images),
+                ('11', 'Treinar todos os modelos e segmentar dataset de teste', self.train_and_segment_test_dataset),
+                ('12', 'Treinar todos os modelos e segmentar vídeo', self.train_and_segment_video),
+            ]),
+            ('Completo', [
+                ('13', 'Processo completo (baixar, treinar e segmentar tudo)', self.full_process),
+            ]),
+            ('CARLA', [
+                ('14', 'Dirigir no CARLA', self.drive_in_carla),
+            ]),
+        ]
+
+
+def print_menu(menu):
     print('===================================')
-    for section, options in MENU:
+    for section, options in menu:
         print(f'\n{section}')
         for key, label, _ in options:
             print(f'  {key:>2} - {label}')
@@ -114,14 +129,15 @@ def print_menu():
     print('===================================')
 
 
-def get_options():
-    return {key: (label, action) for _, options in MENU for key, label, action in options}
+def get_options(menu):
+    return {key: (label, action) for _, options in menu for key, label, action in options}
 
 
-if __name__ == '__main__':
-    options = get_options()
+def main():
+    menu = Application().build_menu()
+    options = get_options(menu)
 
-    print_menu()
+    print_menu(menu)
     op = input('Digite a operação: ').strip()
     print('\n')
 
@@ -138,3 +154,7 @@ if __name__ == '__main__':
     action()
     total_elapsed = time.perf_counter() - total_start
     print(f"\n[METRICA] {label} finalizado em: {format_time(total_elapsed)}")
+
+
+if __name__ == '__main__':
+    main()

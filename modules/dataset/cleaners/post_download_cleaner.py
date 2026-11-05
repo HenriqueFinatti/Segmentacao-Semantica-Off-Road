@@ -1,8 +1,9 @@
-import os
 import shutil
 
+from configs import paths
+
 class PostDownloadCleaner():
-    RAW_DATASET = './raw/'
+    RAW_DATASET = paths.RAW_DIR
 
     def __init__(self):
         pass
@@ -13,4 +14,4 @@ class PostDownloadCleaner():
 
 
     def delete_unnecessary_folders(self):
-        shutil.rmtree(os.path.join('dataset', 'train', 'original_segmentation'))
+        shutil.rmtree(paths.dataset_dir('train', 'original_segmentation'))

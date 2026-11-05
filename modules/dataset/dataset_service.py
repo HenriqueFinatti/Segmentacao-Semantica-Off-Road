@@ -1,5 +1,6 @@
 import os
 
+from configs import paths
 from configs.settings import Settings
 
 from modules.dataset.generators.mask_generator import MaskGenerator
@@ -13,23 +14,19 @@ from modules.dataset.cleaners.synthetic_cleaner import SyntheticCleaner
 from modules.dataset.converters.synthetic_converter import SyntheticConverter
 from modules.dataset.downloaders.synthetic_downloader import SyntheticDownloader
 
-settings = Settings()
-
-maskGenerator = MaskGenerator(settings)
-postDownloadCleaner = PostDownloadCleaner()
-
-freiburgDownloader = FreiburgDownloader()
-freiburgCleaner = FreiburgCleaner()
-freiburgConverter = FreiburgConverter()
-
-syntheticDownloader = SyntheticDownloader()
-syntheticCleaner = SyntheticCleaner()
-syntheticConverter = SyntheticConverter()
-
 class DatasetService():
 
     def __init__(self):
-        pass
+        self.maskGenerator = MaskGenerator(Settings())
+        self.postDownloadCleaner = PostDownloadCleaner()
+
+        self.freiburgDownloader = FreiburgDownloader()
+        self.freiburgCleaner = FreiburgCleaner()
+        self.freiburgConverter = FreiburgConverter()
+
+        self.syntheticDownloader = SyntheticDownloader()
+        self.syntheticCleaner = SyntheticCleaner()
+        self.syntheticConverter = SyntheticConverter()
 
     def download_all_datasets(self):
         self.download_dataset()
@@ -93,42 +90,42 @@ class DatasetService():
     def create_final_dataset_folder(self):
         for split in ['train', 'test']:
             for sub in ['mask', 'original', 'original_segmentation']:
-                os.makedirs(f'dataset/{split}/{sub}', exist_ok=True)
+                os.makedirs(paths.dataset_dir(split, sub), exist_ok=True)
 
 
     def generate_dataset_masks(self):
-        maskGenerator.generate_masks()
+        self.maskGenerator.generate_masks()
 
 
     def download_freiburg(self):
-        freiburgDownloader.download_dataset()
+        self.freiburgDownloader.download_dataset()
 
 
     def download_synthetic(self):
-        syntheticDownloader.download_dataset()
+        self.syntheticDownloader.download_dataset()
 
 
     def clean_freiburg(self):
-        freiburgCleaner.delete_tar_files()
-        freiburgCleaner.delete_unused_folders()
+        self.freiburgCleaner.delete_tar_files()
+        self.freiburgCleaner.delete_unused_folders()
 
 
     def clean_synthetic(self):
-        syntheticCleaner.delete_raw_mask_labels()
+        self.syntheticCleaner.delete_raw_mask_labels()
 
 
     def convert_freiburg(self):
-        freiburgConverter.move_freiburg_files()
-        freiburgConverter.rename_freiburg_files()
+        self.freiburgConverter.move_freiburg_files()
+        self.freiburgConverter.rename_freiburg_files()
 
 
     def convert_synthetic(self):
-        syntheticConverter.move_synthetic_files()
+        self.syntheticConverter.move_synthetic_files()
 
 
     def post_download_clean(self):
         print('Apagando arquivos originais...')
-        postDownloadCleaner.delete_raw_dataset()
+        self.postDownloadCleaner.delete_raw_dataset()
 
         print('Apagando segmentação original do dataset de treino')
-        postDownloadCleaner.delete_unnecessary_folders()
+        self.postDownloadCleaner.delete_unnecessary_folders()

@@ -6,6 +6,7 @@ from PIL import Image
 from torchvision import transforms
 from torch.utils.data import Dataset
 from configs.settings import Settings
+from modules.segmentation.transforms import IMAGE_SIZE
 
 class OffRoadDataset(Dataset):
     def __init__(self, root_dir, img_transform=None):
@@ -39,7 +40,7 @@ class OffRoadDataset(Dataset):
         if self.img_transform:
             image = self.img_transform(image)
 
-        mask = transforms.Resize((512, 512), interpolation=Image.NEAREST)(mask)
+        mask = transforms.Resize((IMAGE_SIZE, IMAGE_SIZE), interpolation=Image.NEAREST)(mask)
         mask = (np.asarray(mask) > 0).astype(np.int64)
         mask = torch.as_tensor(mask, dtype=torch.long)
 

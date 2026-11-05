@@ -1,13 +1,14 @@
 import json
 import numpy as np
 
+from configs import paths
 from schemas.dataset_label import DatasetLabel
 from schemas.settings_config import SettingsConfig
 
 class Settings():
 
     def __init__(self):
-        with open('./configs/settings.json', 'r', encoding='utf-8') as settings:
+        with open(paths.SETTINGS_FILE, 'r', encoding='utf-8') as settings:
             self.settings: SettingsConfig = json.load(settings)
 
 

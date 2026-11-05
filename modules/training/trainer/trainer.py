@@ -4,15 +4,15 @@ import torch
 import numpy as np
 import torch.nn as nn
 
-from torchvision import transforms
 from torch.utils.data import DataLoader
 
+from configs import paths
 from configs.settings import Settings
 
 from modules.training.dataset.off_road_dataset import OffRoadDataset
 
-from modules.training.trainer.model.fcn import FCN
-from modules.training.trainer.model.deeplabv3 import DeepLabV3Plus
+from modules.models.registry import build_model
+from modules.segmentation.transforms import build_image_transform
 from modules.training.earlyStopping.early_stopping import EarlyStopping
 
 from modules.metrics.chart import Charts
@@ -32,19 +32,14 @@ class Trainer():
         print(f"Batch size: {self.batch_size}")
         self.EPOCHS = self.settings.get_epochs()
 
-        img_transform = transforms.Compose([
-            transforms.Resize((512, 512)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                std=[0.229, 0.224, 0.225]),
-        ])
+        img_transform = build_image_transform()
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.class_weights = torch.tensor([1.0, 9.0]).to(self.device)
         self.criterion = nn.CrossEntropyLoss(weight=self.class_weights)
 
-        self.train_dataset = OffRoadDataset('dataset/train', img_transform)
+        self.train_dataset = OffRoadDataset(paths.dataset_dir('train'), img_transform)
 
         use_cuda = torch.cuda.is_available()
         self.train_loader = DataLoader(
@@ -55,12 +50,9 @@ class Trainer():
             pin_memory=use_cuda,
         )
 
-        if model.upper() == 'FCN':
-            self.model = FCN(num_classes=2).to(self.device)
-            self.final_model_path = os.path.join("results", "fcn", "model.pth")
-        else:
-            self.model = DeepLabV3Plus(num_classes=2).to(self.device)
-            self.final_model_path = os.path.join("results", "deeplabv3+", "model.pth")
+        model_name = model.lower()
+        self.model = build_model(model_name).to(self.device)
+        self.final_model_path = paths.model_path(model_name)
 
         os.makedirs(os.path.dirname(self.final_model_path), exist_ok=True)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=1e-4)

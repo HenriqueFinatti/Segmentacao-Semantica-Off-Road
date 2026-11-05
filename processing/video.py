@@ -1,13 +1,16 @@
 import os
 import cv2
 
+from configs import paths
+from modules.models.registry import MODELS
+
 class Video:
 
     def __init__(self, video_path, output_dir):
         self.video_path = video_path
         self.output_dir = output_dir
-        self.images_dir = os.path.join("images", "images_to_segment")
-        self.segmented_images_dir = os.path.join("images", "segmented_images")
+        self.images_dir = paths.IMAGES_TO_SEGMENT_DIR
+        self.segmented_images_dir = paths.SEGMENTED_IMAGES_DIR
 
         os.makedirs(self.images_dir, exist_ok=True)
         os.makedirs(self.segmented_images_dir, exist_ok=True)
@@ -112,7 +115,7 @@ class Video:
     def make_segmented_video(self, segmentation_results=None):
         segmentation_results = segmentation_results or {}
 
-        for model in ["fcn", "deeplabv3+"]:
+        for model in MODELS:
             if not os.path.isdir(os.path.join(self.segmented_images_dir, model)):
                 print(f"Pulando vídeo do {model.upper()}: nenhuma imagem segmentada.")
                 continue

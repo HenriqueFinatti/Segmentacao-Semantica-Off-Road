@@ -4,6 +4,7 @@ import time
 import torch
 import numpy as np
 
+from configs import paths
 from configs.settings import Settings
 
 BLUE = "\033[94m"
@@ -185,8 +186,4 @@ class MetricsTracker:
 
 
     def get_result_path(self):
-        if self.current_model.upper() == 'FCN':
-            return 'results/fcn/statistics/stats.md'
-        
-        if self.current_model.upper() == 'DEEPLABV3+':
-            return 'results/deeplabv3+/statistics/stats.md'
+        return os.path.join(paths.statistics_dir(self.current_model.lower()), 'stats.md')

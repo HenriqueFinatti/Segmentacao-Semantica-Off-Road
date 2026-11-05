@@ -1,6 +1,8 @@
 import os
 import shutil
 
+from configs import paths
+
 class FreiburgConverter():
 
     def __init__(self):
@@ -14,8 +16,8 @@ class FreiburgConverter():
         splits = ['test', 'train']
 
         for split in splits:
-            path_original = os.path.join('dataset', split, 'original')
-            path_segmentation = os.path.join('dataset', split, 'original_segmentation')
+            path_original = paths.dataset_dir(split, 'original')
+            path_segmentation = paths.dataset_dir(split, 'original_segmentation')
 
             mapa_segmentation = {
                 os.path.splitext(f)[0]: f
@@ -58,8 +60,8 @@ class FreiburgConverter():
 
         for split in splits:
             for origem_nome, destino_nome in pastas_mapeadas.items():
-                root_path = os.path.join('./raw/freiburg_forest_annotated', split, origem_nome)
-                dest_path = os.path.join('dataset', split, destino_nome)
+                root_path = os.path.join(paths.FREIBURG_RAW_DIR, split, origem_nome)
+                dest_path = paths.dataset_dir(split, destino_nome)
 
                 for file in os.listdir(root_path):
                     root_file = os.path.join(root_path, file)
