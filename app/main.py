@@ -3,7 +3,7 @@ import time
 
 from configs import paths
 from modules.dataset.dataset_service import DatasetService
-from modules.driving.server import DrivingServer, RunConfig
+from modules.driving.server import DrivingServer, MODES, RunConfig
 from modules.training.training_service import TrainingService
 from modules.segmentation.segmentation_service import SegmentationService
 from processing.video import Video
@@ -85,7 +85,13 @@ class Application:
     def drive_in_carla(self):
         defaults = RunConfig()
         weather = input(f'Clima [{defaults.weather}]: ').strip() or defaults.weather
-        DrivingServer(RunConfig(weather=weather)).serve()
+        mode = input(f"Modo ({' ou '.join(MODES)}) [{defaults.mode}]: ").strip() or defaults.mode
+
+        if mode not in MODES:
+            print(f'Modo inválido: {mode}')
+            return
+
+        DrivingServer(RunConfig(weather=weather, mode=mode)).serve()
 
 
     def build_menu(self):

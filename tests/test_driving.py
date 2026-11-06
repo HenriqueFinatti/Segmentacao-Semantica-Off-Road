@@ -11,7 +11,7 @@ import numpy as np
 from carla_client.protocol import recv_message, send_message
 from modules.driving.controller import SpeedController
 from modules.driving.route import Route, RouteTracker, steering_to_point
-from modules.driving.server import DrivingSession, RunConfig
+from modules.driving.server import DrivingSession, LOST_TRAIL_STEPS, RunConfig
 from modules.driving.steering import column_to_steering, estimate_steering
 
 SIZE = 512
@@ -157,8 +157,11 @@ class ControllerTest(unittest.TestCase):
 
 
 class FakePredictor:
+    def __init__(self):
+        self.mask = trail_mask(256)
+
     def predict(self, frame):
-        return trail_mask(256)
+        return self.mask
 
 
 class FakeRecorder:
@@ -181,11 +184,16 @@ class SessionTest(unittest.TestCase):
         self.file.close()
 
         self.recorder = FakeRecorder()
-        self.session = DrivingSession(RunConfig(), FakePredictor(), Route(self.file.name), self.recorder)
+        self.predictor = FakePredictor()
+        self.route = Route(self.file.name)
+        self.session = self.new_session('waypoint')
         self.frame = np.zeros((600, 800, 3), dtype=np.uint8)
 
     def tearDown(self):
         os.unlink(self.file.name)
+
+    def new_session(self, mode):
+        return DrivingSession(RunConfig(mode=mode), self.predictor, self.route, self.recorder)
 
     def state(self, x=0.0, y=0.0, speed=1.5, collision=0.0):
         return {'frame': 1, 'x': x, 'y': y, 'z': 0.0, 'yaw': 0.0, 'pitch': 0.0, 'roll': 0.0,
@@ -197,6 +205,45 @@ class SessionTest(unittest.TestCase):
         self.assertFalse(action['done'])
         self.assertEqual(action['steer'], row['route_steering'])
         self.assertAlmostEqual(row['camera_steering'], 0.0, delta=0.01)
+
+    def test_mask_mode_steers_with_the_camera(self):
+        session = self.new_session('mask')
+        self.predictor.mask = trail_mask(380)
+
+        action = session.process(self.state(), self.frame)
+        row = self.recorder.rows[0]
+
+        self.assertGreater(action['steer'], 0.2)
+        self.assertEqual(action['steer'], row['camera_steering'])
+        self.assertNotEqual(action['steer'], row['route_steering'])
+
+    def test_lost_trail_keeps_steering_then_stops(self):
+        session = self.new_session('mask')
+        self.predictor.mask = trail_mask(380)
+        kept = session.process(self.state(), self.frame)['steer']
+
+        self.predictor.mask = np.zeros((SIZE, SIZE), dtype=np.uint8)
+        for _ in range(LOST_TRAIL_STEPS):
+            action = session.process(self.state(), self.frame)
+            self.assertEqual(action['steer'], kept)
+            self.assertFalse(action['done'])
+
+        braking = session.process(self.state(speed=1.0), self.frame)
+        self.assertEqual((braking['throttle'], braking['brake']), (0.0, 1.0))
+        self.assertFalse(braking['done'])
+
+        self.assertEqual(session.process(self.state(speed=0.0), self.frame)['reason'], 'trail_lost')
+
+    def test_trail_coming_back_resumes_driving(self):
+        session = self.new_session('mask')
+        self.predictor.mask = np.zeros((SIZE, SIZE), dtype=np.uint8)
+        for _ in range(LOST_TRAIL_STEPS + 3):
+            session.process(self.state(), self.frame)
+
+        self.predictor.mask = trail_mask(256)
+        action = session.process(self.state(), self.frame)
+        self.assertGreater(action['throttle'], 0.0)
+        self.assertEqual(session.lost_steps, 0)
 
     def test_collision_ends_the_run(self):
         self.assertEqual(self.session.process(self.state(collision=100.0), self.frame)['reason'], 'collision')

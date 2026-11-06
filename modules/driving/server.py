@@ -21,6 +21,12 @@ STALL_SPEED = 1.0 / 3.6
 STALL_STEPS = 20
 STALL_MIN_STEP = 40
 
+# Modos: em 'waypoint' a rota dirige e a câmera só é registrada; em 'mask' a câmera dirige e a rota só pontua
+MODES = ('waypoint', 'mask')
+
+# Sem trilha na máscara, mantém a última direção por 1 s (a 10 Hz) e depois freia até parar
+LOST_TRAIL_STEPS = 10
+
 
 @dataclass
 class RunConfig:
@@ -47,6 +53,8 @@ class DrivingSession:
         self.recorder = recorder
         self.step_count = 0
         self.slow_steps = 0
+        self.lost_steps = 0
+        self.last_steering = 0.0
 
 
     def process(self, state, frame):
@@ -59,9 +67,11 @@ class DrivingSession:
         estimate = estimate_steering(mask)
         route_state = self.tracker.update((state['x'], state['y']), state['yaw'])
 
-        # Nas fases 2 e 3 a rota dirige e a câmera só é registrada
-        steering = max(min(route_state.steering, 1.0), -1.0)
+        steering = self.choose_steering(route_state, estimate)
         throttle, brake = self.controller.update(state['speed'], steering)
+
+        if self.lost_steps > LOST_TRAIL_STEPS:
+            throttle, brake = 0.0, 1.0
 
         reason = self.finish_reason(state, route_state)
 
@@ -93,9 +103,25 @@ class DrivingSession:
         return {'throttle': throttle, 'steer': steering, 'brake': brake, 'done': reason is not None, 'reason': reason}
 
 
+    def choose_steering(self, route_state, estimate):
+        if self.config.mode == 'waypoint':
+            return max(min(route_state.steering, 1.0), -1.0)
+
+        if estimate.steering is None:
+            self.lost_steps += 1
+            return self.last_steering
+
+        self.lost_steps = 0
+        self.last_steering = max(min(estimate.steering, 1.0), -1.0)
+        return self.last_steering
+
+
     def finish_reason(self, state, route_state):
         if route_state.lap_done:
             return 'lap_complete'
+
+        if self.lost_steps > LOST_TRAIL_STEPS and state['speed'] <= STALL_SPEED:
+            return 'trail_lost'
 
         if state['collision'] > 0:
             return 'collision'
@@ -181,6 +207,7 @@ def parse_args():
     defaults = RunConfig()
     parser = argparse.ArgumentParser(description='Servidor de direção para o CARLA')
     parser.add_argument('--weather', default=defaults.weather)
+    parser.add_argument('--mode', choices=MODES, default=defaults.mode)
     parser.add_argument('--min-speed', type=float, default=defaults.min_speed)
     parser.add_argument('--max-speed', type=float, default=defaults.max_speed)
     parser.add_argument('--spawn-index', type=int, default=defaults.spawn_index)
@@ -192,6 +219,7 @@ if __name__ == '__main__':
     args = parse_args()
     DrivingServer(RunConfig(
         weather=args.weather,
+        mode=args.mode,
         min_speed=args.min_speed,
         max_speed=args.max_speed,
         spawn_index=args.spawn_index,

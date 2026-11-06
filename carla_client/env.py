@@ -18,6 +18,11 @@ import carla
 CAMERA_X = 2.0
 CAMERA_Z = 1.7
 SETTLE_TICKS = 30
+
+# Janela do CARLA: atrás e acima do carro. Só serve para acompanhar, não afeta o modelo
+SPECTATOR_DISTANCE = 8.0
+SPECTATOR_HEIGHT = 4.0
+SPECTATOR_PITCH = -15.0
 TIMEOUT = 60.0
 
 
@@ -92,6 +97,7 @@ class CarlaEnv:
 
         transform = self.vehicle.get_transform()
         velocity = self.vehicle.get_velocity()
+        self.follow_with_spectator(transform)
 
         state = {
             'type': 'step',
@@ -107,6 +113,17 @@ class CarlaEnv:
         }
 
         return state, self.to_rgb(image)
+
+
+    def follow_with_spectator(self, transform):
+        yaw = math.radians(transform.rotation.yaw)
+        location = carla.Location(
+            x=transform.location.x - SPECTATOR_DISTANCE * math.cos(yaw),
+            y=transform.location.y - SPECTATOR_DISTANCE * math.sin(yaw),
+            z=transform.location.z + SPECTATOR_HEIGHT,
+        )
+        rotation = carla.Rotation(pitch=SPECTATOR_PITCH, yaw=transform.rotation.yaw)
+        self.world.get_spectator().set_transform(carla.Transform(location, rotation))
 
 
     def wait_image(self, frame_id):
@@ -130,17 +147,18 @@ class CarlaEnv:
 
 
     def close(self):
-        for sensor in (self.camera, self.collision_sensor):
-            if sensor is not None:
-                sensor.stop()
-                sensor.destroy()
+        try:
+            for sensor in (self.camera, self.collision_sensor):
+                if sensor is not None:
+                    sensor.stop()
+                    sensor.destroy()
 
-        if self.vehicle is not None:
-            self.vehicle.destroy()
+            if self.vehicle is not None:
+                self.vehicle.destroy()
 
-        # Sem isto o servidor do CARLA fica parado esperando ticks
-        if self.original_settings is not None:
-            self.world.apply_settings(self.original_settings)
-
-        self.camera = self.collision_sensor = self.vehicle = self.original_settings = None
-        self.images = queue.Queue()
+            # Sem isto o servidor do CARLA fica parado esperando ticks
+            if self.original_settings is not None:
+                self.world.apply_settings(self.original_settings)
+        except RuntimeError as error:
+            # Se o CARLA caiu, não há mais o que limpar nele
+            print('CARLA indisponível ao encerrar:', error, flush=True)

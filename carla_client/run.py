@@ -1,4 +1,5 @@
 import argparse
+import queue
 import socket
 import time
 
@@ -6,6 +7,9 @@ from carla_client.env import CarlaEnv
 from carla_client.protocol import SERVER_HOST, SERVER_PORT, recv_message, send_message
 
 RETRY_SECONDS = 2
+
+# Erros de quando o CARLA ou o servidor de direção param no meio de uma execução
+EPISODE_ERRORS = (ConnectionError, RuntimeError, queue.Empty)
 
 
 def connect(host, port):
@@ -48,16 +52,15 @@ def main():
     parser.add_argument('--once', action='store_true', help='Encerra depois de uma execução')
     args = parser.parse_args()
 
-    env = CarlaEnv(args.carla_host, args.carla_port)
-    print('Conectado ao CARLA. Aguardando o servidor de direção...', flush=True)
+    print('Aguardando o servidor de direção...', flush=True)
 
     while True:
         connection = connect(args.server_host, args.server_port)
 
         try:
-            run_episode(connection, env)
-        except ConnectionError as error:
-            print('Servidor desconectado:', error, flush=True)
+            run_episode(connection, CarlaEnv(args.carla_host, args.carla_port))
+        except EPISODE_ERRORS as error:
+            print('Execução interrompida:', error, flush=True)
         finally:
             connection.close()
 
