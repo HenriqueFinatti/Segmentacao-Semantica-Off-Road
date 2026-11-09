@@ -28,11 +28,12 @@ def run_episode(connection, env):
     print('Iniciando {map} com clima {weather}'.format(**config), flush=True)
 
     try:
-        env.start(config['map'], config['weather'], config['spawn'], config['fps'])
+        env.start(config['map'], config['weather'], config['spawn'], config['fps'], config.get('record_view', False))
 
         while True:
-            state, frame = env.tick()
-            send_message(connection, state, frame)
+            state, frame, view = env.tick()
+            # A segunda imagem, quando existe, vai logo depois da primeira
+            send_message(connection, state, frame + view)
             action, _ = recv_message(connection)
             env.apply(action)
 

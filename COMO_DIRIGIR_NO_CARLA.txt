@@ -41,7 +41,7 @@ PASSO 2: INICIAR O SERVIDOR DE DIREÇÃO (terminal 2)
 
 Na pasta do projeto:
 
-  .venv/bin/python -m modules.driving.server --mode mask --weather ClearNoon --min-speed 1 --max-speed 2
+  .venv/bin/python -m modules.driving.server --mode mask --weather ClearNoon --min-speed 2 --max-speed 4
 
 Espere aparecer:
 
@@ -84,6 +84,9 @@ PARA RODAR DE NOVO
 O servidor encerra sozinho no fim de cada execução. O CARLA e o cliente podem
 continuar abertos: basta repetir o passo 2 e o cliente reconecta sozinho.
 
+Se o código em carla_client/ mudar, feche o cliente (Ctrl+C) e rode o passo 3
+de novo: o cliente só lê o código quando inicia.
+
 
 OPÇÕES DO SERVIDOR
 ------------------
@@ -100,16 +103,31 @@ OPÇÕES DO SERVIDOR
   --min-speed N        velocidade mínima em m/s
   --max-speed N        velocidade máxima em m/s
 
+  --no-view-video      não grava a visão de trás do carro (carla.mp4). A volta
+                       fica mais rápida, porque o CARLA desenha uma câmera a menos
+
+  --video-speed N      velocidade dos vídeos. O padrão é 2 (duas vezes mais
+                       rápido que o carro). Use 1 para ver na velocidade real
+
 
 ONDE FICAM OS RESULTADOS
 ------------------------
 
 Cada execução cria uma pasta em results/carla/ com:
 
-  overlay.mp4     vídeo com a trilha em vermelho e os pontos de direção em amarelo
+  overlay.mp4     o que o modelo vê: a trilha usada em vermelho e os pontos de
+                  direção em amarelo
+  mascara.mp4     a saída do modelo em preto e branco, antes de qualquer filtro
+  carla.mp4       a visão de trás do carro, como na janela do CARLA
+  comparacao.mp4  os três vídeos acima lado a lado
   log.csv         dados de cada passo
   summary.json    resumo da execução
   frames/         uma imagem a cada 1 segundo simulado
+
+Os vídeos têm um quadro por passo, então ficam sincronizados entre si. Por
+padrão tocam duas vezes mais rápido que o carro (veja --video-speed). A janela
+do CARLA roda ainda mais rápido, porque o simulador não espera o relógio: por
+isso não adianta gravar a tela.
 
 O campo "reason" do summary.json diz como a execução terminou:
 

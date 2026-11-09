@@ -4,17 +4,25 @@ from collections import namedtuple
 import cv2
 import numpy as np
 
-from carla_client.protocol import FRAME_WIDTH
+from carla_client.protocol import FRAME_HEIGHT, FRAME_WIDTH
 
 # Faixa do frame com a mesma proporção das imagens de treino e o horizonte no centro
 CROP_TOP = 92
 CROP_BOTTOM = 508
 
-# Câmera de 90° e 800 px de largura: distância focal de 400 px
+# Câmera de 90° e 800 px de largura: distância focal de 400 px.
+# Ela fica 2 m à frente do centro do carro, a 1,7 m de altura e sem inclinação
 FOCAL_LENGTH = FRAME_WIDTH / 2
+HORIZON_ROW = FRAME_HEIGHT / 2
+CAMERA_HEIGHT = 1.7
+CAMERA_FORWARD = 2.0
 
-# Posição de cada linha entre o topo visível da trilha e a base da máscara
-ROW_FRACTIONS = (0.21, 0.33, 0.41)
+# Distâncias à frente da câmera, em metros, onde a trilha é lida. Mais longe que isso
+# o carro mira no trecho depois da curva e corta por dentro
+LOOKAHEAD_DISTANCES = (5.0, 7.0, 9.0)
+
+# Medido no Nissan Patrol: curvatura (1/m) que o carro faz por unidade de direção do CARLA
+CURVATURE_PER_STEER = 0.267
 
 # Abaixo disto a região é ruído, não trilha
 MIN_REGION_PIXELS = 200
@@ -40,36 +48,46 @@ def largest_region(mask):
     return labels == largest
 
 
-def steering_rows(region):
-    filled = np.flatnonzero(region.any(axis=1))
-
-    if filled.size == 0:
-        return []
-
-    top = int(filled[0])
-    height = region.shape[0] - top
-    return [top + int(round(fraction * height)) for fraction in ROW_FRACTIONS]
+def distance_to_mask_row(distance, mask_height):
+    """Linha da máscara onde fica o chão a esta distância, supondo chão plano."""
+    frame_row = HORIZON_ROW + CAMERA_HEIGHT * FOCAL_LENGTH / distance
+    return int(round((frame_row - CROP_TOP) * mask_height / (CROP_BOTTOM - CROP_TOP)))
 
 
-def column_to_steering(column, mask_width):
-    """Com a câmera sem inclinação, a direção de um ponto depende só da coluna, não da distância."""
+def lateral_offset(column, mask_width, distance):
+    """Distância lateral em metros, no chão, de uma coluna da máscara. Positivo é à direita."""
     u = column * FRAME_WIDTH / mask_width
-    return math.sin(math.atan2(u - FRAME_WIDTH / 2, FOCAL_LENGTH))
+    return (u - FRAME_WIDTH / 2) * distance / FOCAL_LENGTH
+
+
+def pursuit_steering(forward, lateral):
+    """Pure pursuit: curvatura do arco que leva o centro do carro até o ponto, convertida em direção do CARLA."""
+    curvature = 2 * lateral / (forward ** 2 + lateral ** 2)
+    return curvature / CURVATURE_PER_STEER
 
 
 def estimate_steering(mask):
     region = largest_region(mask)
+    height, width = region.shape
     rows = []
     columns = []
+    values = []
 
-    for row in steering_rows(region):
+    for distance in LOOKAHEAD_DISTANCES:
+        row = distance_to_mask_row(distance, height)
+        if not 0 <= row < height:
+            continue
+
         pixels = np.flatnonzero(region[row])
-        if pixels.size:
-            rows.append(row)
-            columns.append(float(pixels.mean()))
+        if pixels.size == 0:
+            continue
 
-    if not columns:
+        column = float(pixels.mean())
+        rows.append(row)
+        columns.append(column)
+        values.append(pursuit_steering(distance + CAMERA_FORWARD, lateral_offset(column, width, distance)))
+
+    if not values:
         return SteeringEstimate(None, rows, columns, region)
 
-    values = [column_to_steering(column, mask.shape[1]) for column in columns]
     return SteeringEstimate(sum(values) / len(values), rows, columns, region)

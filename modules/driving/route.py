@@ -4,7 +4,7 @@ from collections import namedtuple
 
 import numpy as np
 
-RouteState = namedtuple('RouteState', 'index steering mileage distance_from_center track_width lap_done')
+RouteState = namedtuple('RouteState', 'index steering mileage distance_from_center lateral_offset track_width lap_done')
 
 # Mesmos waypoints que o mathDriver usa: do 2º ao 4º à frente, cerca de 8 a 16 m no Offroad_2
 STEERING_WAYPOINTS = (2, 3, 4)
@@ -62,6 +62,26 @@ class Route:
         return {'x': float(x), 'y': float(y), 'z': float(z), 'yaw': self.heading_at(index)}
 
 
+    def lateral_offset(self, index, location):
+        """Distância perpendicular até a linha central, olhando os dois trechos vizinhos. Positivo é à direita."""
+        point = np.asarray(location, dtype=float)
+        best = None
+
+        for start, end in ((index - 1, index), (index, index + 1)):
+            a, b = self.waypoint(start), self.waypoint(end)
+            direction = b - a
+            t = min(max(float(np.dot(point - a, direction) / np.dot(direction, direction)), 0.0), 1.0)
+            delta = point - (a + t * direction)
+            distance = float(np.hypot(*delta))
+
+            if best is None or distance < abs(best):
+                unit = direction / np.hypot(*direction)
+                side = -unit[1] * delta[0] + unit[0] * delta[1]
+                best = math.copysign(distance, side) if side else 0.0
+
+        return best
+
+
     def steering(self, index, location, heading):
         values = [steering_to_point(location, heading, self.waypoint(index + step)) for step in STEERING_WAYPOINTS]
         return sum(values) / len(values)
@@ -93,6 +113,7 @@ class RouteTracker:
             steering=route.steering(index, location, heading),
             mileage=self.mileage,
             distance_from_center=distance,
+            lateral_offset=route.lateral_offset(index, location),
             track_width=float(route.widths[index]),
             lap_done=self.mileage >= route.length - LAP_END_TOLERANCE,
         )

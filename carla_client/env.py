@@ -36,12 +36,14 @@ class CarlaEnv:
         self.original_settings = None
         self.vehicle = None
         self.camera = None
+        self.view_camera = None
         self.collision_sensor = None
         self.images = queue.Queue()
+        self.view_images = queue.Queue()
         self.collision = 0.0
 
 
-    def start(self, map_name, weather, spawn, fps):
+    def start(self, map_name, weather, spawn, fps, record_view=False):
         # Mapas customizados não têm OpenDRIVE: não usar world.get_map()
         self.world = self.client.load_world(map_name)
         self.world.set_weather(getattr(carla.WeatherParameters, weather))
@@ -73,6 +75,18 @@ class CarlaEnv:
 
         self.camera.listen(self.images.put)
         self.collision_sensor.listen(self.on_collision)
+
+        if record_view:
+            # Segunda câmera, na mesma posição da janela do CARLA. Só é gravada: o modelo não a usa
+            self.view_camera = self.world.spawn_actor(
+                library.find('sensor.camera.rgb'),
+                carla.Transform(
+                    carla.Location(x=-SPECTATOR_DISTANCE, z=SPECTATOR_HEIGHT),
+                    carla.Rotation(pitch=SPECTATOR_PITCH),
+                ),
+                attach_to=self.vehicle,
+            )
+            self.view_camera.listen(self.view_images.put)
         self.settle()
 
 
@@ -93,7 +107,8 @@ class CarlaEnv:
 
     def tick(self):
         frame_id = self.world.tick()
-        image = self.wait_image(frame_id)
+        image = self.wait_image(self.images, frame_id)
+        view = self.to_rgb(self.wait_image(self.view_images, frame_id)) if self.view_camera else b''
 
         transform = self.vehicle.get_transform()
         velocity = self.vehicle.get_velocity()
@@ -112,7 +127,7 @@ class CarlaEnv:
             'collision': self.collision,
         }
 
-        return state, self.to_rgb(image)
+        return state, self.to_rgb(image), view
 
 
     def follow_with_spectator(self, transform):
@@ -126,9 +141,9 @@ class CarlaEnv:
         self.world.get_spectator().set_transform(carla.Transform(location, rotation))
 
 
-    def wait_image(self, frame_id):
+    def wait_image(self, images, frame_id):
         while True:
-            image = self.images.get(timeout=TIMEOUT)
+            image = images.get(timeout=TIMEOUT)
             if image.frame == frame_id:
                 return image
 
@@ -148,7 +163,7 @@ class CarlaEnv:
 
     def close(self):
         try:
-            for sensor in (self.camera, self.collision_sensor):
+            for sensor in (self.camera, self.view_camera, self.collision_sensor):
                 if sensor is not None:
                     sensor.stop()
                     sensor.destroy()

@@ -39,6 +39,9 @@ class RunConfig:
     spawn_index: int = 0
     max_steps: int = 20000
     fps: int = 10
+    record_view: bool = True
+    # 1 toca na velocidade real do carro; 2 toca duas vezes mais rápido
+    video_speed: float = 2.0
 
 
 class DrivingSession:
@@ -57,7 +60,7 @@ class DrivingSession:
         self.last_steering = 0.0
 
 
-    def process(self, state, frame):
+    def process(self, state, frame, view=None):
         self.step_count += 1
 
         started = time.perf_counter()
@@ -88,6 +91,7 @@ class DrivingSession:
             'waypoint': route_state.index,
             'mileage': route_state.mileage,
             'distance_from_center': route_state.distance_from_center,
+            'lateral_offset': route_state.lateral_offset,
             'track_width': route_state.track_width,
             'route_steering': route_state.steering,
             'camera_steering': '' if estimate.steering is None else estimate.steering,
@@ -98,7 +102,7 @@ class DrivingSession:
             'trail_fraction': float(mask.mean()),
             'inference_ms': inference_ms,
             'collision': state['collision'],
-        }, frame, estimate.region, estimate)
+        }, frame, mask, estimate, view)
 
         return {'throttle': throttle, 'steer': steering, 'brake': brake, 'done': reason is not None, 'reason': reason}
 
@@ -176,6 +180,7 @@ class DrivingServer:
             'weather': self.config.weather,
             'fps': self.config.fps,
             'spawn': self.route.spawn_pose(self.config.spawn_index),
+            'record_view': self.config.record_view,
         })
 
         recorder = Recorder(self.config)
@@ -185,9 +190,9 @@ class DrivingServer:
         try:
             while True:
                 state, payload = recv_message(connection)
-                frame = np.frombuffer(payload, dtype=np.uint8).reshape(FRAME_HEIGHT, FRAME_WIDTH, 3)
+                frame, view = split_images(payload)
 
-                action = session.process(state, frame)
+                action = session.process(state, frame, view)
                 send_message(connection, dict(action, type='action'))
 
                 if action['done']:
@@ -203,6 +208,15 @@ class DrivingServer:
         return summary
 
 
+def split_images(payload):
+    """A primeira imagem é a câmera do modelo; a segunda, se veio, é a visão de trás do carro."""
+    size = FRAME_HEIGHT * FRAME_WIDTH * 3
+    images = np.frombuffer(payload, dtype=np.uint8)
+    frame = images[:size].reshape(FRAME_HEIGHT, FRAME_WIDTH, 3)
+    view = images[size:2 * size].reshape(FRAME_HEIGHT, FRAME_WIDTH, 3) if images.size >= 2 * size else None
+    return frame, view
+
+
 def parse_args():
     defaults = RunConfig()
     parser = argparse.ArgumentParser(description='Servidor de direção para o CARLA')
@@ -212,6 +226,9 @@ def parse_args():
     parser.add_argument('--max-speed', type=float, default=defaults.max_speed)
     parser.add_argument('--spawn-index', type=int, default=defaults.spawn_index)
     parser.add_argument('--max-steps', type=int, default=defaults.max_steps)
+    parser.add_argument('--no-view-video', action='store_true', help='Não grava a visão de trás do carro (carla.mp4)')
+    parser.add_argument('--video-speed', type=float, default=defaults.video_speed,
+                        help='Velocidade dos vídeos: 1 é a velocidade real do carro, 2 é o dobro')
     return parser.parse_args()
 
 
@@ -224,4 +241,6 @@ if __name__ == '__main__':
         max_speed=args.max_speed,
         spawn_index=args.spawn_index,
         max_steps=args.max_steps,
+        record_view=not args.no_view_video,
+        video_speed=args.video_speed,
     )).serve()
