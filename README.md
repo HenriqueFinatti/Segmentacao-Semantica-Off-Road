@@ -11,6 +11,27 @@ python -m app.main
 ```
 pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu118
 ```
+
+## Controlar o CARLA
+
+- **Se for a primeira vez**
+```
+sudo docker build -t seg-carla-client -f docker/Dockerfile docker
+```
+
+- **Terminal 1 (Espere cerca de 30 segundos e deixe a janela aberta. O CARLA precisa estar
+pronto antes do próximo passo)**
+```
+cd ~/Downloads/CARLA_0.9.6-dirty && sh CarlaUE4.sh -opengl -windowed -ResX=640 -ResY=480
+```
+- **Terminal 2**
+```
+.venv/bin/python -m modules.driving.server --mode mask --weather ClearNoon --min-speed 2 --m1ax-speed 4 --video-speed 3
+```
+- **Terminal 3**
+```
+sudo docker run --rm --net host -v "$PWD:/app:ro" -v "$HOME/Downloads/CARLA_0.9.6-dirty/PythonAPI/carla/dist:/carla/dist:ro" seg-carla-client
+```
 ## To-do
 ### Artigo
 - [ ] **Resultados reportados são de treino.** A acurácia (98,57%) e o mIoU (92,58%) em "Resultados Parciais" são médias sobre o dataset de treino. Refazer com métricas no dataset de teste depois que a avaliação existir no código (ver seção Código).

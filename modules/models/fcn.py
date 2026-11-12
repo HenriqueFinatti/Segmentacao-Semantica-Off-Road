@@ -3,10 +3,10 @@ import torch.nn.functional as F
 import torchvision.models as models
 
 class FCN(nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, pretrained=True):
         super().__init__()
         
-        resnet = models.resnet152(weights='IMAGENET1K_V1')
+        resnet = models.resnet152(weights='IMAGENET1K_V1' if pretrained else None)
         
         self.backbone = nn.Sequential(*list(resnet.children())[:-2])
         

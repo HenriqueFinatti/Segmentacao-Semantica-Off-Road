@@ -5,17 +5,15 @@ import numpy as np
 
 from PIL import Image
 from datetime import datetime
-from torchvision import transforms
 from torch.utils.data import DataLoader
 
+from configs import paths
 from modules.metrics.chart import Charts
 from modules.metrics.inference_metrics import InferenceMetrics
-from modules.training.trainer.model.fcn import FCN
-from modules.training.trainer.model.deeplabv3 import DeepLabV3Plus
+from modules.models.registry import MODELS
 from modules.segmentation.inference_dataset import InferenceDataset
-
-# Passadas descartadas antes de medir, para não contar a inicialização da GPU/cuDNN
-WARMUP_ITERATIONS = 5
+from modules.segmentation.predictor import Predictor, WARMUP_ITERATIONS
+from modules.segmentation.transforms import build_image_transform
 
 CONTEXT_TITLES = {
     'imagens': 'Imagens',
@@ -28,19 +26,14 @@ class SegmentationService():
     def __init__(self):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.device_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
-        self.input_dir = os.path.join("images", "images_to_segment")
-        self.output_base = os.path.join("images", "segmented_images")
-        self.test_output_base = os.path.join("dataset", "test", "new_segmentation")
+        self.input_dir = paths.IMAGES_TO_SEGMENT_DIR
+        self.output_base = paths.SEGMENTED_IMAGES_DIR
+        self.test_output_base = paths.TEST_SEGMENTATION_DIR
 
         self.charts = Charts()
         self.inference_metrics = InferenceMetrics()
 
-        self.img_transform = transforms.Compose([
-            transforms.Resize((512, 512)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                 std=[0.229, 0.224, 0.225]),
-        ])
+        self.img_transform = build_image_transform()
 
     def segment_images(self, context='imagens'):
         print("Iniciando segmentação de imagens...")
@@ -55,7 +48,7 @@ class SegmentationService():
 
     def segment_test_dataset(self):
         print("Iniciando segmentação do dataset de teste...")
-        test_dir = os.path.join("dataset", "test", "original")
+        test_dir = paths.dataset_dir('test', 'original')
         self.validate_input_dir(test_dir)
 
         dataset = InferenceDataset(test_dir, self.img_transform)
@@ -66,11 +59,10 @@ class SegmentationService():
         return results
 
     def segment_with_all_models(self, dataset, output_base, context):
-        models = [('fcn', FCN), ('deeplabv3+', DeepLabV3Plus)]
         results = {}
 
-        for model_name, model_class in models:
-            result = self.segment_with_model(model_name, model_class, dataset, output_base)
+        for model_name in MODELS:
+            result = self.segment_with_model(model_name, dataset, output_base)
 
             if result is None:
                 print(f"Pulando {model_name.upper()}: modelo ainda não foi treinado.")
@@ -98,28 +90,23 @@ class SegmentationService():
         if len(dataset) == 0:
             raise ValueError("Nenhuma imagem encontrada na pasta de entrada.")
 
-    def segment_with_model(self, model_name, model_class, dataset, output_base):
-        model = self.load_model(model_name, model_class)
+    def segment_with_model(self, model_name, dataset, output_base):
+        predictor = self.load_predictor(model_name)
 
-        if model is None:
+        if predictor is None:
             return None
 
         output_dir = os.path.join(output_base, model_name)
         os.makedirs(output_dir, exist_ok=True)
 
-        return self.run_inference(model, dataset, output_dir, model_name)
+        return self.run_inference(predictor, dataset, output_dir, model_name)
 
-    def load_model(self, model_name, model_class):
-        model_path = os.path.join("results", model_name, "model.pth")
-
-        if not os.path.exists(model_path):
-            print(f"Modelo não encontrado: {model_path}")
+    def load_predictor(self, model_name):
+        try:
+            return Predictor(model_name, self.device)
+        except FileNotFoundError as error:
+            print(error)
             return None
-
-        model = model_class(num_classes=2).to(self.device)
-        model.load_state_dict(torch.load(model_path, map_location=self.device))
-        model.eval()
-        return model
 
     def synchronized_time(self):
         # As chamadas na GPU são assíncronas; sem sincronizar o tempo medido seria só o de enfileirar
@@ -127,20 +114,10 @@ class SegmentationService():
             torch.cuda.synchronize()
         return time.perf_counter()
 
-    def warmup(self, model, dataset):
-        image, _ = dataset[0]
-        image = image.unsqueeze(0).to(self.device)
-
-        with torch.no_grad():
-            for _ in range(WARMUP_ITERATIONS):
-                model(image)
-
-        self.synchronized_time()
-
-    def run_inference(self, model, dataset, output_dir, model_name):
+    def run_inference(self, predictor, dataset, output_dir, model_name):
         # Batch 1 para medir o tempo real de cada frame, como em um vídeo
         loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
-        self.warmup(model, dataset)
+        predictor.warmup(dataset[0][0])
 
         inference_times = {}
         frame_times = {}
@@ -153,8 +130,7 @@ class SegmentationService():
                 images = images.to(self.device)
 
                 inference_start = self.synchronized_time()
-                outputs = model(images)
-                preds = torch.argmax(outputs, dim=1)
+                preds = predictor.predict_tensor(images)
                 inference_end = self.synchronized_time()
 
                 base_name = os.path.splitext(filenames[0])[0]
@@ -189,11 +165,11 @@ class SegmentationService():
 
 
     def get_metrics_path(self, model_name, context):
-        return os.path.join("results", model_name, "statistics", f"segmentation_{context}.md")
+        return os.path.join(paths.statistics_dir(model_name), f"segmentation_{context}.md")
 
 
     def get_csv_path(self, model_name, context):
-        return os.path.join("results", model_name, "statistics", f"tempos_inferencia_{context}.csv")
+        return os.path.join(paths.statistics_dir(model_name), f"tempos_inferencia_{context}.csv")
 
 
     def generate_metrics(self, result, model_name, context):
@@ -220,7 +196,7 @@ class SegmentationService():
             "",
             *self.inference_metrics.build_markdown_table(result, self.device.type == 'cuda'),
             "",
-            f"Tempos por frame: `{self.get_csv_path(model_name, context)}`",
+            f"Tempos por frame: `{paths.relative(self.get_csv_path(model_name, context))}`",
         ]
 
         with open(metrics_path, 'w', encoding='utf-8') as f:
@@ -228,8 +204,8 @@ class SegmentationService():
 
     def print_summary(self, output_base, context):
         print("\nSegmentação concluída!")
-        print(f"Resultados salvos em: {output_base}")
+        print(f"Resultados salvos em: {paths.relative(output_base)}")
         print("Métricas salvas em:")
-        for model_name in ['fcn', 'deeplabv3+']:
-            print(f"  - {self.get_metrics_path(model_name, context)}")
-            print(f"  - {self.get_csv_path(model_name, context)}")
+        for model_name in MODELS:
+            print(f"  - {paths.relative(self.get_metrics_path(model_name, context))}")
+            print(f"  - {paths.relative(self.get_csv_path(model_name, context))}")

@@ -1,7 +1,4 @@
-from modules.metrics.chart import Charts
 from modules.training.trainer.trainer import Trainer
-
-charts = Charts()
 
 class TrainingService():
 

@@ -4,6 +4,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import numpy as np
 from PIL import Image
 
+from configs import paths
+
 class MaskGenerator:
 
     def __init__(self, settings):
@@ -60,8 +62,8 @@ class MaskGenerator:
         total_skipped = 0
 
         for split in splits:
-            source_folder = f"./dataset/{split}/original_segmentation"
-            dest_folder = f"./dataset/{split}/mask"
+            source_folder = paths.dataset_dir(split, 'original_segmentation')
+            dest_folder = paths.dataset_dir(split, 'mask')
 
             os.makedirs(dest_folder, exist_ok=True)
 

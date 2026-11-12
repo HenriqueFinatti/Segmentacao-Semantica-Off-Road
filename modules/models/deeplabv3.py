@@ -4,10 +4,10 @@ import torch.nn.functional as F
 import torchvision.models as models
 
 class DeepLabV3Plus(nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self, num_classes, pretrained=True):
         super().__init__()
 
-        resnet = models.resnet152(weights='IMAGENET1K_V1')
+        resnet = models.resnet152(weights='IMAGENET1K_V1' if pretrained else None)
         self.backbone_low   = nn.Sequential(*list(resnet.children())[:5])
         self.backbone_high  = nn.Sequential(*list(resnet.children())[5:8])
         self.aspp           = ASPP(2048, 256)

@@ -1,15 +1,15 @@
-import os
 import shutil
 import kagglehub
 
+from configs import paths
+
 class SyntheticDownloader():
-    BASE_DIR = "./raw"
     def __init__(self):
         pass
 
 
     def download_dataset(self):
         downloaded_path = kagglehub.dataset_download("konrmal94/synthetic-offroad-image-dataset")
-        destination = os.path.join(self.BASE_DIR, "synthetic_offroad")
+        destination = paths.SYNTHETIC_RAW_DIR
 
         shutil.move(downloaded_path, destination)

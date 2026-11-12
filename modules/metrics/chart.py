@@ -3,20 +3,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
+from configs import paths
 from configs.settings import Settings
-
-settings = Settings()
 
 class Charts:
     def __init__(self):
-        pass
+        self.settings = Settings()
 
     def plot_charts(self, metrics_tracker, current_model):
 
         save_dir = self.get_result_path(current_model.upper())
         os.makedirs(save_dir, exist_ok=True)
 
-        if settings.is_charts_on():
+        if self.settings.is_charts_on():
             self.plot_loss(metrics_tracker, save_dir)
             self.plot_accuracy(metrics_tracker, save_dir)
             self.plot_iou(metrics_tracker, save_dir)
@@ -183,7 +182,7 @@ class Charts:
 
 
     def plot_inference_times(self, result, model, context):
-        if not settings.is_charts_on():
+        if not self.settings.is_charts_on():
             return
 
         save_dir = self.get_result_path(model.upper())
@@ -220,10 +219,10 @@ class Charts:
 
 
     def plot_inference_comparison(self, results, context):
-        if not settings.is_charts_on():
+        if not self.settings.is_charts_on():
             return
 
-        save_dir = os.path.join('results', 'comparacao')
+        save_dir = paths.COMPARISON_DIR
         os.makedirs(save_dir, exist_ok=True)
 
         models = [model.upper() for model in results]
@@ -252,8 +251,4 @@ class Charts:
 
 
     def get_result_path(self, model):
-        if model == 'FCN':
-            return 'results/fcn/images'
-        
-        if model == 'DEEPLABV3+':
-            return 'results/deeplabv3+/images'
+        return paths.charts_dir(model.lower())

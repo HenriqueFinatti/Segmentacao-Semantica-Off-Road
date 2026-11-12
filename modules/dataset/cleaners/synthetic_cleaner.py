@@ -1,8 +1,10 @@
 import os
 import shutil
 
+from configs import paths
+
 class SyntheticCleaner():
-    SYNTHETIC_DATASET = './raw/synthetic_offroad/dataset'
+    SYNTHETIC_DATASET = os.path.join(paths.SYNTHETIC_RAW_DIR, 'dataset')
     def __init__(self):
         pass
 
