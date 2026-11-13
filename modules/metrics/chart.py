@@ -4,11 +4,10 @@ import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 
 from configs import paths
-from configs.settings import Settings
 
 class Charts:
-    def __init__(self):
-        self.settings = Settings()
+    def __init__(self, settings):
+        self.settings = settings
 
     def plot_charts(self, metrics_tracker, current_model):
 

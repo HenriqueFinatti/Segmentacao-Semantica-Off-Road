@@ -14,7 +14,7 @@ from modules.driving.recorder import Recorder
 from modules.driving.route import OFF_TRACK_MARGIN, Route, RouteTracker
 from modules.driving.steering import crop_frame, estimate_steering
 from modules.segmentation.predictor import Predictor
-from modules.segmentation.transforms import IMAGE_SIZE
+from configs.settings import Settings
 
 # Regra do benchmark original: abaixo de 1 km/h por mais de 20 passos, depois do passo 40
 STALL_SPEED = 1.0 / 3.6
@@ -146,12 +146,13 @@ class DrivingSession:
 
 
 class DrivingServer:
-    def __init__(self, config):
+    def __init__(self, config, settings):
         self.config = config
         self.route = Route(os.path.join(paths.CARLA_CONFIG_DIR, f'{config.map_name}.csv'))
-        self.predictor = Predictor(config.model)
+        self.predictor = Predictor(config.model, settings.get_image_size())
 
-        self.predictor.warmup(torch.zeros(3, IMAGE_SIZE, IMAGE_SIZE))
+        image_size = self.predictor.image_size
+        self.predictor.warmup(torch.zeros(3, image_size, image_size))
 
 
     def serve(self):
@@ -243,4 +244,4 @@ if __name__ == '__main__':
         max_steps=args.max_steps,
         record_view=not args.no_view_video,
         video_speed=args.video_speed,
-    )).serve()
+    ), Settings()).serve()

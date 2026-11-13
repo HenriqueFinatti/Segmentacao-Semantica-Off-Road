@@ -7,7 +7,6 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 
 from configs import paths
-from configs.settings import Settings
 
 from modules.training.dataset.off_road_dataset import OffRoadDataset
 
@@ -20,26 +19,26 @@ from modules.metrics.metrics_tracker import MetricsTracker
 
 
 class Trainer():
-    def __init__(self, model: str):
+    def __init__(self, model: str, settings):
         self.current_model = model.upper()
         self.metrics_tracker = MetricsTracker(self.current_model)
-        self.settings = Settings()
-        self.charts = Charts()
-        self.early_stopping = EarlyStopping()
+        self.settings = settings
+        self.charts = Charts(settings)
+        self.early_stopping = EarlyStopping(settings)
 
         self.batch_size = self.settings.get_batch_size()
 
         print(f"Batch size: {self.batch_size}")
         self.EPOCHS = self.settings.get_epochs()
 
-        img_transform = build_image_transform()
+        img_transform = build_image_transform(self.settings.get_image_size())
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         self.class_weights = torch.tensor(self.settings.get_class_weights()).to(self.device)
         self.criterion = nn.CrossEntropyLoss(weight=self.class_weights)
 
-        self.train_dataset = OffRoadDataset(paths.dataset_dir('train'), img_transform)
+        self.train_dataset = OffRoadDataset(paths.dataset_dir('train'), self.settings, img_transform)
 
         use_cuda = torch.cuda.is_available()
         self.train_loader = DataLoader(

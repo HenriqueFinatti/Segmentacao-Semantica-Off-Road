@@ -13,7 +13,7 @@ from modules.metrics.inference_metrics import InferenceMetrics
 from modules.models.registry import MODELS
 from modules.segmentation.inference_dataset import InferenceDataset
 from modules.segmentation.predictor import Predictor, WARMUP_ITERATIONS
-from modules.segmentation.transforms import IMAGE_SIZE, build_image_transform
+from modules.segmentation.transforms import build_image_transform
 
 CONTEXT_TITLES = {
     'imagens': 'Imagens',
@@ -23,17 +23,18 @@ CONTEXT_TITLES = {
 
 
 class SegmentationService():
-    def __init__(self):
+    def __init__(self, settings):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.device_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
         self.input_dir = paths.IMAGES_TO_SEGMENT_DIR
         self.output_base = paths.SEGMENTED_IMAGES_DIR
         self.test_output_base = paths.TEST_SEGMENTATION_DIR
 
-        self.charts = Charts()
+        self.charts = Charts(settings)
         self.inference_metrics = InferenceMetrics()
 
-        self.img_transform = build_image_transform()
+        self.image_size = settings.get_image_size()
+        self.img_transform = build_image_transform(self.image_size)
 
     def segment_images(self):
         print("Iniciando segmentação de imagens...")
@@ -102,7 +103,7 @@ class SegmentationService():
 
     def load_predictor(self, model_name):
         try:
-            return Predictor(model_name, self.device)
+            return Predictor(model_name, self.image_size, self.device)
         except FileNotFoundError as error:
             print(error)
             return None
@@ -188,7 +189,7 @@ class SegmentationService():
             f"| Tempo Médio de Inferência/Frame | {result['inference_stats']['mean']:.2f} ms |",
             f"| FPS de Inferência | {result['inference_stats']['fps']:.1f} |",
             f"| Dispositivo | {self.device_name} |",
-            f"| Resolução de Entrada | {IMAGE_SIZE}x{IMAGE_SIZE} |",
+            f"| Resolução de Entrada | {self.image_size}x{self.image_size} |",
             f"| Batch | 1 |",
             f"| Passadas de Aquecimento | {WARMUP_ITERATIONS} |",
             f"| Status | {result['status']} |",

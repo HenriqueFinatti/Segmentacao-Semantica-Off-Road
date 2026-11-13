@@ -4,12 +4,11 @@ import numpy as np
 
 from PIL import Image
 from torch.utils.data import Dataset
-from configs.settings import Settings
 from modules.segmentation.transforms import build_mask_transform
 
 class OffRoadDataset(Dataset):
-    def __init__(self, root_dir, img_transform=None):
-        self.settings = Settings()
+    def __init__(self, root_dir, settings, img_transform=None):
+        self.settings = settings
         self.rgb_dir  = os.path.join(root_dir, "original")
         self.mask_dir = os.path.join(root_dir, "mask")
 
@@ -20,7 +19,7 @@ class OffRoadDataset(Dataset):
         ]
 
         self.img_transform = img_transform
-        self.mask_transform = build_mask_transform()
+        self.mask_transform = build_mask_transform(settings.get_image_size())
 
 
     def __len__(self):

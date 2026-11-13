@@ -13,7 +13,7 @@ WARMUP_ITERATIONS = 5
 
 
 class Predictor:
-    def __init__(self, model_name, device=None):
+    def __init__(self, model_name, image_size, device=None):
         model_name = validate_model_name(model_name)
         model_path = paths.model_path(model_name)
 
@@ -22,7 +22,8 @@ class Predictor:
 
         self.model_name = model_name
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.transform = build_image_transform()
+        self.image_size = image_size
+        self.transform = build_image_transform(image_size)
 
         # Os pesos do ImageNet não são baixados: todos são substituídos pelo model.pth
         self.model = build_model(model_name, pretrained=False).to(self.device)
@@ -47,6 +48,6 @@ class Predictor:
 
 
     def predict(self, rgb):
-        """Recebe um frame RGB uint8 (H, W, 3) e retorna a máscara uint8 (IMAGE_SIZE, IMAGE_SIZE) com 0 ou 1."""
+        """Recebe um frame RGB uint8 (H, W, 3) e retorna a máscara uint8 (image_size, image_size) com 0 ou 1."""
         image = self.transform(Image.fromarray(rgb)).unsqueeze(0)
         return self.predict_tensor(image)[0].cpu().numpy().astype(np.uint8)

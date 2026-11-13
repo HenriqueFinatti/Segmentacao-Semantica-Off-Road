@@ -2,6 +2,7 @@ import os
 import time
 
 from configs import paths
+from configs.settings import Settings
 from modules.dataset.dataset_service import DatasetService
 from modules.driving.server import DrivingServer, MODES, RunConfig
 from modules.training.training_service import TrainingService
@@ -29,10 +30,11 @@ def has_images_to_segment():
 
 class Application:
 
-    def __init__(self):
-        self.dataset_service = DatasetService()
-        self.training_service = TrainingService()
-        self.segmentation_service = SegmentationService()
+    def __init__(self, settings):
+        self.settings = settings
+        self.dataset_service = DatasetService(settings)
+        self.training_service = TrainingService(settings)
+        self.segmentation_service = SegmentationService(settings)
 
 
     # Segmentação
@@ -93,7 +95,7 @@ class Application:
             print(f'Modo inválido: {mode}')
             return
 
-        DrivingServer(RunConfig(weather=weather, mode=mode)).serve()
+        DrivingServer(RunConfig(weather=weather, mode=mode), self.settings).serve()
 
 
     def build_menu(self):
@@ -142,7 +144,8 @@ def get_options(menu):
 
 
 def main():
-    menu = Application().build_menu()
+    # Lido uma única vez e repassado para quem precisa
+    menu = Application(Settings()).build_menu()
     options = get_options(menu)
 
     print_menu(menu)

@@ -3,8 +3,8 @@ from modules.training.trainer.trainer import Trainer
 
 class TrainingService():
 
-    def __init__(self):
-        pass
+    def __init__(self, settings):
+        self.settings = settings
 
     def train_models(self):
         for model_name in MODELS:
@@ -12,7 +12,7 @@ class TrainingService():
 
     def train_model(self, model_name):
         print(f'Treinando {model_name.upper()}...')
-        trainer = Trainer(model_name)
+        trainer = Trainer(model_name, self.settings)
         trainer.train_model()
 
     def train_deep_lab(self):

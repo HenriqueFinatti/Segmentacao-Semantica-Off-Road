@@ -5,7 +5,6 @@ import torch
 import numpy as np
 
 from configs import paths
-from configs.settings import Settings
 
 BLUE = "\033[94m"
 GREEN = "\033[92m"
@@ -18,7 +17,6 @@ class MetricsTracker:
         self.results_path = self.get_result_path()
         os.makedirs(os.path.dirname(self.results_path), exist_ok=True)
 
-        self.settings = Settings()
         self.total_loss = 0.0
         self.total_acc = 0.0
         self.total_miou = 0.0

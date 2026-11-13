@@ -1,8 +1,6 @@
-from configs.settings import Settings
-
 class EarlyStopping:
-    def __init__(self):
-        self.settings = Settings()
+    def __init__(self, settings):
+        self.settings = settings
 
         self.patience = self.settings.get_patience()
         self.min_delta = 0.0

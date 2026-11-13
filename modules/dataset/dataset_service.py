@@ -1,7 +1,6 @@
 import os
 
 from configs import paths
-from configs.settings import Settings
 
 from modules.dataset.generators.mask_generator import MaskGenerator
 from modules.dataset.cleaners.post_download_cleaner import PostDownloadCleaner
@@ -16,8 +15,8 @@ from modules.dataset.downloaders.synthetic_downloader import SyntheticDownloader
 
 class DatasetService():
 
-    def __init__(self):
-        self.maskGenerator = MaskGenerator(Settings())
+    def __init__(self, settings):
+        self.maskGenerator = MaskGenerator(settings)
         self.postDownloadCleaner = PostDownloadCleaner()
 
         self.freiburgDownloader = FreiburgDownloader()
