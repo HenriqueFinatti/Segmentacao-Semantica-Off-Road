@@ -57,9 +57,9 @@ sudo docker run --rm --net host -v "$PWD:/app:ro" -v "$HOME/Downloads/CARLA_0.9.
 - [x] `SegmentationService.load_model` retorna `None` se o `.pth` não existe, e `run_inference` quebra com um erro confuso. Lançar `FileNotFoundError` claro.
 - [x] `modules/metrics/metrics_tracker.py:177`: "Tempo Médio por Época" usa `total_secs` em vez de `avg_secs`.
 - [x] `schemas/settings_config.py` não bate com `settings.json`: `Dataset_Labels` vs `Datasets_Labels`, e faltam `Test_Execution` e `BATCH_SIZE`.
-- [ ] `OffRoadDataset.get_images` retorna `None` quando os dois datasets estão desligados.
+- [x] `OffRoadDataset.get_images` retorna `None` quando os dois datasets estão desligados.
 - [ ] `MaskGenerator.generate_masks` calcula `total_generated`/`total_skipped` e os percentuais, mas nunca imprime nada.
-- [ ] Gráfico de IoU (`chart.py`) tem rótulo "mIoU (%)", mas os valores estão em 0–1.
+- [x] Gráfico de IoU (`chart.py`) tem rótulo "mIoU (%)", mas os valores estão em 0–1.
 
 ### Estrutura
 #### Prioridade (fazer junto com os bugs)

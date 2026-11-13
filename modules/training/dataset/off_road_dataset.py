@@ -4,6 +4,7 @@ import numpy as np
 
 from PIL import Image
 from torch.utils.data import Dataset
+from configs import paths
 from modules.segmentation.transforms import build_mask_transform
 
 class OffRoadDataset(Dataset):
@@ -48,24 +49,36 @@ class OffRoadDataset(Dataset):
 
     def get_images(self):
         temp_images = sorted(os.listdir(self.rgb_dir))
-        images = []
 
         if self.settings.is_test_execution_on():
-            return temp_images[:self.settings.get_test_execution_images()]
+            images = temp_images[:self.settings.get_test_execution_images()]
+        else:
+            images = self.filter_enabled_datasets(temp_images)
 
+        # Sem imagens o treino quebraria depois com divisão por zero ao calcular as médias da época
+        if not images:
+            raise ValueError(f"Nenhuma imagem de treino encontrada em {paths.relative(self.rgb_dir)} para os datasets habilitados no settings.json.")
+
+        return images
+
+
+    def filter_enabled_datasets(self, temp_images):
         isFreiburgOn = self.settings.is_freiburg_forest_on()
         isSyntheticOn = self.settings.is_synthetic_off_road_on()
 
-        if isSyntheticOn or isFreiburgOn:
-            for img in temp_images:
-                img_name = img.lower()
+        if not (isFreiburgOn or isSyntheticOn):
+            raise ValueError("Nenhum dataset habilitado: ative Freiburg_Forest ou Synthetic_Offroad no settings.json.")
 
-                if "freiburg" in img_name and isFreiburgOn:
-                    images.append(img)
-                    continue
+        images = []
+        for img in temp_images:
+            img_name = img.lower()
 
-                if "synthetic" in img_name and isSyntheticOn:
-                    images.append(img)
-                    continue
+            if "freiburg" in img_name and isFreiburgOn:
+                images.append(img)
+                continue
 
-            return images
+            if "synthetic" in img_name and isSyntheticOn:
+                images.append(img)
+                continue
+
+        return images

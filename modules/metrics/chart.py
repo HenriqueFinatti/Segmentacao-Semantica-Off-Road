@@ -75,7 +75,7 @@ class Charts:
         
         ax.plot(metrics_tracker.epochs, metrics_tracker.mious, 'r-', linewidth=2.5, marker='^', markersize=5)
         ax.set_xlabel('Época', fontsize=13, fontweight='bold')
-        ax.set_ylabel('mIoU (%)', fontsize=13, fontweight='bold')
+        ax.set_ylabel('mIoU', fontsize=13, fontweight='bold')
         ax.set_title('Evolução do IoU (Intersection over Union) ao Longo do Treinamento', fontsize=15, fontweight='bold')
         ax.set_ylim([0, 1.0])
         ax.grid(True, alpha=0.3)
