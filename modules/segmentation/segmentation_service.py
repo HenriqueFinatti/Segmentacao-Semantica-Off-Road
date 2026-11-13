@@ -126,7 +126,7 @@ class SegmentationService():
         frame_start = start_time
 
         with torch.no_grad():
-            for images, filenames in loader:
+            for images, filenames, original_sizes in loader:
                 images = images.to(self.device)
 
                 inference_start = self.synchronized_time()
@@ -134,7 +134,7 @@ class SegmentationService():
                 inference_end = self.synchronized_time()
 
                 base_name = os.path.splitext(filenames[0])[0]
-                self.save_prediction(preds[0].cpu().numpy(), filenames[0], output_dir)
+                self.save_prediction(preds[0].cpu().numpy(), filenames[0], output_dir, original_sizes[0].tolist())
 
                 frame_end = time.perf_counter()
                 inference_times[base_name] = (inference_end - inference_start) * 1000
@@ -157,10 +157,15 @@ class SegmentationService():
         }
 
 
-    def save_prediction(self, prediction, filename, output_dir):
+    def save_prediction(self, prediction, filename, output_dir, original_size):
         base_name = os.path.splitext(filename)[0]
         output_path = os.path.join(output_dir, base_name + ".png")
+        height, width = original_size
+
+        # O modelo trabalha em image_size x image_size; a máscara volta ao tamanho da imagem original.
+        # NEAREST para continuar só com 0 e 255
         pred_img = Image.fromarray((prediction * 255).astype(np.uint8))
+        pred_img = pred_img.resize((width, height), Image.NEAREST)
         pred_img.save(output_path)
 
 

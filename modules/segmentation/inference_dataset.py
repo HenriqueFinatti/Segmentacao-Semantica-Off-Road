@@ -20,11 +20,13 @@ class InferenceDataset(Dataset):
         img_path = os.path.join(self.rgb_dir, img_name)
 
         image = Image.open(img_path).convert("RGB")
+        # Tamanho original (altura, largura), para a máscara voltar ao tamanho da imagem
+        original_size = torch.tensor([image.height, image.width])
 
         if self.img_transform:
             image = self.img_transform(image)
 
-        return image, img_name
+        return image, img_name, original_size
 
     def get_images(self):
         valid_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
