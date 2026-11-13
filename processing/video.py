@@ -6,24 +6,31 @@ from modules.models.registry import MODELS
 
 class Video:
 
-    def __init__(self, video_path, output_dir):
+    def __init__(self, video_path=paths.VIDEO_PATH, output_dir=paths.VIDEO_OUTPUT_DIR):
         self.video_path = video_path
         self.output_dir = output_dir
-        self.images_dir = paths.IMAGES_TO_SEGMENT_DIR
-        self.segmented_images_dir = paths.SEGMENTED_IMAGES_DIR
+        self.images_dir = paths.VIDEO_FRAMES_DIR
+        self.segmented_images_dir = paths.VIDEO_SEGMENTED_FRAMES_DIR
 
-        os.makedirs(self.images_dir, exist_ok=True)
-        os.makedirs(self.segmented_images_dir, exist_ok=True)
         os.makedirs(self.output_dir, exist_ok=True)
 
         self.video_fps = None
+
+    def clear_frames(self):
+        # Remove frames de um vídeo anterior, senão um vídeo mais curto herdaria os frames finais do outro
+        for folder in [self.images_dir, self.segmented_images_dir]:
+            if os.path.isdir(folder):
+                paths.safe_rmtree(folder)
+            os.makedirs(folder, exist_ok=True)
 
     def extract_video(self):
         frame_count = 0
         video = cv2.VideoCapture(self.video_path)
 
         if not video.isOpened():
-            raise FileNotFoundError(f"Não foi possível encontrar o video no caminho especificado: {self.video_path}")
+            raise FileNotFoundError(f"Não foi possível encontrar o video no caminho especificado: {paths.relative(self.video_path)}")
+
+        self.clear_frames()
 
         self.video_fps = video.get(cv2.CAP_PROP_FPS)
         total_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))

@@ -38,12 +38,12 @@ class Application:
     # Segmentação
 
     def segment_video(self):
-        video_processing = Video(paths.VIDEO_PATH, paths.VIDEO_OUTPUT_DIR)
+        video_processing = Video()
 
         frames = video_processing.extract_video()
         print(f"\nForam extraidos {frames} frames")
 
-        results = self.segmentation_service.segment_images(context='video')
+        results = self.segmentation_service.segment_video_frames()
         video_processing.make_segmented_video(results)
 
 
@@ -71,13 +71,15 @@ class Application:
         run_step('Treinamento', self.training_service.train_models)
         run_step('Segmentação do dataset de teste', self.segmentation_service.segment_test_dataset)
 
-        if os.path.exists(paths.VIDEO_PATH):
-            # O vídeo extrai os frames para images_to_segment, então também segmenta as imagens que já estavam lá
-            run_step('Segmentação de vídeo', self.segment_video)
-        elif has_images_to_segment():
+        if has_images_to_segment():
             run_step('Segmentação de imagens', self.segmentation_service.segment_images)
         else:
-            print(f"\nNenhum vídeo em {paths.relative(paths.VIDEO_PATH)} nem imagens em {paths.relative(paths.IMAGES_TO_SEGMENT_DIR)}. Pulando essas segmentações.")
+            print(f"\nNenhuma imagem em {paths.relative(paths.IMAGES_TO_SEGMENT_DIR)}. Pulando a segmentação de imagens.")
+
+        if os.path.exists(paths.VIDEO_PATH):
+            run_step('Segmentação de vídeo', self.segment_video)
+        else:
+            print(f"\nNenhum vídeo em {paths.relative(paths.VIDEO_PATH)}. Pulando a segmentação de vídeo.")
 
 
     # CARLA

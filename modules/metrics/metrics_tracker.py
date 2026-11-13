@@ -138,9 +138,19 @@ class MetricsTracker:
         self.add_epoch(epoch_num, duration)
 
 
-    def start_training(self):
+    def start_training(self, configuration):
+        # Registra com quais configurações o resultado foi gerado
+        lines = [
+            "### Configuração do Treinamento\n",
+            "| Parâmetro | Valor |",
+            "|-----------|-------|",
+            *[f"| {name} | {value} |" for name, value in configuration.items()],
+            "",
+            "### Épocas",
+        ]
+
         with open(self.results_path, 'w', encoding='utf-8') as f:
-            f.write("### Épocas")
+            f.write('\n'.join(lines))
 
         self.training_start_time = time.time()
   

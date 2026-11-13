@@ -1,5 +1,4 @@
 import os
-import shutil
 
 from configs import paths
 
@@ -15,7 +14,7 @@ class FreiburgCleaner():
         for filename in os.listdir(self.BASE_DIR):
             file_path = os.path.join(self.BASE_DIR, filename)
             if os.path.isfile(file_path):
-                os.unlink(file_path)
+                os.unlink(paths.ensure_inside_root(file_path))
 
 
     def delete_unused_folders(self):
@@ -26,6 +25,6 @@ class FreiburgCleaner():
                 full_folder_path = os.path.join(split_path, folder)
 
                 if folder not in ['rgb', 'GT_color']:
-                    shutil.rmtree(full_folder_path)
+                    paths.safe_rmtree(full_folder_path)
 
 

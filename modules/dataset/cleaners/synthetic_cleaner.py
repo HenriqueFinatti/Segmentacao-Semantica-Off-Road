@@ -1,5 +1,4 @@
 import os
-import shutil
 
 from configs import paths
 
@@ -14,4 +13,4 @@ class SyntheticCleaner():
 
         for split in splits:
             mask_labels_path = os.path.join(self.SYNTHETIC_DATASET, split, 'mask_labels')
-            shutil.rmtree(mask_labels_path)
+            paths.safe_rmtree(mask_labels_path)

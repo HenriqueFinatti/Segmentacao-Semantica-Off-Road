@@ -44,6 +44,30 @@ class Settings():
         return self.settings['BATCH_SIZE']
 
 
+    def get_image_size(self) -> int:
+        return self.settings['Image_Size']
+
+
+    def get_learning_rate(self) -> float:
+        return self.settings['Learning_Rate']
+
+
+    def get_class_weights(self) -> list[float]:
+        return self.settings['Class_Weights']
+
+
+    def get_num_workers(self) -> int:
+        return self.settings['Num_Workers']
+
+
+    def get_test_execution_images(self) -> int:
+        return self.settings['Test_Execution_Images']
+
+
+    def get_test_execution_epochs(self) -> int:
+        return self.settings['Test_Execution_Epochs']
+
+
     def get_dataset_labels(self) -> dict[str, DatasetLabel]:
         dataset_labels = self.settings['Datasets_Labels']
 

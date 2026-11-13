@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 
 from configs import paths
-from modules.models.registry import build_model
+from modules.models.registry import build_model, model_name as validate_model_name
 from modules.segmentation.transforms import build_image_transform
 
 # Passadas descartadas antes de medir, para não contar a inicialização da GPU/cuDNN
@@ -14,6 +14,7 @@ WARMUP_ITERATIONS = 5
 
 class Predictor:
     def __init__(self, model_name, device=None):
+        model_name = validate_model_name(model_name)
         model_path = paths.model_path(model_name)
 
         if not os.path.exists(model_path):
@@ -46,6 +47,6 @@ class Predictor:
 
 
     def predict(self, rgb):
-        """Recebe um frame RGB uint8 (H, W, 3) e retorna a máscara uint8 (512, 512) com 0 ou 1."""
+        """Recebe um frame RGB uint8 (H, W, 3) e retorna a máscara uint8 (IMAGE_SIZE, IMAGE_SIZE) com 0 ou 1."""
         image = self.transform(Image.fromarray(rgb)).unsqueeze(0)
         return self.predict_tensor(image)[0].cpu().numpy().astype(np.uint8)

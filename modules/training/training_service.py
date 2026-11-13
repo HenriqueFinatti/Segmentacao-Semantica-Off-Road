@@ -1,3 +1,4 @@
+from modules.models.registry import MODELS
 from modules.training.trainer.trainer import Trainer
 
 class TrainingService():
@@ -6,16 +7,16 @@ class TrainingService():
         pass
 
     def train_models(self):
-        print('Treinando FCN...')
-        self.train_fcn()
+        for model_name in MODELS:
+            self.train_model(model_name)
 
-        print('Treinando DeepLabV3+...')
-        self.train_deep_lab()
+    def train_model(self, model_name):
+        print(f'Treinando {model_name.upper()}...')
+        trainer = Trainer(model_name)
+        trainer.train_model()
 
     def train_deep_lab(self):
-        trainer = Trainer('deeplabv3+')
-        trainer.train_model()
+        self.train_model('deeplabv3+')
 
     def train_fcn(self):
-        trainer = Trainer('fcn')
-        trainer.train_model()
+        self.train_model('fcn')

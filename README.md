@@ -56,16 +56,16 @@ sudo docker run --rm --net host -v "$PWD:/app:ro" -v "$HOME/Downloads/CARLA_0.9.
 - [ ] **Predições ficam em 512×512**: não voltam ao tamanho original da imagem, então o vídeo gerado sai em 512×512 e só com a máscara preto/branco. Redimensionar e, idealmente, sobrepor a máscara no frame original.
 - [x] `SegmentationService.load_model` retorna `None` se o `.pth` não existe, e `run_inference` quebra com um erro confuso. Lançar `FileNotFoundError` claro.
 - [ ] `modules/metrics/metrics_tracker.py:177`: "Tempo Médio por Época" usa `total_secs` em vez de `avg_secs`.
-- [ ] `schemas/settings_config.py` não bate com `settings.json`: `Dataset_Labels` vs `Datasets_Labels`, e faltam `Test_Execution` e `BATCH_SIZE`.
+- [x] `schemas/settings_config.py` não bate com `settings.json`: `Dataset_Labels` vs `Datasets_Labels`, e faltam `Test_Execution` e `BATCH_SIZE`.
 - [ ] `OffRoadDataset.get_images` retorna `None` quando os dois datasets estão desligados.
 - [ ] `MaskGenerator.generate_masks` calcula `total_generated`/`total_skipped` e os percentuais, mas nunca imprime nada.
 - [ ] Gráfico de IoU (`chart.py`) tem rótulo "mIoU (%)", mas os valores estão em 0–1.
 
 ### Estrutura
 #### Prioridade (fazer junto com os bugs)
-- [ ] **Registro único de modelos.** A escolha `if model == 'FCN' ... 'DEEPLABV3+'` está repetida em `Trainer`, `MetricsTracker.get_result_path`, `Charts.get_result_path` e `SegmentationService`. Trocar por um dicionário `MODELS = {"fcn": FCN, "deeplabv3+": DeepLabV3Plus}` e derivar os caminhos de `results/<nome>/` a partir do nome.
-- [ ] **Caminhos e hiperparâmetros centralizados.** `'dataset/train'`, `'./raw'`, `results/...` e `images/...` estão fixos em ~10 arquivos; tamanho 512, normalização ImageNet, lr `1e-4`, pesos de classe `[1, 9]` e `num_workers` também. Criar `configs/paths.py` e mover os hiperparâmetros para `settings.json`.
-- [ ] **Transform duplicado** em `trainer.py` e `segmentation_service.py`: definir uma vez e reutilizar.
+- [x] **Registro único de modelos.** A escolha `if model == 'FCN' ... 'DEEPLABV3+'` está repetida em `Trainer`, `MetricsTracker.get_result_path`, `Charts.get_result_path` e `SegmentationService`. Trocar por um dicionário `MODELS = {"fcn": FCN, "deeplabv3+": DeepLabV3Plus}` e derivar os caminhos de `results/<nome>/` a partir do nome.
+- [x] **Caminhos e hiperparâmetros centralizados.** `'dataset/train'`, `'./raw'`, `results/...` e `images/...` estão fixos em ~10 arquivos; tamanho 512, normalização ImageNet, lr `1e-4`, pesos de classe `[1, 9]` e `num_workers` também. Criar `configs/paths.py` e mover os hiperparâmetros para `settings.json`.
+- [x] **Transform duplicado** em `trainer.py` e `segmentation_service.py`: definir uma vez e reutilizar.
 - [ ] **Remover efeitos colaterais no import.** `dataset_service.py`, `chart.py`, `training_service.py` e `app/main.py` criam objetos globais (e pastas) ao serem importados; `Settings()` é criado e relido do disco em ~6 lugares. Criar `Settings` uma vez no `main` e passar como parâmetro.
 
 #### Depois, se sobrar tempo

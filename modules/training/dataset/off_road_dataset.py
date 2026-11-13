@@ -3,10 +3,9 @@ import torch
 import numpy as np
 
 from PIL import Image
-from torchvision import transforms
 from torch.utils.data import Dataset
 from configs.settings import Settings
-from modules.segmentation.transforms import IMAGE_SIZE
+from modules.segmentation.transforms import build_mask_transform
 
 class OffRoadDataset(Dataset):
     def __init__(self, root_dir, img_transform=None):
@@ -21,6 +20,7 @@ class OffRoadDataset(Dataset):
         ]
 
         self.img_transform = img_transform
+        self.mask_transform = build_mask_transform()
 
 
     def __len__(self):
@@ -40,7 +40,7 @@ class OffRoadDataset(Dataset):
         if self.img_transform:
             image = self.img_transform(image)
 
-        mask = transforms.Resize((IMAGE_SIZE, IMAGE_SIZE), interpolation=Image.NEAREST)(mask)
+        mask = self.mask_transform(mask)
         mask = (np.asarray(mask) > 0).astype(np.int64)
         mask = torch.as_tensor(mask, dtype=torch.long)
 
@@ -52,10 +52,7 @@ class OffRoadDataset(Dataset):
         images = []
 
         if self.settings.is_test_execution_on():
-            for i in range(0, 2):
-                images.append(temp_images[i])
-
-            return images
+            return temp_images[:self.settings.get_test_execution_images()]
 
         isFreiburgOn = self.settings.is_freiburg_forest_on()
         isSyntheticOn = self.settings.is_synthetic_off_road_on()

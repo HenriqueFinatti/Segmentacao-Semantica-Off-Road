@@ -13,7 +13,7 @@ from modules.metrics.inference_metrics import InferenceMetrics
 from modules.models.registry import MODELS
 from modules.segmentation.inference_dataset import InferenceDataset
 from modules.segmentation.predictor import Predictor, WARMUP_ITERATIONS
-from modules.segmentation.transforms import build_image_transform
+from modules.segmentation.transforms import IMAGE_SIZE, build_image_transform
 
 CONTEXT_TITLES = {
     'imagens': 'Imagens',
@@ -35,27 +35,26 @@ class SegmentationService():
 
         self.img_transform = build_image_transform()
 
-    def segment_images(self, context='imagens'):
+    def segment_images(self):
         print("Iniciando segmentação de imagens...")
-        self.validate_input_dir(self.input_dir)
-
-        dataset = InferenceDataset(self.input_dir, self.img_transform)
-        self.validate_dataset(dataset)
-
-        results = self.segment_with_all_models(dataset, self.output_base, context)
-        self.print_summary(self.output_base, context)
-        return results
+        return self.segment_folder(self.input_dir, self.output_base, 'imagens')
 
     def segment_test_dataset(self):
         print("Iniciando segmentação do dataset de teste...")
-        test_dir = paths.dataset_dir('test', 'original')
-        self.validate_input_dir(test_dir)
+        return self.segment_folder(paths.dataset_dir('test', 'original'), self.test_output_base, 'teste')
 
-        dataset = InferenceDataset(test_dir, self.img_transform)
+    def segment_video_frames(self):
+        print("Iniciando segmentação do vídeo...")
+        return self.segment_folder(paths.VIDEO_FRAMES_DIR, paths.VIDEO_SEGMENTED_FRAMES_DIR, 'video')
+
+    def segment_folder(self, input_dir, output_base, context):
+        self.validate_input_dir(input_dir)
+
+        dataset = InferenceDataset(input_dir, self.img_transform)
         self.validate_dataset(dataset)
 
-        results = self.segment_with_all_models(dataset, self.test_output_base, 'teste')
-        self.print_summary(self.test_output_base, 'teste')
+        results = self.segment_with_all_models(dataset, output_base, context)
+        self.print_summary(results, output_base, context)
         return results
 
     def segment_with_all_models(self, dataset, output_base, context):
@@ -84,7 +83,7 @@ class SegmentationService():
 
     def validate_input_dir(self, input_dir):
         if not os.path.exists(input_dir):
-            raise FileNotFoundError(f"Pasta não encontrada: {input_dir}")
+            raise FileNotFoundError(f"Pasta não encontrada: {paths.relative(input_dir)}")
 
     def validate_dataset(self, dataset):
         if len(dataset) == 0:
@@ -189,7 +188,7 @@ class SegmentationService():
             f"| Tempo Médio de Inferência/Frame | {result['inference_stats']['mean']:.2f} ms |",
             f"| FPS de Inferência | {result['inference_stats']['fps']:.1f} |",
             f"| Dispositivo | {self.device_name} |",
-            f"| Resolução de Entrada | 512x512 |",
+            f"| Resolução de Entrada | {IMAGE_SIZE}x{IMAGE_SIZE} |",
             f"| Batch | 1 |",
             f"| Passadas de Aquecimento | {WARMUP_ITERATIONS} |",
             f"| Status | {result['status']} |",
@@ -202,10 +201,10 @@ class SegmentationService():
         with open(metrics_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(lines))
 
-    def print_summary(self, output_base, context):
+    def print_summary(self, results, output_base, context):
         print("\nSegmentação concluída!")
         print(f"Resultados salvos em: {paths.relative(output_base)}")
         print("Métricas salvas em:")
-        for model_name in MODELS:
+        for model_name in results:
             print(f"  - {paths.relative(self.get_metrics_path(model_name, context))}")
             print(f"  - {paths.relative(self.get_csv_path(model_name, context))}")

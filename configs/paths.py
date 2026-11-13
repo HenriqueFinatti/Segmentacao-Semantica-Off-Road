@@ -1,4 +1,5 @@
 import os
+import shutil
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -20,6 +21,9 @@ TEST_SEGMENTATION_DIR = os.path.join(DATASET_DIR, 'test', 'new_segmentation')
 
 VIDEO_PATH = os.path.join(ROOT, 'video', 'video.mp4')
 VIDEO_OUTPUT_DIR = os.path.join(ROOT, 'video', 'output')
+# Frames do vídeo ficam separados de images_to_segment, para não misturar com as imagens avulsas
+VIDEO_FRAMES_DIR = os.path.join(ROOT, 'video', 'frames')
+VIDEO_SEGMENTED_FRAMES_DIR = os.path.join(ROOT, 'video', 'segmented_frames')
 
 FREIBURG_RAW_DIR = os.path.join(RAW_DIR, 'freiburg_forest_annotated')
 SYNTHETIC_RAW_DIR = os.path.join(RAW_DIR, 'synthetic_offroad')
@@ -44,3 +48,18 @@ def charts_dir(model):
 def relative(path):
     # Mantém relatórios e mensagens sem o caminho absoluto da máquina
     return os.path.relpath(path, ROOT)
+
+
+def ensure_inside_root(path):
+    # Proteção para as rotinas que apagam arquivos: nunca apagar fora de ROOT nem o próprio ROOT
+    real_path = os.path.realpath(path)
+    real_root = os.path.realpath(ROOT)
+
+    if os.path.commonpath([real_path, real_root]) != real_root or real_path == real_root:
+        raise ValueError(f"Caminho fora do projeto (ou a própria raiz), operação cancelada: {path}")
+
+    return real_path
+
+
+def safe_rmtree(path):
+    shutil.rmtree(ensure_inside_root(path))
