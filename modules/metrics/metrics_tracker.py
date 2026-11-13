@@ -183,7 +183,7 @@ class MetricsTracker:
         self.write_message("\n#### Resumo de Tempo e Épocas")
         self.write_message(f"- **Total de Épocas:** {total_epochs}")
         self.write_message(f"- **Tempo Total:** {int(total_mins)}m {int(total_secs)}s")
-        self.write_message(f"- **Tempo Médio por Época:** {int(avg_mins)}m {int(total_secs)}s")
+        self.write_message(f"- **Tempo Médio por Época:** {int(avg_mins)}m {int(avg_secs)}s")
         
         self.write_message("\n#### Tabela de Métricas")
         self.write_message("| Métrica | Melhor | Média | Final (Última) |")
