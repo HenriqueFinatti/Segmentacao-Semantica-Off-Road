@@ -14,6 +14,7 @@ DATASET_DIR = os.path.join(ROOT, 'dataset')
 RESULTS_DIR = os.path.join(ROOT, 'results')
 COMPARISON_DIR = os.path.join(RESULTS_DIR, 'comparacao')
 CARLA_RESULTS_DIR = os.path.join(RESULTS_DIR, 'carla')
+DATASET_REPORT_FILE = os.path.join(RESULTS_DIR, 'dataset', 'mascaras.md')
 
 IMAGES_TO_SEGMENT_DIR = os.path.join(ROOT, 'images', 'images_to_segment')
 SEGMENTED_IMAGES_DIR = os.path.join(ROOT, 'images', 'segmented_images')

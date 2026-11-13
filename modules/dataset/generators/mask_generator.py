@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import numpy as np
@@ -6,10 +7,14 @@ from PIL import Image
 
 from configs import paths
 
+# Abaixo disso a cor/tolerância do settings.json provavelmente não bate com o dataset
+MIN_EXPECTED_TRAIL_PCT = 1.0
+
 class MaskGenerator:
 
     def __init__(self, settings):
         self.dataset_labels = settings.get_dataset_labels()
+        self.class_weights = settings.get_class_weights()
 
 
     def get_prefix_config(self, filename):
@@ -57,9 +62,7 @@ class MaskGenerator:
 
     def generate_masks(self):
         splits = ["test", "train"]
-
-        total_generated = 0
-        total_skipped = 0
+        summary = {}
 
         for split in splits:
             source_folder = paths.dataset_dir(split, 'original_segmentation')
@@ -85,7 +88,74 @@ class MaskGenerator:
                     else:
                         results[prefix].append(pct)
 
-            generated_in_split = sum(len(values) for values in results.values())
+            summary[split] = {'results': results, 'skipped': sorted(skipped)}
 
-            total_generated += generated_in_split
-            total_skipped += len(skipped)
+        lines = self.build_report(summary)
+        print('\n'.join(lines))
+        self.save_report(lines)
+        self.warn_about_problems(summary)
+
+
+    def build_report(self, summary):
+        lines = [
+            "### Máscaras Geradas\n",
+            f"**Data:** {datetime.now():%Y-%m-%d %H:%M:%S}\n",
+            "Porcentagem de pixels marcados como trilha em cada máscara (média por imagem).\n",
+            "| Split | Dataset | Máscaras | Trilha Média | Mínimo | Máximo | Sem Trilha |",
+            "|-------|---------|----------|--------------|--------|--------|------------|",
+        ]
+
+        for split, data in summary.items():
+            for prefix, values in data['results'].items():
+                if not values:
+                    continue
+
+                no_trail = sum(1 for value in values if value == 0)
+                lines.append(
+                    f"| {split} | {prefix} | {len(values)} | {np.mean(values):.1f}% | "
+                    f"{np.min(values):.1f}% | {np.max(values):.1f}% | {no_trail} |"
+                )
+
+        train_values = [value for values in summary['train']['results'].values() for value in values]
+        if train_values:
+            # Proporção fundo/trilha no treino, para comparar com os pesos usados na loss
+            trail = np.mean(train_values)
+            ratio = (100 - trail) / trail if trail > 0 else float('inf')
+            lines += [
+                "",
+                f"**Treino:** {trail:.1f}% de trilha, proporção fundo/trilha de {ratio:.1f} : 1 "
+                f"(Class_Weights atual: {self.class_weights}).",
+            ]
+
+        for split, data in summary.items():
+            skipped = data['skipped']
+            if skipped:
+                shown = ', '.join(skipped[:10]) + (' ...' if len(skipped) > 10 else '')
+                lines += ["", f"**Ignorados em {split}** ({len(skipped)}, sem prefixo de dataset conhecido): {shown}"]
+
+        return lines
+
+
+    def save_report(self, lines):
+        os.makedirs(os.path.dirname(paths.DATASET_REPORT_FILE), exist_ok=True)
+
+        with open(paths.DATASET_REPORT_FILE, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines) + '\n')
+
+        print(f"\nRelatório das máscaras salvo em: {paths.relative(paths.DATASET_REPORT_FILE)}")
+
+
+    def warn_about_problems(self, summary):
+        for split, data in summary.items():
+            for prefix, values in data['results'].items():
+                if not values:
+                    continue
+
+                no_trail = sum(1 for value in values if value == 0)
+
+                # Uma cor errada ainda pode casar com alguns pixels soltos, então 0% exato não basta
+                if np.mean(values) < MIN_EXPECTED_TRAIL_PCT:
+                    print(f"\n[AVISO] {prefix} ({split}) tem só {np.mean(values):.1f}% de trilha em média. "
+                          f"Confira 'color' e 'tolerance' de {prefix} no settings.json.")
+                elif no_trail:
+                    print(f"\n[AVISO] {no_trail} máscara(s) de {prefix} ({split}) sem nenhum pixel de trilha.")
