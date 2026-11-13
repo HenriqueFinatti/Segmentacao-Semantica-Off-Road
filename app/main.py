@@ -126,6 +126,9 @@ class Application:
             ('CARLA', [
                 ('14', 'Dirigir no CARLA', self.drive_in_carla),
             ]),
+            ('Avaliação', [
+                ('15', 'Avaliar predições do dataset de teste (sem segmentar de novo)', self.segmentation_service.evaluate_test_dataset),
+            ]),
         ]
 
 

@@ -68,6 +68,14 @@ class Settings():
         return self.settings['Test_Execution_Epochs']
 
 
+    def get_validation_split(self) -> float:
+        return self.settings['Validation_Split']
+
+
+    def get_seed(self) -> int:
+        return self.settings['Seed']
+
+
     def get_dataset_labels(self) -> dict[str, DatasetLabel]:
         dataset_labels = self.settings['Datasets_Labels']
 

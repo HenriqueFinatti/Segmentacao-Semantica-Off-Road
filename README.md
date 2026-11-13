@@ -47,8 +47,8 @@ sudo docker run --rm --net host -v "$PWD:/app:ro" -v "$HOME/Downloads/CARLA_0.9.
 
 ### Código
 #### Avaliação
-- [ ] **Não há avaliação no teste.** `segment_test_dataset` gera as predições em `dataset/test/new_segmentation/`, mas nunca as compara com `dataset/test/mask`. Calcular acurácia, mIoU (e Recall/F1/matriz de confusão) no teste.
-- [ ] **Sem split de validação.** O melhor modelo (`save_best_model`) e o early stopping usam o mIoU de treino. Separar validação e usar o mIoU dela.
+- [x] **Não há avaliação no teste.** `segment_test_dataset` gera as predições em `dataset/test/new_segmentation/`, mas nunca as compara com `dataset/test/mask`. Calcular acurácia, mIoU (e Recall/F1/matriz de confusão) no teste.
+- [x] **Sem split de validação.** O melhor modelo (`save_best_model`) e o early stopping usam o mIoU de treino. Separar validação e usar o mIoU dela.
 #### Bugs
 - [x] **Caminhos estilo Windows** em `app/main.py:10` (`r"video\video.mp4"`, `"video\\output\\"`): no Linux criam a pasta literal `video\output\` na raiz e o vídeo não é encontrado. Usar `os.path.join`. Apagar a pasta `video\output\` criada por engano.
 - [x] `Video(...)` é instanciado no import de `app/main.py`, criando pastas em toda execução, qualquer que seja a opção escolhida.

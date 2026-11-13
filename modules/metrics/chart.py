@@ -24,11 +24,23 @@ class Charts:
             self.plot_best_accuracy(metrics_tracker, save_dir)
 
 
+    def plot_validation_line(self, ax, metrics_tracker, key):
+        # Curva de validação junto da de treino; a distância entre as duas mostra overfitting
+        if not metrics_tracker.has_validation:
+            return
+
+        ax.plot(metrics_tracker.epochs, metrics_tracker.validation_values(key), color='#FF8F00', linestyle='--',
+                linewidth=2.5, marker='D', markersize=5, label='Validação')
+        ax.legend(fontsize=12, loc='best')
+
+
     def plot_loss(self, metrics_tracker, save_dir):
         fig, ax = plt.subplots(figsize=(10, 6))
         
-        ax.plot(metrics_tracker.epochs, metrics_tracker.losses, 'b-', linewidth=2.5, marker='o', markersize=5)
+        ax.plot(metrics_tracker.epochs, metrics_tracker.losses, 'b-', linewidth=2.5, marker='o', markersize=5, label='Treino')
+        self.plot_validation_line(ax, metrics_tracker, 'loss')
         ax.set_xlabel('Época', fontsize=13, fontweight='bold')
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.set_ylabel('Loss', fontsize=13, fontweight='bold')
         ax.set_title('Evolução do Loss ao Longo do Treinamento', fontsize=15, fontweight='bold')
         ax.grid(True, alpha=0.3)
@@ -49,8 +61,10 @@ class Charts:
     def plot_accuracy(self, metrics_tracker, save_dir):
         fig, ax = plt.subplots(figsize=(10, 6))
         
-        ax.plot(metrics_tracker.epochs, metrics_tracker.accuracies, 'c-', linewidth=2.5, marker='s', markersize=5)
+        ax.plot(metrics_tracker.epochs, metrics_tracker.accuracies, 'c-', linewidth=2.5, marker='s', markersize=5, label='Treino')
+        self.plot_validation_line(ax, metrics_tracker, 'acuracia')
         ax.set_xlabel('Época', fontsize=13, fontweight='bold')
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.set_ylabel('Acurácia', fontsize=13, fontweight='bold')
         ax.set_title('Evolução da Acurácia ao Longo do Treinamento', fontsize=15, fontweight='bold')
         ax.set_ylim([0, 1.0])
@@ -73,8 +87,10 @@ class Charts:
     def plot_iou(self, metrics_tracker, save_dir):
         fig, ax = plt.subplots(figsize=(10, 6))
         
-        ax.plot(metrics_tracker.epochs, metrics_tracker.mious, 'r-', linewidth=2.5, marker='^', markersize=5)
+        ax.plot(metrics_tracker.epochs, metrics_tracker.mious, 'r-', linewidth=2.5, marker='^', markersize=5, label='Treino')
+        self.plot_validation_line(ax, metrics_tracker, 'miou')
         ax.set_xlabel('Época', fontsize=13, fontweight='bold')
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.set_ylabel('mIoU', fontsize=13, fontweight='bold')
         ax.set_title('Evolução do IoU (Intersection over Union) ao Longo do Treinamento', fontsize=15, fontweight='bold')
         ax.set_ylim([0, 1.0])
@@ -105,8 +121,12 @@ class Charts:
         ax.plot(metrics_tracker.epochs, loss_norm, 'b-', linewidth=2.5, marker='o', markersize=5, label='Loss (normalizado)', alpha=0.8)
         ax.plot(metrics_tracker.epochs, acc_norm, 'g-', linewidth=2.5, marker='s', markersize=5, label='Acurácia', alpha=0.8)
         ax.plot(metrics_tracker.epochs, miou_norm, 'r-', linewidth=2.5, marker='^', markersize=5, label='mIoU', alpha=0.8)
+        if metrics_tracker.has_validation:
+            ax.plot(metrics_tracker.epochs, metrics_tracker.validation_values('miou'), color='#FF8F00', linestyle='--',
+                    linewidth=2.5, marker='D', markersize=5, label='mIoU (validação)', alpha=0.8)
         
         ax.set_xlabel('Época', fontsize=13, fontweight='bold')
+        ax.xaxis.set_major_locator(MaxNLocator(integer=True))
         ax.set_ylabel('Valor (normalizado)', fontsize=13, fontweight='bold')
         ax.set_title('Convergência - Análise Conjunta de Métricas', fontsize=15, fontweight='bold')
         ax.set_ylim([0, 1.1])
@@ -141,15 +161,18 @@ class Charts:
     def plot_best_iou(self, metrics_tracker, save_dir):
         fig, ax = plt.subplots(figsize=(10, 6))
         
-        best_miou = max(metrics_tracker.mious)
-        best_miou_idx = np.argmax(metrics_tracker.mious)
+        # Com validação, mostra o mIoU que escolheu o modelo salvo
+        mious = metrics_tracker.validation_values('miou') if metrics_tracker.has_validation else metrics_tracker.mious
+        best_miou_idx = int(np.nanargmax(mious))
+        best_miou = mious[best_miou_idx]
         best_epoch = metrics_tracker.epochs[best_miou_idx]
+        title = 'Melhor mIoU de Validação' if metrics_tracker.has_validation else 'Melhor mIoU de Treino'
         
         ax.text(0.5, 0.65, f'{best_miou*100:.2f}%', 
                 ha='center', va='center', fontsize=72, fontweight='bold', color='#D32F2F')
-        ax.text(0.5, 0.35, f'Época {best_epoch + 1}', 
+        ax.text(0.5, 0.35, f'Época {best_epoch}', 
                 ha='center', va='center', fontsize=36, fontweight='bold', color='#B71C1C')
-        ax.text(0.5, 0.08, 'Melhor mIoU (Intersection over Union)', 
+        ax.text(0.5, 0.08, title, 
                 ha='center', va='center', fontsize=16, fontweight='bold', color='black')
         ax.axis('off')
         ax.set_facecolor('#ffebee')
@@ -162,15 +185,17 @@ class Charts:
     def plot_best_accuracy(self, metrics_tracker, save_dir):
         fig, ax = plt.subplots(figsize=(10, 6))
 
-        best_acc = max(metrics_tracker.accuracies)
-        best_acc_idx = np.argmax(metrics_tracker.accuracies)
+        accuracies = metrics_tracker.validation_values('acuracia') if metrics_tracker.has_validation else metrics_tracker.accuracies
+        best_acc_idx = int(np.nanargmax(accuracies))
+        best_acc = accuracies[best_acc_idx]
         best_epoch = metrics_tracker.epochs[best_acc_idx]
+        title = 'Melhor Acurácia de Validação (Pixel-wise)' if metrics_tracker.has_validation else 'Melhor Acurácia de Treino (Pixel-wise)'
 
         ax.text(0.5, 0.65, f'{best_acc*100:.2f}%', 
                 ha='center', va='center', fontsize=72, fontweight='bold', color='#7B1FA2')
-        ax.text(0.5, 0.35, f'Época {best_epoch + 1}', 
+        ax.text(0.5, 0.35, f'Época {best_epoch}', 
                 ha='center', va='center', fontsize=36, fontweight='bold', color='#6A1B9A')
-        ax.text(0.5, 0.08, 'Melhor Acurácia (Pixel-wise)', 
+        ax.text(0.5, 0.08, title, 
                 ha='center', va='center', fontsize=16, fontweight='bold', color='black')
         ax.axis('off')
         ax.set_facecolor('#f3e5f5')
@@ -246,6 +271,77 @@ class Charts:
 
         plt.tight_layout()
         plt.savefig(os.path.join(save_dir, f'tempo_inferencia_{context}.png'), dpi=300, bbox_inches='tight')
+        plt.close()
+
+
+    def plot_confusion_matrix(self, evaluation, model):
+        if not self.settings.is_charts_on():
+            return
+
+        save_dir = self.get_result_path(model)
+        os.makedirs(save_dir, exist_ok=True)
+
+        total = evaluation['groups']['Todos']
+        counts = np.array([[total['tp'], total['fn']], [total['fp'], total['tn']]], dtype=np.float64)
+        # Normalizado por linha: cada linha mostra para onde foram os pixels de uma classe real
+        rows = counts.sum(axis=1, keepdims=True)
+        normalized = np.divide(counts, rows, out=np.zeros_like(counts), where=rows > 0)
+
+        fig, ax = plt.subplots(figsize=(8, 7))
+        image = ax.imshow(normalized, cmap='Blues', vmin=0, vmax=1)
+        fig.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
+
+        labels = ['Trilha', 'Fundo']
+        ax.set_xticks([0, 1], labels=labels, fontsize=12)
+        ax.set_yticks([0, 1], labels=labels, fontsize=12)
+        ax.set_xlabel('Previsto', fontsize=13, fontweight='bold')
+        ax.set_ylabel('Real', fontsize=13, fontweight='bold')
+        ax.set_title(f'Matriz de Confusão no Teste - {model.upper()}', fontsize=15, fontweight='bold')
+
+        for row in range(2):
+            for column in range(2):
+                color = 'white' if normalized[row, column] > 0.5 else 'black'
+                ax.text(column, row, f'{normalized[row, column]:.1%}\n{int(counts[row, column]):,} px',
+                        ha='center', va='center', fontsize=13, fontweight='bold', color=color)
+
+        plt.tight_layout()
+        plt.savefig(os.path.join(save_dir, '10_matriz_confusao_teste.png'), dpi=300, bbox_inches='tight')
+        plt.close()
+
+
+    def plot_test_comparison(self, evaluations):
+        if not self.settings.is_charts_on():
+            return
+
+        save_dir = paths.COMPARISON_DIR
+        os.makedirs(save_dir, exist_ok=True)
+
+        metrics = [('acuracia', 'Acurácia'), ('miou', 'mIoU'), ('iou_trilha', 'IoU Trilha'),
+                   ('precisao', 'Precisão'), ('recall', 'Recall'), ('f1', 'F1')]
+        colors = ['#1976D2', '#D32F2F', '#388E3C', '#7B1FA2']
+        positions = np.arange(len(metrics))
+        width = 0.8 / len(evaluations)
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+
+        for index, (model, evaluation) in enumerate(evaluations.items()):
+            values = [np.nan_to_num(evaluation['groups']['Todos'][key]) for key, _ in metrics]
+            bars = ax.bar(positions + (index - (len(evaluations) - 1) / 2) * width, values, width,
+                          label=model.upper(), color=colors[index % len(colors)], alpha=0.85)
+            for bar, value in zip(bars, values):
+                ax.annotate(f'{value:.1%}', xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                            xytext=(0, 4), textcoords='offset points', ha='center', fontsize=9, fontweight='bold')
+
+        ax.set_xticks(positions, labels=[label for _, label in metrics], fontsize=12)
+        ax.set_ylabel('Valor (0 a 1)', fontsize=13, fontweight='bold')
+        ax.set_title('Comparação no Dataset de Teste', fontsize=15, fontweight='bold')
+        ax.set_ylim([0, 1.1])
+        ax.legend(fontsize=12, loc='upper right')
+        ax.grid(True, axis='y', alpha=0.3)
+        ax.set_facecolor('#f0f0f0')
+
+        plt.tight_layout()
+        plt.savefig(os.path.join(save_dir, 'avaliacao_teste.png'), dpi=300, bbox_inches='tight')
         plt.close()
 
 

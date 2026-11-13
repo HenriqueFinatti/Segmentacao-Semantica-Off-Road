@@ -18,4 +18,6 @@ class SettingsConfig(TypedDict):
     Num_Workers: int
     Test_Execution_Images: int
     Test_Execution_Epochs: int
+    Validation_Split: float
+    Seed: int
     Datasets_Labels: dict[str, DatasetLabel]

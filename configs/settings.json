@@ -13,6 +13,8 @@
     ,"Num_Workers": 2
     ,"Test_Execution_Images": 2
     ,"Test_Execution_Epochs": 3
+    ,"Validation_Split": 0.15
+    ,"Seed": 42
     ,"Datasets_Labels": {
         "Freiburg_Forest": {
             "color":     [170, 170, 170],

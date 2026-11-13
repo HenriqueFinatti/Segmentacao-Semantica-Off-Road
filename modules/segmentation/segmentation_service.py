@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 from configs import paths
 from modules.metrics.chart import Charts
 from modules.metrics.inference_metrics import InferenceMetrics
+from modules.metrics.test_evaluator import TestEvaluator
 from modules.models.registry import MODELS
 from modules.segmentation.inference_dataset import InferenceDataset
 from modules.segmentation.predictor import Predictor, WARMUP_ITERATIONS
@@ -32,6 +33,7 @@ class SegmentationService():
 
         self.charts = Charts(settings)
         self.inference_metrics = InferenceMetrics()
+        self.test_evaluator = TestEvaluator(settings, self.charts)
 
         self.image_size = settings.get_image_size()
         self.img_transform = build_image_transform(self.image_size)
@@ -42,7 +44,15 @@ class SegmentationService():
 
     def segment_test_dataset(self):
         print("Iniciando segmentação do dataset de teste...")
-        return self.segment_folder(paths.dataset_dir('test', 'original'), self.test_output_base, 'teste')
+        results = self.segment_folder(paths.dataset_dir('test', 'original'), self.test_output_base, 'teste')
+
+        # Avalia só os modelos que acabaram de segmentar, para não misturar predições antigas
+        self.test_evaluator.evaluate_all_models(list(results))
+        return results
+
+    def evaluate_test_dataset(self):
+        # Avalia as predições que já estão salvas, sem segmentar de novo
+        return self.test_evaluator.evaluate_all_models()
 
     def segment_video_frames(self):
         print("Iniciando segmentação do vídeo...")

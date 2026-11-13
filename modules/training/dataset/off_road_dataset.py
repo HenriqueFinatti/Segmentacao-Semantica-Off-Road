@@ -8,12 +8,13 @@ from configs import paths
 from modules.segmentation.transforms import build_mask_transform
 
 class OffRoadDataset(Dataset):
-    def __init__(self, root_dir, settings, img_transform=None):
+    def __init__(self, root_dir, settings, img_transform=None, images=None):
         self.settings = settings
         self.rgb_dir  = os.path.join(root_dir, "original")
         self.mask_dir = os.path.join(root_dir, "mask")
 
-        self.images = self.get_images()
+        # images permite montar o treino e a validação com listas já divididas
+        self.images = list(images) if images is not None else self.get_images()
         self.mask_paths = [
             os.path.join(self.mask_dir, os.path.splitext(img)[0] + ".png")
             for img in self.images
