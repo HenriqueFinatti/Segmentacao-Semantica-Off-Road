@@ -26,16 +26,17 @@ class MaskGenerator:
 
 
     def generate_binary_mask(self, gt_color_path, output_path, config):
-        target_color = config["color"]
         tolerance = config["tolerance"]
 
         img = Image.open(gt_color_path).convert("RGB")
         data = np.array(img, dtype=np.uint8)
 
-        lower = np.clip(target_color.astype(int) - tolerance, 0, 255).astype(np.uint8)
-        upper = np.clip(target_color.astype(int) + tolerance, 0, 255).astype(np.uint8)
-
-        is_target = np.all((data >= lower) & (data <= upper), axis=-1)
+        # Um pixel é trilha se estiver dentro da tolerância de qualquer uma das cores de trilha do dataset
+        is_target = np.zeros(data.shape[:2], dtype=bool)
+        for target_color in config["colors"]:
+            lower = np.clip(target_color.astype(int) - tolerance, 0, 255).astype(np.uint8)
+            upper = np.clip(target_color.astype(int) + tolerance, 0, 255).astype(np.uint8)
+            is_target |= np.all((data >= lower) & (data <= upper), axis=-1)
 
         mask = np.zeros(is_target.shape, dtype=np.uint8)
         mask[is_target] = 1

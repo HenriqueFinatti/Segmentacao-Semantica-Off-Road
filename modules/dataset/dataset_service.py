@@ -13,6 +13,9 @@ from modules.dataset.cleaners.synthetic_cleaner import SyntheticCleaner
 from modules.dataset.converters.synthetic_converter import SyntheticConverter
 from modules.dataset.downloaders.synthetic_downloader import SyntheticDownloader
 
+from modules.dataset.cleaners.cassed_cleaner import CaSSeDCleaner
+from modules.dataset.converters.cassed_converter import CaSSeDConverter
+
 class DatasetService():
 
     def __init__(self, settings):
@@ -21,13 +24,19 @@ class DatasetService():
 
         self.freiburgDownloader = FreiburgDownloader()
         self.freiburgCleaner = FreiburgCleaner()
-        self.freiburgConverter = FreiburgConverter()
+        self.freiburgConverter = FreiburgConverter(settings)
 
         self.syntheticDownloader = SyntheticDownloader()
         self.syntheticCleaner = SyntheticCleaner()
         self.syntheticConverter = SyntheticConverter()
 
+        self.cassedCleaner = CaSSeDCleaner()
+        self.cassedConverter = CaSSeDConverter(settings)
+
     def download_all_datasets(self):
+        # O CaSSeD ainda não tem downloader: confere a cópia manual antes dos downloads longos
+        self.cassedCleaner.check_raw_dataset()
+
         self.download_dataset()
         self.build_dataset()
         self.post_download_clean()
@@ -65,6 +74,22 @@ class DatasetService():
         self.post_download_clean()
 
 
+    def prepare_cassed_dataset(self):
+        # Sem downloader por enquanto: usa a pasta já copiada para raw/CaSSed_Dataset
+        print('Limpando CaSSeD...')
+        self.clean_cassed()
+
+        self.create_final_dataset_folder()
+
+        print('Padronizando e movendo imagens...')
+        self.convert_cassed()
+
+        print('Gerando máscaras...')
+        self.generate_dataset_masks()
+
+        self.post_download_clean()
+
+
     def download_dataset(self):
         print('Baixando Freiburg Forest...')
         self.download_freiburg()
@@ -74,6 +99,9 @@ class DatasetService():
         self.download_synthetic()
         self.clean_synthetic()
 
+        print(f'Limpando CaSSeD (já copiado para {paths.relative(paths.CASSED_RAW_DIR)})...')
+        self.clean_cassed()
+
 
     def build_dataset(self):
         self.create_final_dataset_folder()
@@ -81,6 +109,7 @@ class DatasetService():
         print('Padronizando e movendo imagens...')
         self.convert_freiburg()
         self.convert_synthetic()
+        self.convert_cassed()
 
         print('Gerando máscaras...')
         self.generate_dataset_masks()
@@ -111,6 +140,14 @@ class DatasetService():
 
     def clean_synthetic(self):
         self.syntheticCleaner.delete_raw_mask_labels()
+
+
+    def clean_cassed(self):
+        self.cassedCleaner.delete_unused_data()
+
+
+    def convert_cassed(self):
+        self.cassedConverter.convert()
 
 
     def convert_freiburg(self):

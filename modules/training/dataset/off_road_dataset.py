@@ -64,22 +64,12 @@ class OffRoadDataset(Dataset):
 
 
     def filter_enabled_datasets(self, temp_images):
-        isFreiburgOn = self.settings.is_freiburg_forest_on()
-        isSyntheticOn = self.settings.is_synthetic_off_road_on()
+        # Os datasets vêm de Datasets_Labels; cada um é ligado pela chave de mesmo nome no settings.json
+        enabled = self.settings.get_enabled_datasets()
 
-        if not (isFreiburgOn or isSyntheticOn):
-            raise ValueError("Nenhum dataset habilitado: ative Freiburg_Forest ou Synthetic_Offroad no settings.json.")
+        if not enabled:
+            names = ', '.join(self.settings.get_dataset_labels())
+            raise ValueError(f"Nenhum dataset habilitado: ative pelo menos um destes no settings.json: {names}.")
 
-        images = []
-        for img in temp_images:
-            img_name = img.lower()
-
-            if "freiburg" in img_name and isFreiburgOn:
-                images.append(img)
-                continue
-
-            if "synthetic" in img_name and isSyntheticOn:
-                images.append(img)
-                continue
-
-        return images
+        prefixes = tuple(f"{name}_" for name in enabled)
+        return [img for img in temp_images if img.startswith(prefixes)]

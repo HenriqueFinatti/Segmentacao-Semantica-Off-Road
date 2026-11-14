@@ -45,16 +45,19 @@ class Video:
             raise ValueError("Não foi possível obter um FPS válido do vídeo.")
 
         try:
-            for frame_id in range(total_frames):
-                succes, frame = video.read()
+            frame_id = 0
+            while video.isOpened():
+                success, frame = video.read()
+                
+                # Se falhou, geralmente indica que o vídeo chegou ao fim de forma natural
+                if not success:
+                    break 
 
-                if not succes:
-                    raise RuntimeError(f"Não foi possivel gerar o frame {frame_id} do vídeo")
-
-                frame_path = os.path.join(self.images_dir,f"frame_{frame_id:06d}.png")
+                frame_path = os.path.join(self.images_dir, f"frame_{frame_id:06d}.png")
                 cv2.imwrite(str(frame_path), frame)
 
                 frame_count += 1
+                frame_id += 1
         finally:
             video.release()
 

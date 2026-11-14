@@ -8,6 +8,7 @@ class SettingsConfig(TypedDict):
     Test_Execution: bool
     Freiburg_Forest: bool
     Synthetic_Offroad: bool
+    CaSSeD: bool
     Charts: bool
     Epochs: int
     Patience: int
@@ -20,4 +21,5 @@ class SettingsConfig(TypedDict):
     Test_Execution_Epochs: int
     Validation_Split: float
     Seed: int
+    CaSSeD_Test_Trails: list[str]
     Datasets_Labels: dict[str, DatasetLabel]

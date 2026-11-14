@@ -3,6 +3,7 @@
     ,"Test_Execution": false
     ,"Freiburg_Forest": true
     ,"Synthetic_Offroad": true
+    ,"CaSSeD": true
     ,"Charts": true
     ,"Epochs": 200
     ,"Patience": 5
@@ -15,14 +16,20 @@
     ,"Test_Execution_Epochs": 3
     ,"Validation_Split": 0.15
     ,"Seed": 42
+    ,"CaSSeD_Test_Trails": ["Main_Trail", "Powerline"]
     ,"Datasets_Labels": {
         "Freiburg_Forest": {
-            "color":     [170, 170, 170],
+            "colors":    [[170, 170, 170]],
             "label":     "Trail",
             "tolerance": 10
         },
         "Synthetic_Offroad": {
-            "color":     [207, 149, 30],
+            "colors":    [[207, 149, 30]],
+            "label":     "Trail",
+            "tolerance": 10
+        },
+        "CaSSeD": {
+            "colors":    [[155, 155, 155], [139, 87, 42]],
             "label":     "Trail",
             "tolerance": 10
         }

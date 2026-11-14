@@ -5,8 +5,9 @@ from configs import paths
 
 class FreiburgConverter():
 
-    def __init__(self):
-        pass
+    def __init__(self, settings):
+        # Arquivos com o prefixo de qualquer dataset já estão padronizados e não podem ser renomeados de novo
+        self.standard_prefixes = tuple(f"{name}_" for name in settings.get_dataset_labels())
 
 
     def rename_freiburg_files(self):
@@ -26,8 +27,8 @@ class FreiburgConverter():
             }
 
             for file in os.listdir(path_original):
-                # Ignora arquivos já padronizados (ex.: Synthetic Offroad baixado antes)
-                if file.startswith(("Freiburg_Forest_", "Synthetic_Offroad_")):
+                # Ignora arquivos já padronizados (ex.: Synthetic Offroad ou CaSSeD preparados antes)
+                if file.startswith(self.standard_prefixes):
                     continue
 
                 old_original_file = os.path.join(path_original, file)

@@ -14,6 +14,7 @@ results/
 images/
 video
 *.pth
+raw/
 
 ##############################
 # Latex

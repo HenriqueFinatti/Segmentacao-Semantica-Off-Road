@@ -104,6 +104,7 @@ class Application:
                 ('1', 'Baixar todos os datasets', self.dataset_service.download_all_datasets),
                 ('2', 'Baixar Freiburg Forest', self.dataset_service.download_freiburg_dataset),
                 ('3', 'Baixar Synthetic Offroad', self.dataset_service.download_synthetic_dataset),
+                ('16', f'Preparar CaSSeD (já copiado para {paths.relative(paths.CASSED_RAW_DIR)})', self.dataset_service.prepare_cassed_dataset),
             ]),
             ('Treinamento', [
                 ('4', 'Treinar todos os modelos', self.training_service.train_models),

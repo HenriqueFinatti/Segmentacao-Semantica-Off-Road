@@ -20,14 +20,6 @@ class Settings():
         return self.settings['Charts']
 
 
-    def is_freiburg_forest_on(self) -> bool:
-        return self.settings['Freiburg_Forest']
-
-
-    def is_synthetic_off_road_on(self) -> bool:
-        return self.settings['Synthetic_Offroad']
-
-
     def is_test_execution_on(self) -> bool:
         return self.settings['Test_Execution']
 
@@ -76,10 +68,27 @@ class Settings():
         return self.settings['Seed']
 
 
+    def get_cassed_test_trails(self) -> list[str]:
+        return self.settings['CaSSeD_Test_Trails']
+
+
     def get_dataset_labels(self) -> dict[str, DatasetLabel]:
         dataset_labels = self.settings['Datasets_Labels']
 
         for dataset in dataset_labels.values():
-            dataset["color"] = np.array(dataset["color"], dtype=np.uint8)
+            # (N, 3): cada linha é uma cor que conta como trilha
+            dataset["colors"] = np.array(dataset["colors"], dtype=np.uint8).reshape(-1, 3)
 
         return dataset_labels
+
+
+    def is_dataset_on(self, name) -> bool:
+        # Cada dataset de Datasets_Labels é ligado pela chave de mesmo nome no settings.json
+        if name not in self.settings:
+            raise KeyError(f"Falta a chave '{name}' (true/false) no settings.json para ligar ou desligar esse dataset.")
+
+        return self.settings[name]
+
+
+    def get_enabled_datasets(self) -> list[str]:
+        return [name for name in self.settings['Datasets_Labels'] if self.is_dataset_on(name)]

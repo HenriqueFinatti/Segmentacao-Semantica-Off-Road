@@ -48,12 +48,16 @@ class Trainer():
         )
 
         self.train_dataset = OffRoadDataset(train_dir, self.settings, img_transform, images=train_images)
+        self.batch_size = self.check_train_batch_size(len(self.train_dataset))
 
         use_cuda = torch.cuda.is_available()
         self.train_loader = DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
+            # Um batch de 1 imagem quebra o BatchNorm do pooling global do ASPP (1 valor por canal).
+            # Como o shuffle muda a ordem a cada época, a imagem que sobra não é sempre a mesma.
+            drop_last=True,
             num_workers=self.settings.get_num_workers(),
             pin_memory=use_cuda,
         )
@@ -80,6 +84,22 @@ class Trainer():
 
         print(f"Total de imagens de treino: {len(self.train_dataset)} | validação: {len(self.validation_images)}")
 
+    def check_train_batch_size(self, train_count):
+        # O BatchNorm precisa de pelo menos 2 imagens por batch no treino
+        if train_count < 2:
+            raise ValueError(
+                f"Só {train_count} imagem de treino depois de separar a validação; o treino precisa de pelo menos 2 por batch. "
+                f"Aumente Test_Execution_Images (mínimo 3: 2 de treino + 1 de validação) ou desligue Test_Execution no settings.json."
+            )
+
+        # Com drop_last, um batch maior que o treino não teria nenhum batch completo
+        if train_count < self.batch_size:
+            print(f"[AVISO] Só {train_count} imagens de treino: batch size reduzido de {self.batch_size} para {train_count}.")
+            return train_count
+
+        return self.batch_size
+
+
     def train_one_epoch(self, loader, epoch_num):
         self.model.train()
 
@@ -93,7 +113,6 @@ class Trainer():
             loss = self.criterion(outputs, masks)
             loss.backward()
             self.optimizer.step()
-
             self.metrics_tracker.update_metrics(loss.item(), outputs, masks)
 
         gc.collect()
@@ -152,12 +171,7 @@ class Trainer():
 
     def get_configuration(self):
         settings = self.settings
-        datasets = [
-            name for name, is_on in [
-                ('Freiburg Forest', settings.is_freiburg_forest_on()),
-                ('Synthetic Offroad', settings.is_synthetic_off_road_on()),
-            ] if is_on
-        ]
+        datasets = settings.get_enabled_datasets()
         test_execution = (
             f"Sim ({settings.get_test_execution_images()} imagens, {settings.get_test_execution_epochs()} épocas)"
             if settings.is_test_execution_on() else "Não"

@@ -15,6 +15,8 @@ RESULTS_DIR = os.path.join(ROOT, 'results')
 COMPARISON_DIR = os.path.join(RESULTS_DIR, 'comparacao')
 CARLA_RESULTS_DIR = os.path.join(RESULTS_DIR, 'carla')
 DATASET_REPORT_FILE = os.path.join(RESULTS_DIR, 'dataset', 'mascaras.md')
+# De onde veio cada imagem do CaSSeD (trilha e nome original), já que o nome final é só CaSSeD_<n>
+CASSED_SOURCE_FILE = os.path.join(RESULTS_DIR, 'dataset', 'cassed_origem.csv')
 
 IMAGES_TO_SEGMENT_DIR = os.path.join(ROOT, 'images', 'images_to_segment')
 SEGMENTED_IMAGES_DIR = os.path.join(ROOT, 'images', 'segmented_images')
@@ -28,6 +30,8 @@ VIDEO_SEGMENTED_FRAMES_DIR = os.path.join(ROOT, 'video', 'segmented_frames')
 
 FREIBURG_RAW_DIR = os.path.join(RAW_DIR, 'freiburg_forest_annotated')
 SYNTHETIC_RAW_DIR = os.path.join(RAW_DIR, 'synthetic_offroad')
+# Ainda sem downloader: a pasta extraída do CaSSeD.tar.gz é copiada manualmente para cá
+CASSED_RAW_DIR = os.path.join(RAW_DIR, 'CaSSed_Dataset')
 
 
 def dataset_dir(split, folder=''):
