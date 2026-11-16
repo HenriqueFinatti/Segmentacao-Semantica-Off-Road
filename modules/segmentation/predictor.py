@@ -13,9 +13,10 @@ WARMUP_ITERATIONS = 5
 
 
 class Predictor:
-    def __init__(self, model_name, image_size, device=None):
+    def __init__(self, model_name, image_size, device=None, model_path=None):
         model_name = validate_model_name(model_name)
-        model_path = paths.model_path(model_name)
+        # Sem caminho, usa o model.pth padrão do modelo (results/<modelo>/model.pth), como no CARLA
+        model_path = model_path or paths.model_path(model_name)
 
         if not os.path.exists(model_path):
             raise FileNotFoundError(f"Modelo não encontrado: {paths.relative(model_path)}")

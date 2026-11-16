@@ -102,9 +102,10 @@ class CaSSeDConverterTest(FakeRoot):
             self.assertEqual(self.read_value(image), expected_id)
             self.assertEqual(self.read_value(annotation), expected_id)
 
-        # Arquivos foram movidos, não copiados
-        for trail in FAKE_NAMES:
-            self.assertEqual(os.listdir(os.path.join(paths.CASSED_RAW_DIR, 'Real_World_data', trail, 'raw_images')), [])
+        # Arquivos foram copiados: raw/ continua com o dataset bruto para remontar sem baixar de novo
+        for trail, names in FAKE_NAMES.items():
+            raw_images = os.listdir(os.path.join(paths.CASSED_RAW_DIR, 'Real_World_data', trail, 'raw_images'))
+            self.assertEqual(sorted(raw_images), sorted(image for image, _ in names))
 
         with open(paths.CASSED_SOURCE_FILE, encoding='utf-8') as f:
             self.assertEqual(len(list(csv.DictReader(f))), total)

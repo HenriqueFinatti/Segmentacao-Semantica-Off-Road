@@ -151,17 +151,29 @@ class TestEvaluator:
                   f"{self.format_pct(m['recall']):>8} | {self.format_pct(m['f1']):>8}")
 
 
-    def get_report_path(self, model_name):
-        return os.path.join(paths.statistics_dir(model_name), 'avaliacao_teste.md')
+    def get_report_path(self, model_name, report_dir=None):
+        return os.path.join(report_dir or paths.statistics_dir(model_name), 'avaliacao_teste.md')
 
 
-    def get_csv_path(self, model_name):
-        return os.path.join(paths.statistics_dir(model_name), 'avaliacao_teste_por_imagem.csv')
+    def get_csv_path(self, model_name, report_dir=None):
+        return os.path.join(report_dir or paths.statistics_dir(model_name), 'avaliacao_teste_por_imagem.csv')
 
 
-    def save_report(self, evaluation):
+    def evaluate_predictions(self, name, predictions_dir, report_dir):
+        """Avalia uma pasta de predições qualquer (ex.: a de uma configuração da interface) e salva o
+        relatório e o CSV em report_dir. Retorna None se nenhuma predição corresponder às máscaras."""
+        evaluation = self.evaluate_model(name, predictions_dir)
+        if evaluation is None:
+            return None
+
+        self.save_report(evaluation, report_dir)
+        self.save_csv(evaluation, report_dir)
+        return evaluation
+
+
+    def save_report(self, evaluation, report_dir=None):
         model_name = evaluation['model']
-        report_path = self.get_report_path(model_name)
+        report_path = self.get_report_path(model_name, report_dir)
         os.makedirs(os.path.dirname(report_path), exist_ok=True)
 
         lines = [
@@ -215,7 +227,7 @@ class TestEvaluator:
             "*O mIoU do treino (stats.md) é a média do mIoU de cada batch; aqui ele vem da matriz de confusão "
             "de todo o conjunto, que é a forma padrão. Os dois não são diretamente comparáveis.*",
             "",
-            f"Métricas por imagem: `{paths.relative(self.get_csv_path(model_name))}`",
+            f"Métricas por imagem: `{paths.relative(self.get_csv_path(model_name, report_dir))}`",
         ]
 
         if evaluation['missing']:
@@ -225,8 +237,8 @@ class TestEvaluator:
             f.write('\n'.join(lines) + '\n')
 
 
-    def save_csv(self, evaluation):
-        csv_path = self.get_csv_path(evaluation['model'])
+    def save_csv(self, evaluation, report_dir=None):
+        csv_path = self.get_csv_path(evaluation['model'], report_dir)
         os.makedirs(os.path.dirname(csv_path), exist_ok=True)
 
         columns = ['imagem', 'dataset', 'tp', 'fp', 'fn', 'tn', 'acuracia', 'iou_trilha', 'iou_fundo', 'miou', 'precisao', 'recall', 'f1']

@@ -1,0 +1,1347 @@
+"""Regras da interface sobre o código do TCC: configurações, treino, sessões de segmentação,
+desempenho no conjunto de teste, conclusões e decisão da coordenação.
+
+Os nomes das falas e dos campos seguem o esquema de signos da Entrega 9 (seção 4) do projeto de IHC."""
+import os
+import re
+import csv
+import shutil
+import unicodedata
+from datetime import datetime
+
+from configs import paths
+from configs.settings import Settings
+from modules.models.registry import MODELS
+from modules.dataset.dataset_service import DATASET_NAMES, DatasetService, test_set_fingerprint
+from modules.metrics.segmentation_metrics import compute_metrics
+
+from app.web.erros import ErroDeUsuario, logger
+from app.web.registro import new_id, now
+
+MODEL_NAMES = {'fcn': 'FCN', 'deeplabv3+': 'DeepLabV3+'}
+
+IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png'}
+VIDEO_EXTENSIONS = {'.mp4'}
+ACCEPTED_FORMATS_TEXT = 'imagens em JPG ou PNG e vídeos em MP4'
+
+METRICS = ['miou', 'iou_trilha', 'iou_fundo', 'acuracia', 'tempo_inferencia_ms']
+# Métricas em que o maior valor é destacado; o tempo depende do computador e não entra no destaque
+HIGHLIGHTED_METRICS = ['miou', 'iou_trilha', 'iou_fundo', 'acuracia']
+
+DECISIONS = {'aceita', 'aceita com condição', 'adiada'}
+CONCLUSION_TYPES = {'validação', 'experimento', 'recomendação'}
+
+
+class Recusa(Exception):
+    """A fala do usuário não pode seguir como está. tipo: PA (prevenção ativa), AL (alerta), RA ou CE."""
+
+    def __init__(self, tipo, mensagem, campo=None, dados=None):
+        super().__init__(mensagem)
+        self.tipo = tipo
+        self.mensagem = mensagem
+        self.campo = campo
+        self.dados = dados or {}
+
+
+    def to_dict(self):
+        return {'tipo': self.tipo, 'mensagem': self.mensagem, 'campo': self.campo, 'dados': self.dados}
+
+
+def safe_filename(name):
+    name = os.path.basename(name or '').strip()
+    stem, extension = os.path.splitext(name)
+    stem = unicodedata.normalize('NFKD', stem).encode('ascii', 'ignore').decode('ascii')
+    stem = re.sub(r'[^A-Za-z0-9_-]+', '_', stem).strip('_') or 'arquivo'
+    return stem[:80], extension.lower()
+
+
+def ascii_text(text):
+    return unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
+
+
+def format_epochs(epochs):
+    return f"{epochs} época" if epochs == 1 else f"{epochs} épocas"
+
+
+def mask_name(image_name):
+    return os.path.splitext(image_name)[0] + '.png'
+
+
+class Sistema:
+
+    def __init__(self, registro, fila):
+        self.registro = registro
+        self.fila = fila
+        self.settings = Settings()
+        self.dataset_service = DatasetService(self.settings)
+
+        self.clean_drafts()
+        self.recover_interrupted()
+        self.register_existing_models()
+
+
+    # ------------------------------------------------------------------ inicialização
+
+    def clean_drafts(self):
+        # Rascunhos são envios que nunca chegaram a ser executados (ex.: a pessoa trocou os arquivos)
+        with self.registro.transaction() as data:
+            for session_id in [sid for sid, s in data['sessoes'].items() if s.get('rascunho')]:
+                folder = paths.session_dir(session_id)
+                if os.path.isdir(folder):
+                    paths.safe_rmtree(folder)
+                del data['sessoes'][session_id]
+
+
+    def recover_interrupted(self):
+        # A fila não sobrevive ao fechamento da interface; o que estava em andamento é marcado como interrompido
+        with self.registro.transaction() as data:
+            for configuration in data['configuracoes'].values():
+                training = configuration.get('treino') or {}
+                if training.get('estado') in ('na fila', 'treinando'):
+                    training.update({
+                        'estado': 'falhou',
+                        'causa': 'a interface foi fechada antes de o treino terminar',
+                        'sugestao': 'Reinicie o treino.',
+                        'tipo_falha': 'RA',
+                    })
+
+            for session in data['sessoes'].values():
+                for execution in session.get('execucoes', {}).values():
+                    if execution.get('estado') in ('na fila', 'processando'):
+                        execution.update({
+                            'estado': 'falhou',
+                            'causa': 'a interface foi fechada antes de a execução terminar',
+                            'sugestao': 'Tente de novo.',
+                        })
+                for video in session.get('videos', []):
+                    if video.get('estado') in ('na fila', 'processando'):
+                        video['estado'] = 'falhou'
+
+
+    def register_existing_models(self):
+        """Os modelos treinados antes da interface (results/<modelo>/model.pth) viram configurações disponíveis."""
+        with self.registro.transaction() as data:
+            known = {c.get('pasta') for c in data['configuracoes'].values()}
+
+            for model in MODELS:
+                folder = paths.relative(os.path.join(paths.RESULTS_DIR, model))
+                if folder in known or not os.path.isfile(paths.model_path(model)):
+                    continue
+
+                parameters = self.read_legacy_parameters(model)
+                name = self.unique_name(f"{MODEL_NAMES[model]} – {format_epochs(parameters['epocas'])}", data)
+                configuration_id = new_id('c-')
+                data['configuracoes'][configuration_id] = {
+                    'id': configuration_id,
+                    'nome': name,
+                    'modelo': model,
+                    'parametros': parameters,
+                    'tamanho_imagem': self.settings.get_image_size(),
+                    'pasta': folder,
+                    'origem': 'existente',
+                    'criada_em': datetime.fromtimestamp(os.path.getmtime(paths.model_path(model))).isoformat(timespec='seconds'),
+                    'candidata': False,
+                    'treino': {'estado': 'concluído', 'historico': [], 'motivo_termino': None,
+                               'epoca_final': None, 'melhor_epoca': None, 'antes_da_interface': True},
+                    'teste': self.read_legacy_test(model),
+                }
+                logger.info("Modelo existente registrado como configuração: %s", name)
+
+
+    def read_legacy_parameters(self, model):
+        defaults = self.default_parameters()
+        stats = os.path.join(paths.statistics_dir(model), 'stats.md')
+        if not os.path.isfile(stats):
+            return defaults
+
+        table = {}
+        with open(stats, encoding='utf-8') as f:
+            for line in f:
+                match = re.match(r'\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|', line)
+                if match:
+                    table[match.group(1)] = match.group(2)
+
+        parameters = dict(defaults)
+        try:
+            parameters['epocas'] = int(table.get('Épocas (máximo)', defaults['epocas']))
+            parameters['batch_size'] = int(table.get('Batch Size', defaults['batch_size']))
+        except ValueError:
+            pass
+
+        early = table.get('Early Stopping', '')
+        parameters['early_stopping'] = early.startswith('Sim')
+        patience = re.search(r'paciência (\d+)', early)
+        if patience:
+            parameters['paciencia'] = int(patience.group(1))
+
+        if 'Datasets' in table:
+            labels = [label.strip() for label in table['Datasets'].split(',')]
+            ids = [key for key, label in DATASET_NAMES.items() if label in labels or key in labels]
+            parameters['datasets'] = ids or defaults['datasets']
+
+        return parameters
+
+
+    def read_legacy_test(self, model):
+        per_image = os.path.join(paths.statistics_dir(model), 'avaliacao_teste_por_imagem.csv')
+        if not os.path.isfile(per_image):
+            return None
+
+        counts = {'tp': 0, 'fp': 0, 'fn': 0, 'tn': 0}
+        names = []
+        with open(per_image, encoding='utf-8') as f:
+            for row in csv.DictReader(f):
+                names.append(row['imagem'])
+                for key in counts:
+                    counts[key] += int(row[key])
+
+        if not names:
+            return None
+
+        times_file = os.path.join(paths.statistics_dir(model), 'tempos_inferencia_teste.csv')
+        inference = None
+        if os.path.isfile(times_file):
+            with open(times_file, encoding='utf-8') as f:
+                values = [float(row['tempo_inferencia_ms']) for row in csv.DictReader(f)]
+            inference = sum(values) / len(values) if values else None
+
+        return self.build_test_result(counts, names, inference, os.path.getmtime(per_image))
+
+
+    def build_test_result(self, counts, mask_names, inference_ms, timestamp=None):
+        per_dataset = {}
+        for name in mask_names:
+            prefix = next((p for p in DATASET_NAMES if name.startswith(f"{p}_")), None)
+            label = DATASET_NAMES.get(prefix, 'Outro')
+            per_dataset[label] = per_dataset.get(label, 0) + 1
+
+        metrics = compute_metrics(counts)
+        return {
+            'conjunto': {
+                'id': test_set_fingerprint(mask_names),
+                'imagens': len(mask_names),
+                'por_dataset': per_dataset,
+            },
+            'metricas': {
+                'miou': metrics['miou'],
+                'iou_trilha': metrics['iou_trilha'],
+                'iou_fundo': metrics['iou_fundo'],
+                'acuracia': metrics['acuracia'],
+                'tempo_inferencia_ms': inference_ms,
+            },
+            'matriz': counts,
+            'avaliado_em': (datetime.fromtimestamp(timestamp) if timestamp else datetime.now()).isoformat(timespec='seconds'),
+        }
+
+
+    # ------------------------------------------------------------------ configurações
+
+    def default_parameters(self):
+        settings = self.settings
+        datasets = [name for name in DATASET_NAMES if settings.settings.get(name, False)]
+        return {
+            'epocas': settings.get_epochs(),
+            'early_stopping': settings.is_early_stopping_on(),
+            'paciencia': settings.get_patience(),
+            'datasets': datasets,
+            'batch_size': settings.get_batch_size(),
+            'graficos': settings.is_charts_on(),
+        }
+
+
+    def configuration_folder(self, configuration):
+        return os.path.join(paths.ROOT, configuration['pasta'])
+
+
+    def weights_path(self, configuration):
+        return os.path.join(self.configuration_folder(configuration), 'model.pth')
+
+
+    def is_available(self, configuration):
+        return (configuration.get('treino') or {}).get('estado') == 'concluído'
+
+
+    def situation(self, configuration, data):
+        if not self.is_available(configuration):
+            return 'em treino'
+        if data.get('configuracao_em_uso') == configuration['id']:
+            return 'em uso'
+        if configuration.get('candidata'):
+            return 'candidata'
+        return 'disponível'
+
+
+    def description(self, configuration):
+        p = configuration['parametros']
+        early = f"early stopping com paciência {p['paciencia']}" if p['early_stopping'] else 'sem early stopping'
+        datasets = ', '.join(DATASET_NAMES.get(d, d) for d in p['datasets'])
+        return (f"{MODEL_NAMES[configuration['modelo']]}, até {format_epochs(p['epocas'])}, {early}, "
+                f"batch size {p['batch_size']}, datasets de treino: {datasets}")
+
+
+    def configuration_view(self, configuration, data, detailed=False):
+        view = {
+            'id': configuration['id'],
+            'nome': configuration['nome'],
+            'modelo': configuration['modelo'],
+            'modelo_nome': MODEL_NAMES[configuration['modelo']],
+            'parametros': configuration['parametros'],
+            'descricao': self.description(configuration),
+            'situacao': self.situation(configuration, data),
+            'disponivel': self.is_available(configuration),
+            'criada_em': configuration.get('criada_em'),
+            'teste': configuration.get('teste'),
+            'treino': {k: v for k, v in (configuration.get('treino') or {}).items() if detailed or k != 'historico'},
+            'origem': configuration.get('origem'),
+        }
+        if detailed:
+            charts = os.path.join(self.configuration_folder(configuration), 'images')
+            view['graficos_gerados'] = os.path.isdir(charts) and any(f.endswith('.png') for f in os.listdir(charts))
+        return view
+
+
+    def list_configurations(self):
+        def build(data):
+            items = [self.configuration_view(c, data) for c in data['configuracoes'].values()]
+            return sorted(items, key=lambda c: c.get('criada_em') or '', reverse=True)
+        return self.registro.read(build)
+
+
+    def get_configuration(self, configuration_id):
+        def build(data):
+            configuration = data['configuracoes'].get(configuration_id)
+            return self.configuration_view(configuration, data, detailed=True) if configuration else None
+        return self.registro.read(build)
+
+
+    def unique_name(self, base, data):
+        existing = {c['nome'].casefold() for c in data['configuracoes'].values()}
+        if base.casefold() not in existing:
+            return base
+        index = 2
+        while f"{base} ({index})".casefold() in existing:
+            index += 1
+        return f"{base} ({index})"
+
+
+    def suggest_name(self, model, epochs):
+        model = model if model in MODELS else 'deeplabv3+'
+        base = f"{MODEL_NAMES[model]} – {format_epochs(max(1, int(epochs)))}"
+        return self.registro.read(lambda data: self.unique_name(base, data))
+
+
+    def training_defaults(self):
+        status = self.dataset_service.status()
+        return {
+            'modelos': [{'id': key, 'nome': label} for key, label in MODEL_NAMES.items()],
+            'padrao': self.default_parameters(),
+            'datasets': [
+                {'id': d['id'], 'nome': d['nome'], 'imagens_treino': d['imagens_treino']}
+                for d in status['datasets']
+            ],
+        }
+
+
+    def validate_training(self, form):
+        model = form.get('modelo')
+        if model not in MODELS:
+            raise Recusa('PA', 'Escolha o modelo: FCN ou DeepLabV3+.', 'modelo')
+
+        def positive_int(field, label):
+            try:
+                value = int(form.get(field))
+            except (TypeError, ValueError):
+                raise Recusa('PA', f'Informe {label} como um número inteiro.', field)
+            if value < 1:
+                raise Recusa('PA', f'{label[0].upper() + label[1:]} precisa ser pelo menos 1.', field)
+            return value
+
+        epochs = positive_int('epocas', 'o número de épocas')
+        batch_size = positive_int('batch_size', 'o batch size')
+        early_stopping = bool(form.get('early_stopping'))
+        patience = positive_int('paciencia', 'a paciência') if early_stopping else self.settings.get_patience()
+
+        datasets = [d for d in form.get('datasets') or [] if d in DATASET_NAMES]
+        if not datasets:
+            raise Recusa('PA', 'Escolha pelo menos um dataset de treino para continuar.', 'datasets')
+
+        counts = self.dataset_service.count_images()
+        missing = [DATASET_NAMES[d] for d in datasets if counts[d]['train'] == 0]
+        if missing:
+            raise Recusa('PA', f"{', '.join(missing)} não tem imagens no dataset montado. Monte o dataset na tela "
+                               f"Datasets ou escolha outro dataset de treino.", 'datasets')
+
+        return {
+            'modelo': model,
+            'parametros': {
+                'epocas': epochs,
+                'early_stopping': early_stopping,
+                'paciencia': patience,
+                'datasets': datasets,
+                'batch_size': batch_size,
+                'graficos': bool(form.get('graficos')),
+            },
+        }
+
+
+    def start_training(self, form):
+        validated = self.validate_training(form)
+        name = (form.get('nome') or '').strip()
+
+        if not name:
+            raise Recusa('PA', 'Informe o nome da configuração.', 'nome')
+
+        with self.registro.transaction() as data:
+            if any(c['nome'].casefold() == name.casefold() for c in data['configuracoes'].values()):
+                raise Recusa('RA', f'Já existe uma configuração com o nome "{name}". Escolha outro nome.', 'nome',
+                             {'sugestao': self.unique_name(name, data)})
+
+            configuration_id = new_id('c-')
+            data['configuracoes'][configuration_id] = {
+                'id': configuration_id,
+                'nome': name,
+                'modelo': validated['modelo'],
+                'parametros': validated['parametros'],
+                'tamanho_imagem': self.settings.get_image_size(),
+                'pasta': paths.relative(paths.configuration_dir(configuration_id)),
+                'origem': 'interface',
+                'criada_em': now(),
+                'candidata': False,
+                'treino': {'estado': 'na fila'},
+                'teste': None,
+            }
+
+        self.enqueue_training(configuration_id)
+        return self.get_configuration(configuration_id)
+
+
+    def restart_training(self, configuration_id, batch_size=None):
+        configuration = self.registro.configuration(configuration_id)
+        if configuration is None:
+            raise Recusa('CE', 'Configuração não encontrada.')
+        if configuration.get('origem') == 'existente':
+            raise Recusa('CE', 'Esta configuração foi treinada antes da interface e não pode ser reiniciada aqui.')
+        if configuration['treino'].get('estado') != 'falhou':
+            raise Recusa('PA', 'Só um treino interrompido pode ser reiniciado.')
+
+        def update(c):
+            if batch_size is not None:
+                value = int(batch_size)
+                if value < 1:
+                    raise Recusa('PA', 'O batch size precisa ser pelo menos 1.', 'batch_size')
+                c['parametros']['batch_size'] = value
+            c['treino'] = {'estado': 'na fila'}
+
+        self.registro.update_configuration(configuration_id, update)
+        self.enqueue_training(configuration_id)
+        return self.get_configuration(configuration_id)
+
+
+    def enqueue_training(self, configuration_id):
+        configuration = self.registro.configuration(configuration_id)
+
+        def on_failure(task, description):
+            def update(c):
+                c['treino'].update({
+                    'estado': 'falhou',
+                    'causa': description['causa'],
+                    'sugestao': description['sugestao'],
+                    'tipo_falha': description['tipo'],
+                    'terminado_em': now(),
+                })
+                if description['causa'] == 'faltou memória no computador':
+                    c['treino']['batch_size_sugerido'] = max(1, c['parametros']['batch_size'] // 2)
+            self.registro.update_configuration(configuration_id, update)
+
+        self.fila.submit('treino', f"Treino da {configuration['nome']}", lambda task: self.run_training(task, configuration_id),
+                         alvo={'configuracao': configuration_id}, contexto='treino', on_failure=on_failure)
+
+
+    def run_training(self, task, configuration_id):
+        from modules.training.trainer.trainer import Trainer
+
+        configuration = self.registro.configuration(configuration_id)
+        p = configuration['parametros']
+        overrides = {
+            'Epochs': p['epocas'],
+            'EarlyStopping': p['early_stopping'],
+            'Patience': p['paciencia'],
+            'BATCH_SIZE': p['batch_size'],
+            'Charts': p['graficos'],
+            **{name: name in p['datasets'] for name in DATASET_NAMES},
+        }
+        settings = Settings().with_overrides(overrides)
+        folder = self.configuration_folder(configuration)
+        os.makedirs(folder, exist_ok=True)
+
+        total = p['epocas']
+        if settings.is_test_execution_on():
+            total = min(total, settings.get_test_execution_epochs())
+
+        self.registro.update_configuration(configuration_id, lambda c: c.update({'treino': {
+            'estado': 'treinando', 'epoca': 0, 'total': total, 'historico': [], 'iniciado_em': now(),
+            'etapa': 'Preparando o treino',
+        }}))
+        task.set_progress(0, total, 'Preparando o treino')
+
+        def on_epoch(epoch):
+            entry = {
+                'epoca': epoch['epoca'],
+                'treino': epoch['treino'],
+                'validacao': {k: epoch['validacao'][k] for k in ('loss', 'acuracia', 'miou', 'iou_trilha')} if epoch['validacao'] else None,
+                'duracao_s': epoch['duracao_s'],
+            }
+
+            def update(c):
+                c['treino']['epoca'] = epoch['epoca']
+                c['treino']['historico'].append(entry)
+                c['treino']['melhor_epoca'] = epoch['melhor_epoca']
+                c['treino']['etapa'] = 'Treinando'
+            self.registro.update_configuration(configuration_id, update)
+            task.set_progress(epoch['epoca'], total, f"Época {epoch['epoca']} de {total}")
+
+        try:
+            result = Trainer(configuration['modelo'], settings, output_dir=folder, on_epoch=on_epoch).train_model()
+        except ValueError as error:
+            if 'Nenhuma imagem de treino' in str(error) or 'Nenhum dataset habilitado' in str(error):
+                raise ErroDeUsuario('não há imagens de treino dos datasets escolhidos no dataset montado',
+                                    'Monte o dataset na tela Datasets e reinicie o treino.', 'CE')
+            if 'imagem de treino' in str(error):
+                raise ErroDeUsuario('há imagens de treino de menos para formar um batch',
+                                    'Escolha mais datasets de treino ou monte o dataset de novo.', 'CE')
+            raise
+
+        def finish_training(c):
+            c['treino'].update({
+                'motivo_termino': result['motivo_termino'],
+                'epoca_final': result['epoca_final'],
+                'melhor_epoca': result['melhor_epoca'],
+                'tempo_total_s': result['tempo_total_s'],
+                'etapa': 'Avaliando no conjunto de teste',
+            })
+        self.registro.update_configuration(configuration_id, finish_training)
+
+        task.set_progress(0, 0, 'Avaliando no conjunto de teste')
+        self.evaluate_on_test_set(configuration_id, task)
+
+        self.registro.update_configuration(configuration_id, lambda c: c['treino'].update({
+            'estado': 'concluído', 'terminado_em': now(), 'etapa': None,
+        }))
+
+
+    def evaluate_on_test_set(self, configuration_id, task=None):
+        """Segmenta o conjunto de teste montado com a configuração e guarda IoU, acurácia, tempo de
+        inferência e matriz de confusão. Sem conjunto de teste montado, a configuração fica sem métricas."""
+        from modules.metrics.chart import Charts
+        from modules.metrics.test_evaluator import TestEvaluator
+        from modules.segmentation.inference_dataset import InferenceDataset
+        from modules.segmentation.predictor import Predictor
+        from modules.segmentation.segmentation_service import SegmentationService
+
+        test_set = self.dataset_service.current_test_set()
+        if test_set is None:
+            self.registro.update_configuration(configuration_id, lambda c: c.update({'teste': None}))
+            return None
+
+        configuration = self.registro.configuration(configuration_id)
+        folder = self.configuration_folder(configuration)
+        predictions_dir = os.path.join(folder, 'teste_predicoes')
+        if os.path.isdir(predictions_dir):
+            paths.safe_rmtree(predictions_dir)
+        os.makedirs(predictions_dir, exist_ok=True)
+
+        settings = Settings()
+        service = SegmentationService(settings)
+        predictor = Predictor(configuration['modelo'], configuration['tamanho_imagem'], service.device, self.weights_path(configuration))
+        dataset = InferenceDataset(paths.dataset_dir('test', 'original'), predictor.transform)
+
+        def on_image(done, total, _name):
+            if task:
+                task.set_progress(done, total, f'Avaliando no conjunto de teste: {done} de {total} imagens')
+
+        segmented = service.segment_files(predictor, dataset, predictions_dir, on_image=on_image)
+        evaluation = TestEvaluator(settings, Charts(settings)).evaluate_predictions(
+            configuration['nome'], predictions_dir, os.path.join(folder, 'statistics'))
+
+        if evaluation is None:
+            raise ErroDeUsuario('as imagens do conjunto de teste não têm máscaras correspondentes',
+                                'Monte o dataset de novo na tela Datasets.', 'CE')
+
+        totals = evaluation['groups']['Todos']
+        counts = {key: totals[key] for key in ('tp', 'fp', 'fn', 'tn')}
+        times = list(segmented['inference_times'].values())
+        mask_files = [image['imagem'] for image in evaluation['images']]
+        result = self.build_test_result(counts, mask_files, sum(times) / len(times) if times else None)
+        result['conjunto']['montado_em'] = test_set.get('montado_em')
+
+        self.registro.update_configuration(configuration_id, lambda c: c.update({'teste': result}))
+        return result
+
+
+    # ------------------------------------------------------------------ sessões e execução
+
+    def create_session(self, cycle, uploads):
+        """uploads: lista de (nome do arquivo, objeto de arquivo). Retorna a sessão (rascunho) e os arquivos recusados."""
+        from PIL import Image
+        from processing.video import read_video_info
+
+        cycle = (cycle or '').strip()
+        if not cycle:
+            raise Recusa('PA', 'Informe o ciclo de testes: o nome ou a data do teste de campo.', 'ciclo')
+        if not uploads:
+            raise Recusa('PA', 'Escolha pelo menos uma imagem ou um vídeo.', 'arquivos')
+
+        session_id = new_id('s-')
+        inputs_dir = os.path.join(paths.session_dir(session_id), 'entradas')
+        videos_dir = os.path.join(paths.session_dir(session_id), 'videos')
+        os.makedirs(inputs_dir, exist_ok=True)
+
+        images, videos, refused, stems = [], [], [], set()
+
+        for original_name, file in uploads:
+            stem, extension = safe_filename(original_name)
+            label = os.path.basename(original_name or '')
+
+            if extension not in IMAGE_EXTENSIONS | VIDEO_EXTENSIONS:
+                refused.append({'nome': label, 'motivo': 'formato não aceito'})
+                continue
+
+            unique_stem, index = stem, 2
+            while unique_stem in stems:
+                unique_stem = f"{stem}_{index}"
+                index += 1
+            stems.add(unique_stem)
+
+            if extension in IMAGE_EXTENSIONS:
+                target = os.path.join(inputs_dir, unique_stem + extension)
+                with open(target, 'wb') as output:
+                    shutil.copyfileobj(file, output)
+                try:
+                    with Image.open(target) as image:
+                        image.verify()
+                    with Image.open(target) as image:
+                        width, height = image.size
+                except Exception:
+                    os.remove(target)
+                    refused.append({'nome': label, 'motivo': 'o arquivo não pôde ser lido como imagem'})
+                    continue
+                images.append({'nome': unique_stem + extension, 'origem': 'imagem', 'nome_original': label,
+                               'largura': width, 'altura': height})
+            else:
+                os.makedirs(videos_dir, exist_ok=True)
+                target = os.path.join(videos_dir, unique_stem + extension)
+                with open(target, 'wb') as output:
+                    shutil.copyfileobj(file, output)
+                info = read_video_info(target)
+                if info is None:
+                    os.remove(target)
+                    refused.append({'nome': label, 'motivo': 'o arquivo não pôde ser lido como vídeo'})
+                    continue
+                videos.append({'nome': unique_stem + extension, 'nome_original': label, 'fps': info[0],
+                               'quadros_previstos': info[1], 'quadros': 0, 'estado': 'na fila'})
+
+        session = {
+            'id': session_id,
+            'criada_em': now(),
+            'ciclo': cycle,
+            'rascunho': True,
+            'imagens': images,
+            'videos': videos,
+            'execucoes': {},
+            'avaliacoes': {},
+            'comparacao': None,
+        }
+
+        with self.registro.transaction() as data:
+            data['sessoes'][session_id] = session
+
+        if not images and not videos:
+            self.discard_draft(session_id)
+            return {'sessao': None, 'recusadas': refused}
+
+        return {'sessao': self.get_session(session_id), 'recusadas': refused}
+
+
+    def discard_draft(self, session_id):
+        with self.registro.transaction() as data:
+            session = data['sessoes'].get(session_id)
+            if session and session.get('rascunho'):
+                del data['sessoes'][session_id]
+                folder = paths.session_dir(session_id)
+                if os.path.isdir(folder):
+                    paths.safe_rmtree(folder)
+
+
+    def get_session(self, session_id):
+        def build(data):
+            session = data['sessoes'].get(session_id)
+            if session is None:
+                return None
+            view = dict(session)
+            view['configuracoes'] = {
+                cid: {'nome': c['nome'], 'descricao': self.description(c)}
+                for cid in session['execucoes']
+                if (c := data['configuracoes'].get(cid))
+            }
+            return view
+        return self.registro.read(build)
+
+
+    def current_session_id(self):
+        return self.registro.read(lambda data: data.get('ultima_sessao'))
+
+
+    def execute(self, session_id, configuration_ids, images=None, comparison=False):
+        configuration_ids = list(dict.fromkeys(configuration_ids or []))
+        if not configuration_ids:
+            raise Recusa('PA', 'Escolha pelo menos uma configuração.', 'configuracoes')
+
+        with self.registro.transaction() as data:
+            session = data['sessoes'].get(session_id)
+            if session is None:
+                raise Recusa('CE', 'Sessão não encontrada.')
+
+            for configuration_id in configuration_ids:
+                configuration = data['configuracoes'].get(configuration_id)
+                if configuration is None or not self.is_available(configuration):
+                    raise Recusa('PA', 'Só configurações com treino concluído podem ser executadas.', 'configuracoes')
+
+            if images is not None:
+                known = {image['nome'] for image in session['imagens']}
+                images = [name for name in images if name in known]
+                if not images:
+                    raise Recusa('PA', 'Escolha pelo menos uma imagem.', 'imagens')
+
+            session['rascunho'] = False
+            data['ultima_sessao'] = session_id
+
+            if comparison or len(configuration_ids) > 1:
+                # Comparar com outra configuração inclui as que já foram executadas nestas imagens
+                previous = session.get('comparacao') or {}
+                executed = [cid for cid, e in session['execucoes'].items() if e.get('estado') == 'concluído']
+                base = (previous.get('configuracoes') or executed) if comparison else []
+                session['comparacao'] = {
+                    'configuracoes': list(dict.fromkeys(base + configuration_ids)),
+                    'imagens': images,
+                }
+
+            for configuration_id in configuration_ids:
+                execution = session['execucoes'].setdefault(configuration_id, {
+                    'concluidas': [], 'falhas': {}, 'deixadas_de_fora': [], 'pedidas': [],
+                })
+                requested = images if images is not None else None
+                execution.update({'estado': 'na fila', 'causa': None, 'sugestao': None, 'pendentes': requested})
+
+            pending_videos = [video['nome'] for video in session['videos'] if video.get('estado') in ('na fila', 'falhou')]
+            for video in session['videos']:
+                if video['nome'] in pending_videos:
+                    video['estado'] = 'na fila'
+
+        for video in pending_videos:
+            self.fila.submit('extracao', f'Extração dos quadros de {video}',
+                             lambda task, video=video: self.run_extraction(task, session_id, video),
+                             alvo={'sessao': session_id, 'video': video},
+                             on_failure=lambda task, d, video=video: self.extraction_failed(session_id, video, d))
+
+        for configuration_id in configuration_ids:
+            self.enqueue_execution(session_id, configuration_id)
+
+        return self.get_session(session_id)
+
+
+    def enqueue_execution(self, session_id, configuration_id):
+        configuration = self.registro.configuration(configuration_id)
+
+        def on_failure(task, description):
+            def update(session):
+                session['execucoes'][configuration_id].update({
+                    'estado': 'falhou', 'causa': description['causa'], 'sugestao': description['sugestao'],
+                    'tipo_falha': description['tipo'],
+                })
+            self.registro.update_session(session_id, update)
+
+        self.fila.submit('execucao', f"Execução da {configuration['nome']}",
+                         lambda task: self.run_execution(task, session_id, configuration_id),
+                         alvo={'sessao': session_id, 'configuracao': configuration_id}, on_failure=on_failure)
+
+
+    def extraction_failed(self, session_id, video, description):
+        def update(session):
+            for item in session['videos']:
+                if item['nome'] == video:
+                    item.update({'estado': 'falhou', 'causa': description['causa']})
+        self.registro.update_session(session_id, update)
+
+
+    def run_extraction(self, task, session_id, video_name):
+        from processing.video import extract_frames
+
+        folder = paths.session_dir(session_id)
+        stem = os.path.splitext(video_name)[0]
+        self.registro.update_session(session_id, lambda s: [v.update({'estado': 'processando'}) for v in s['videos'] if v['nome'] == video_name])
+
+        def on_frame(done, total):
+            if done % 10 == 0 or done == total:
+                task.set_progress(done, total, f'Extraindo os quadros de {video_name}: {done} de {total}')
+
+        names, fps = extract_frames(os.path.join(folder, 'videos', video_name), os.path.join(folder, 'entradas'), stem, on_frame)
+
+        def update(session):
+            known = {image['nome'] for image in session['imagens']}
+            for index, name in enumerate(names):
+                if name not in known:
+                    session['imagens'].append({'nome': name, 'origem': 'quadro', 'video': video_name, 'quadro': index + 1})
+            for video in session['videos']:
+                if video['nome'] == video_name:
+                    video.update({'estado': 'concluído', 'quadros': len(names), 'fps': fps})
+        self.registro.update_session(session_id, update)
+
+
+    def run_execution(self, task, session_id, configuration_id):
+        from modules.segmentation.inference_dataset import InferenceDataset
+        from modules.segmentation.predictor import Predictor
+        from modules.segmentation.segmentation_service import SegmentationService
+
+        session = self.registro.session(session_id)
+        configuration = self.registro.configuration(configuration_id)
+        execution = session['execucoes'][configuration_id]
+
+        excluded = set(execution.get('deixadas_de_fora', []))
+        requested = execution.get('pendentes')
+        if requested is None:
+            requested = [image['nome'] for image in session['imagens']]
+        requested = [name for name in requested if name not in excluded]
+
+        if not requested:
+            raise ErroDeUsuario('não há imagens para segmentar nesta sessão',
+                                'Volte e envie as imagens de novo.', 'RA')
+
+        def start(s):
+            e = s['execucoes'][configuration_id]
+            e['estado'] = 'processando'
+            e['pedidas'] = list(dict.fromkeys(e.get('pedidas', []) + requested))
+            e['total_atual'] = len(requested)
+        self.registro.update_session(session_id, start)
+        task.set_progress(0, len(requested), f"0 de {len(requested)} imagens")
+
+        weights = self.weights_path(configuration)
+        if not os.path.isfile(weights):
+            raise ErroDeUsuario(f"o arquivo de pesos da {configuration['nome']} não foi encontrado no computador",
+                                'Treine a configuração de novo ou confira a pasta de resultados com quem a treinou.', 'CE')
+
+        service = SegmentationService(Settings())
+        predictor = Predictor(configuration['modelo'], configuration['tamanho_imagem'], service.device, weights)
+        folder = paths.session_dir(session_id)
+        output_dir = os.path.join(folder, 'mascaras', configuration_id)
+        os.makedirs(output_dir, exist_ok=True)
+        dataset = InferenceDataset(os.path.join(folder, 'entradas'), predictor.transform, images=requested)
+
+        def on_image(done, total, _name):
+            task.set_progress(done, total, f"{done} de {total} imagens")
+            if done % 5 == 0 or done == total:
+                self.registro.update_session(session_id, lambda s: s['execucoes'][configuration_id].update({'progresso': done}))
+
+        segmented = service.segment_files(predictor, dataset, output_dir, on_image=on_image, stop_on_error=False)
+
+        from app.web.erros import describe
+        failures = {name: describe(error) for name, error in segmented['failures'].items()}
+        for name, error in segmented['failures'].items():
+            logger.error("Falha ao segmentar %s com %s: %r", name, configuration['nome'], error)
+
+        succeeded = [name for name in requested if name not in failures]
+        # Só a execução inteira falha quando nenhuma imagem tem resultado; repetir uma imagem que falha de novo
+        # mantém as já segmentadas e deixa a falha só na linha da imagem
+        if not succeeded and not execution.get('concluidas'):
+            first = next(iter(failures.values()))
+            raise ErroDeUsuario(first['causa'], first['sugestao'], first['tipo'])
+
+        times = list(segmented['inference_times'].values())
+
+        def finish(s):
+            e = s['execucoes'][configuration_id]
+            e['concluidas'] = list(dict.fromkeys(e.get('concluidas', []) + succeeded))
+            for name in succeeded:
+                e['falhas'].pop(name, None)
+            e['falhas'].update(failures)
+            e.update({'estado': 'concluído', 'data': now(), 'pendentes': None, 'progresso': None,
+                      'tempo_medio_ms': sum(times) / len(times) if times else None})
+        self.registro.update_session(session_id, finish)
+
+        with self.registro.transaction() as data:
+            data['configuracao_em_uso'] = configuration_id
+
+        self.build_videos(task, session_id, configuration_id)
+
+
+    def build_videos(self, task, session_id, configuration_id):
+        from processing.video import build_overlay_video
+
+        session = self.registro.session(session_id)
+        configuration = self.registro.configuration(configuration_id)
+        execution = session['execucoes'][configuration_id]
+        done = set(execution['concluidas'])
+        folder = paths.session_dir(session_id)
+
+        for video in session['videos']:
+            frames = [image['nome'] for image in session['imagens'] if image.get('video') == video['nome']]
+            if not frames or not all(name in done for name in frames):
+                continue
+
+            task.set_progress(texto=f"Montando o vídeo com a sobreposição de {video['nome']}")
+            output_dir = os.path.join(folder, 'videos_sobreposicao')
+            os.makedirs(output_dir, exist_ok=True)
+            output = os.path.join(output_dir, f"{configuration_id}_{video['nome']}")
+            build_overlay_video(os.path.join(folder, 'entradas'), os.path.join(folder, 'mascaras', configuration_id),
+                                frames, output, video['fps'], ascii_text(configuration['nome']))
+
+            self.registro.update_session(session_id, lambda s, name=video['nome']: s['execucoes'][configuration_id]
+                                         .setdefault('videos', {}).update({name: os.path.basename(output)}))
+
+
+    def handle_image_failure(self, session_id, configuration_id, image, action):
+        if action not in ('tentar de novo', 'deixar de fora'):
+            raise Recusa('PA', 'Ação desconhecida.')
+
+        with self.registro.transaction() as data:
+            session = data['sessoes'].get(session_id)
+            execution = session and session['execucoes'].get(configuration_id)
+            if not execution or image not in execution.get('falhas', {}):
+                raise Recusa('CE', 'Esta imagem não está entre as que falharam.')
+
+            if action == 'deixar de fora':
+                execution['falhas'].pop(image)
+                execution['deixadas_de_fora'] = list(dict.fromkeys(execution.get('deixadas_de_fora', []) + [image]))
+                return self.get_session(session_id)
+
+            execution.update({'estado': 'na fila', 'pendentes': [image]})
+
+        self.enqueue_execution(session_id, configuration_id)
+        return self.get_session(session_id)
+
+
+    def handle_execution_failure(self, session_id, configuration_id, action):
+        if action not in ('tentar de novo', 'deixar de fora'):
+            raise Recusa('PA', 'Ação desconhecida.')
+
+        with self.registro.transaction() as data:
+            session = data['sessoes'].get(session_id)
+            execution = session and session['execucoes'].get(configuration_id)
+            if not execution or execution.get('estado') != 'falhou':
+                raise Recusa('CE', 'Esta execução não falhou.')
+
+            if action == 'deixar de fora':
+                del session['execucoes'][configuration_id]
+                if session.get('comparacao'):
+                    session['comparacao']['configuracoes'] = [c for c in session['comparacao']['configuracoes'] if c != configuration_id]
+                return self.get_session(session_id)
+
+            execution.update({'estado': 'na fila', 'causa': None, 'sugestao': None})
+
+        self.enqueue_execution(session_id, configuration_id)
+        return self.get_session(session_id)
+
+
+    def retry_video(self, session_id, video_name):
+        with self.registro.transaction() as data:
+            session = data['sessoes'].get(session_id)
+            video = next((v for v in session['videos'] if v['nome'] == video_name), None) if session else None
+            if not video or video.get('estado') != 'falhou':
+                raise Recusa('CE', 'Este vídeo não falhou.')
+            video['estado'] = 'na fila'
+            pending = [cid for cid, e in session['execucoes'].items()]
+            for cid in pending:
+                session['execucoes'][cid].update({'estado': 'na fila', 'pendentes': None})
+
+        self.fila.submit('extracao', f'Extração dos quadros de {video_name}',
+                         lambda task: self.run_extraction(task, session_id, video_name),
+                         alvo={'sessao': session_id, 'video': video_name},
+                         on_failure=lambda task, d: self.extraction_failed(session_id, video_name, d))
+        for cid in pending:
+            self.enqueue_execution(session_id, cid)
+        return self.get_session(session_id)
+
+
+    def leave_video_out(self, session_id, video_name):
+        with self.registro.transaction() as data:
+            session = data['sessoes'].get(session_id)
+            if not session:
+                raise Recusa('CE', 'Sessão não encontrada.')
+            session['videos'] = [v for v in session['videos'] if v['nome'] != video_name]
+        return self.get_session(session_id)
+
+
+    def evaluate_image(self, session_id, image, evaluation, problem_origin=None, configuration_id=None):
+        if evaluation not in ('correta', 'duvidosa'):
+            raise Recusa('PA', 'Marque a imagem como correta ou duvidosa.', 'avaliacao')
+        if evaluation == 'correta':
+            problem_origin = None
+        elif problem_origin not in (None, 'imagem (captura)', 'modelo'):
+            raise Recusa('PA', 'A origem do problema é imagem (captura) ou modelo.', 'origem_problema')
+
+        with self.registro.transaction() as data:
+            session = data['sessoes'].get(session_id)
+            if not session or image not in {i['nome'] for i in session['imagens']}:
+                raise Recusa('CE', 'Imagem não encontrada nesta sessão.')
+            session['avaliacoes'][image] = {
+                'avaliacao': evaluation,
+                'origem_problema': problem_origin,
+                'configuracao': configuration_id,
+                'registrada_em': now(),
+            }
+            return dict(session['avaliacoes'][image])
+
+
+    def session_file(self, session_id, kind, name, configuration_id=None):
+        session = self.registro.session(session_id)
+        if session is None:
+            return None
+        folder = paths.session_dir(session_id)
+
+        if kind == 'imagem':
+            if name not in {image['nome'] for image in session['imagens']}:
+                return None
+            return os.path.join(folder, 'entradas', name)
+
+        if kind == 'mascara':
+            if name not in {image['nome'] for image in session['imagens']} or configuration_id not in session['execucoes']:
+                return None
+            return os.path.join(folder, 'mascaras', configuration_id, mask_name(name))
+
+        if kind == 'video':
+            execution = session['execucoes'].get(configuration_id) or {}
+            file = (execution.get('videos') or {}).get(name)
+            return os.path.join(folder, 'videos_sobreposicao', file) if file else None
+
+        return None
+
+
+    # ------------------------------------------------------------------ ciclos e desempenho
+
+    def cycles(self):
+        def build(data):
+            cycles = {}
+            for session in data['sessoes'].values():
+                if session.get('rascunho'):
+                    continue
+                item = cycles.setdefault(session['ciclo'], {'ciclo': session['ciclo'], 'sessoes': 0, 'configuracoes': [], 'ultima': ''})
+                item['sessoes'] += 1
+                item['ultima'] = max(item['ultima'], session['criada_em'])
+                for cid, execution in session['execucoes'].items():
+                    if execution.get('estado') == 'concluído' and cid not in item['configuracoes']:
+                        item['configuracoes'].append(cid)
+
+            for conclusion in data['conclusoes'].values():
+                if conclusion['tipo'] == 'recomendação' and conclusion.get('ciclo') in cycles:
+                    cycles[conclusion['ciclo']]['recomendacao'] = conclusion['id']
+
+            return sorted(cycles.values(), key=lambda c: c['ultima'], reverse=True)
+        return self.registro.read(build)
+
+
+    def execution_dates(self, data, cycle):
+        dates = {}
+        for session in data['sessoes'].values():
+            if session.get('rascunho') or (cycle and session['ciclo'] != cycle):
+                continue
+            for cid, execution in session['execucoes'].items():
+                if execution.get('estado') == 'concluído' and execution.get('data'):
+                    dates[cid] = max(dates.get(cid, ''), execution['data'])
+        return dates
+
+
+    def performance(self, configuration_ids, cycle=None, compare_anyway=False):
+        configuration_ids = list(dict.fromkeys(configuration_ids or []))
+        if not configuration_ids:
+            raise Recusa('PA', 'Escolha pelo menos uma configuração para comparar.', 'configuracoes')
+
+        def build(data):
+            configurations = []
+            for cid in configuration_ids:
+                configuration = data['configuracoes'].get(cid)
+                if configuration is None or not self.is_available(configuration):
+                    raise Recusa('PA', 'Só configurações com treino concluído podem ser comparadas.', 'configuracoes')
+                configurations.append(configuration)
+
+            dates = self.execution_dates(data, cycle)
+            if cycle:
+                missing = [c['nome'] for c in configurations if c['id'] not in dates]
+                if missing:
+                    raise Recusa('CE', '', dados={'ruptura': 'execucao_faltante', 'configuracoes': missing, 'ciclo': cycle})
+
+            without_test = [c['nome'] for c in configurations if not c.get('teste')]
+            if without_test:
+                raise Recusa('CE', '', dados={'ruptura': 'sem_avaliacao_no_teste', 'configuracoes': without_test})
+
+            sets = {c['teste']['conjunto']['id'] for c in configurations}
+            if len(sets) > 1 and not compare_anyway:
+                raise Recusa('AL', '', dados={
+                    'ruptura': 'conjuntos_diferentes',
+                    'conjuntos': [{'configuracao': c['nome'], 'conjunto': c['teste']['conjunto']} for c in configurations],
+                })
+
+            rows = []
+            for c in configurations:
+                rows.append({
+                    'id': c['id'],
+                    'nome': c['nome'],
+                    'descricao': self.description(c),
+                    'situacao': self.situation(c, data),
+                    'conjunto': c['teste']['conjunto'],
+                    'avaliado_em': c['teste'].get('avaliado_em'),
+                    'data_execucao': dates.get(c['id']),
+                    'metricas': c['teste']['metricas'],
+                    'matriz': c['teste']['matriz'],
+                })
+
+            highest = {}
+            for metric in HIGHLIGHTED_METRICS:
+                values = [(row['metricas'].get(metric), row['id']) for row in rows if row['metricas'].get(metric) is not None]
+                if len(rows) > 1 and values:
+                    best = max(value for value, _ in values)
+                    highest[metric] = [cid for value, cid in values if abs(value - best) < 1e-12]
+
+            reference = None
+            in_use = data['configuracoes'].get(data.get('configuracao_em_uso') or '')
+            if in_use and in_use.get('teste'):
+                reference = {
+                    'configuracao': in_use['id'],
+                    'nome': in_use['nome'],
+                    'metricas': in_use['teste']['metricas'],
+                    'conjunto': in_use['teste']['conjunto'],
+                    'origem': f"configuração em uso ({in_use['nome']}, a última executada), no conjunto de teste",
+                }
+
+            return {
+                'ciclo': cycle,
+                'configuracoes': rows,
+                'maior_valor': highest,
+                'referencia': reference,
+                'conjuntos_iguais': len(sets) == 1,
+                'calculado_em': now(),
+            }
+
+        with self.registro.lock:
+            return self.registro.read(build)
+
+
+    # ------------------------------------------------------------------ conclusões e decisão
+
+    def register_conclusion(self, form, conclude_anyway=False, conclusion_id=None):
+        kind = form.get('tipo')
+        if kind not in CONCLUSION_TYPES:
+            raise Recusa('PA', 'Tipo de conclusão desconhecido.', 'tipo')
+
+        fields = {}
+        with self.registro.transaction() as data:
+            configurations = data['configuracoes']
+
+            def configuration_or_none(value, label, required=False):
+                if value in (None, '', 'nenhuma'):
+                    if required:
+                        raise Recusa('PA', f'Escolha a {label}.', 'configuracao')
+                    return None
+                if value not in configurations:
+                    raise Recusa('PA', f'Escolha a {label} entre as configurações da análise.', 'configuracao')
+                return value
+
+            session_id = form.get('sessao')
+            cycle = (form.get('ciclo') or '').strip() or None
+
+            if kind == 'validação':
+                session = data['sessoes'].get(session_id)
+                if session is None:
+                    raise Recusa('CE', 'A validação precisa partir de uma sessão de segmentação.')
+                cycle = session['ciclo']
+                names = {image['nome'] for image in session['imagens']}
+                fields = {
+                    'configuracao_indicada': configuration_or_none(form.get('configuracao_indicada'), 'configuração mais adequada'),
+                    'imagens_inconclusivas': [n for n in form.get('imagens_inconclusivas') or [] if n in names],
+                    'imagens_problema_captura': [n for n in form.get('imagens_problema_captura') or [] if n in names],
+                    'ressalva': (form.get('ressalva') or '').strip(),
+                }
+                segmented = set()
+                for execution in session['execucoes'].values():
+                    segmented |= set(execution.get('concluidas', []))
+                without = [n for n in sorted(segmented) if n not in session['avaliacoes']]
+                if without and not conclude_anyway:
+                    raise Recusa('AL', '', dados={'ruptura': 'imagens_sem_avaliacao', 'quantidade': len(without), 'primeira': without[0]})
+
+            elif kind == 'experimento':
+                text = (form.get('conclusao') or '').strip()
+                if not text:
+                    raise Recusa('PA', 'Escreva a conclusão do experimento.', 'conclusao')
+                fields = {
+                    'conclusao': text,
+                    'configuracao_candidata': configuration_or_none(form.get('configuracao_candidata'), 'configuração candidata'),
+                    'ressalva': (form.get('ressalva') or '').strip(),
+                    'proximo_experimento': (form.get('proximo_experimento') or '').strip(),
+                }
+
+            else:
+                if not cycle:
+                    raise Recusa('PA', 'Informe o ciclo de testes da recomendação.', 'ciclo')
+                fields = {
+                    'configuracao_indicada': configuration_or_none(form.get('configuracao_indicada'), 'configuração indicada', required=True),
+                    'ressalva': (form.get('ressalva') or '').strip(),
+                }
+
+            existing = data['conclusoes'].get(conclusion_id) if conclusion_id else None
+            if conclusion_id and existing is None:
+                raise Recusa('CE', 'Conclusão não encontrada.')
+
+            conclusion = existing or {'id': new_id('k-'), 'criada_em': now(), 'decisao': None}
+            conclusion.update({
+                'tipo': kind,
+                'sessao': session_id if session_id in data['sessoes'] else None,
+                'ciclo': cycle,
+                'campos': fields,
+                'analise': form.get('analise') if form.get('analise') is not None else conclusion.get('analise'),
+                'atualizada_em': now(),
+            })
+            data['conclusoes'][conclusion['id']] = conclusion
+
+            if kind == 'experimento':
+                self.refresh_candidates(data)
+
+            return self.conclusion_view(conclusion, data)
+
+
+    def refresh_candidates(self, data):
+        candidates = {c['campos'].get('configuracao_candidata') for c in data['conclusoes'].values() if c['tipo'] == 'experimento'}
+        for configuration in data['configuracoes'].values():
+            configuration['candidata'] = configuration['id'] in candidates
+
+
+    def conclusion_view(self, conclusion, data):
+        view = json_copy(conclusion)
+        names = {cid: c['nome'] for cid, c in data['configuracoes'].items()}
+        for key in ('configuracao_indicada', 'configuracao_candidata'):
+            if key in view['campos']:
+                view['campos'][key + '_nome'] = names.get(view['campos'][key]) if view['campos'][key] else 'nenhuma'
+        return view
+
+
+    def get_conclusion(self, conclusion_id):
+        def build(data):
+            conclusion = data['conclusoes'].get(conclusion_id)
+            return self.conclusion_view(conclusion, data) if conclusion else None
+        return self.registro.read(build)
+
+
+    def recommendation_for(self, cycle):
+        def build(data):
+            items = [c for c in data['conclusoes'].values() if c['tipo'] == 'recomendação' and c.get('ciclo') == cycle]
+            if not items:
+                return None
+            latest = max(items, key=lambda c: c['atualizada_em'])
+            return self.conclusion_view(latest, data)
+        return self.registro.read(build)
+
+
+    def register_decision(self, conclusion_id, decision, condition):
+        condition = (condition or '').strip()
+        if decision not in DECISIONS:
+            raise Recusa('PA', 'Escolha a decisão: aceita, aceita com condição ou adiada.', 'decisao')
+        if decision == 'aceita com condição' and not condition:
+            raise Recusa('PA', 'Informe a condição para a decisão valer.', 'condicao')
+
+        with self.registro.transaction() as data:
+            conclusion = data['conclusoes'].get(conclusion_id)
+            if conclusion is None or conclusion['tipo'] != 'recomendação':
+                raise Recusa('CE', 'Recomendação não encontrada.')
+            conclusion['decisao'] = {
+                'decisao': decision,
+                'condicao': condition if decision == 'aceita com condição' else '',
+                'registrada_em': now(),
+            }
+            return self.conclusion_view(conclusion, data)
+
+
+    # ------------------------------------------------------------------ datasets
+
+    def datasets_status(self):
+        status = self.dataset_service.status()
+        current = self.dataset_service.current_test_set()
+
+        def build(data):
+            outdated = []
+            for configuration in data['configuracoes'].values():
+                if not self.is_available(configuration):
+                    continue
+                test = configuration.get('teste')
+                if current and (not test or test['conjunto']['id'] != current['id']):
+                    outdated.append({'id': configuration['id'], 'nome': configuration['nome'],
+                                     'motivo': 'sem avaliação no conjunto de teste' if not test else 'avaliada em outro conjunto de teste'})
+            return outdated
+
+        status['conjunto_de_teste'] = current
+        status['configuracoes_a_avaliar'] = self.registro.read(build)
+        status['tarefas'] = [t for t in self.fila.list() if t['tipo'] == 'dataset' and t['estado'] not in ('concluído', 'falhou')]
+        return status
+
+
+    def download_dataset(self, name):
+        if name not in DATASET_NAMES or name == 'CaSSeD':
+            raise Recusa('CE', 'O CaSSeD é copiado manualmente para a pasta raw/CaSSed_Dataset.')
+
+        def run(task):
+            def on_progress(part, parts, done, total):
+                if total:
+                    task.set_progress(done, total, f"Baixando {DATASET_NAMES[name]}: parte {part} de {parts} "
+                                                   f"({done / 1024 ** 2:.0f} de {total / 1024 ** 2:.0f} MB)")
+            task.set_progress(texto=f'Baixando {DATASET_NAMES[name]}')
+            self.dataset_service.download(name, on_progress)
+
+        return self.fila.submit('dataset', f'Download do {DATASET_NAMES[name]}', run, alvo={'dataset': name}, contexto='dataset').to_dict()
+
+
+    def rebuild_dataset(self):
+        def run(task):
+            self.dataset_service.rebuild_dataset(lambda step, total, label: task.set_progress(step, total, label))
+
+        return self.fila.submit('dataset', 'Montagem do dataset', run, alvo={'dataset': 'todos'}, contexto='dataset').to_dict()
+
+
+    def evaluate_configurations(self, configuration_ids):
+        tasks = []
+        for configuration_id in configuration_ids:
+            configuration = self.registro.configuration(configuration_id)
+            if configuration is None or not self.is_available(configuration):
+                continue
+            tasks.append(self.fila.submit('dataset', f"Avaliação da {configuration['nome']} no conjunto de teste",
+                                          lambda task, cid=configuration_id: self.evaluate_on_test_set(cid, task),
+                                          alvo={'configuracao': configuration_id}).to_dict())
+        return tasks
+
+
+    # ------------------------------------------------------------------ estado geral
+
+    def overview(self):
+        tasks = self.fila.list()
+
+        def build(data):
+            in_use = data['configuracoes'].get(data.get('configuracao_em_uso') or '')
+            trainings = [c for c in data['configuracoes'].values() if c.get('origem') == 'interface']
+            latest_training = max(trainings, key=lambda c: (c['treino'].get('iniciado_em') or c['criada_em']), default=None)
+            return {
+                'configuracao_em_uso': {'id': in_use['id'], 'nome': in_use['nome']} if in_use else None,
+                'ultima_sessao': data.get('ultima_sessao') if data.get('ultima_sessao') in data['sessoes'] else None,
+                'treino_recente': {
+                    'id': latest_training['id'],
+                    'nome': latest_training['nome'],
+                    'estado': latest_training['treino'].get('estado'),
+                    'epoca': latest_training['treino'].get('epoca'),
+                    'total': latest_training['treino'].get('total'),
+                    'etapa': latest_training['treino'].get('etapa'),
+                } if latest_training else None,
+            }
+
+        view = self.registro.read(build)
+        view['tarefas'] = [t for t in tasks if t['estado'] not in ('concluído', 'falhou')]
+        view['tarefas_recentes'] = tasks[-20:]
+        return view
+
+
+def json_copy(value):
+    import json
+    return json.loads(json.dumps(value))

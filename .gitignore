@@ -33,3 +33,8 @@ raw/
 *.fdb_latexmk
 *.fls
 *.synctex(busy)
+
+##############################
+# Interface
+##############################
+sessoes/

@@ -29,7 +29,7 @@ MANIFEST_COLUMNS = ['arquivo', 'split', 'trilha', 'imagem_original', 'rotulo_ori
 
 
 class CaSSeDConverter():
-    """Move as imagens reais do CaSSeD para dataset/<split>/original e os rótulos coloridos para
+    """Copia as imagens reais do CaSSeD para dataset/<split>/original e os rótulos coloridos para
     dataset/<split>/original_segmentation, os dois com o mesmo nome CaSSeD_<n>.
 
     O split é por trilha (CaSSeD_Test_Trails no settings.json): quadros vizinhos de uma gravação são quase
@@ -45,7 +45,7 @@ class CaSSeDConverter():
 
 
     def convert(self):
-        # Confere todos os pares antes de mover qualquer arquivo, para não deixar o dataset pela metade
+        # Confere todos os pares antes de copiar qualquer arquivo, para não deixar o dataset pela metade
         pairs = self.collect_pairs()
         self.remove_previous_files()
 
@@ -105,7 +105,7 @@ class CaSSeDConverter():
 
         if problems:
             shown = '\n  - '.join(problems[:10]) + ('\n  ...' if len(problems) > 10 else '')
-            raise ValueError(f"CaSSeD com {len(problems)} problema(s), nada foi movido:\n  - {shown}")
+            raise ValueError(f"CaSSeD com {len(problems)} problema(s), nada foi copiado:\n  - {shown}")
 
         if not pairs:
             raise ValueError(f"Nenhuma imagem do CaSSeD encontrada em {paths.relative(paths.CASSED_RAW_DIR)}.")
@@ -128,7 +128,8 @@ class CaSSeDConverter():
 
     def move(self, source, destination_dir, new_name):
         extension = os.path.splitext(source)[1].lower()
-        shutil.move(source, os.path.join(destination_dir, new_name + extension))
+        # Cópia: raw/ guarda o dataset bruto para remontar sem baixar de novo
+        shutil.copy2(source, os.path.join(destination_dir, new_name + extension))
 
 
     def save_manifest(self, rows):

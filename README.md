@@ -7,6 +7,17 @@
 ```
 python -m app.main
 ```
+A interface abre no navegador em `http://127.0.0.1:8000/` (só na própria máquina, sem internet). Opções: `--porta 8080` e `--sem-navegador`.
+O treino e a segmentação rodam enquanto o programa estiver aberto; fechar o terminal encerra o treino em andamento.
+
+Onde a interface guarda os dados:
+- `raw/`: datasets brutos (nunca são apagados; "Remontar o dataset" copia daqui para `dataset/`).
+- `results/configuracoes/<id>/`: pesos, estatísticas e gráficos de cada configuração treinada pela interface.
+- `results/registro.json`: configurações, avaliações das imagens, conclusões e decisões.
+- `sessoes/<id>/`: imagens e vídeos enviados, quadros extraídos e máscaras de cada configuração.
+- `results/interface.log`: detalhes técnicos de falhas (a interface mostra só a causa em linguagem de usuário).
+
+Os modelos treinados antes da interface (`results/fcn/model.pth` e `results/deeplabv3+/model.pth`) aparecem como configurações disponíveis.
 ## Como Instalar as dependencias
 ```
 pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu118

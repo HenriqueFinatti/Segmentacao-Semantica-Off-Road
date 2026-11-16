@@ -11,6 +11,7 @@ class SyntheticConverter():
 
 
     def move_synthetic_files(self):
+        # O nome ficou por compatibilidade: os arquivos são copiados, não movidos
         prefix = "Synthetic_Offroad_"
         index = 0
         splits = ['test', 'train', 'val']
@@ -40,7 +41,8 @@ class SyntheticConverter():
                 dest_rgb = os.path.join(dest_original, new_name)
                 dest_mask = os.path.join(dest_segmentation, new_name)
 
-                shutil.move(src_rgb, dest_rgb)
-                shutil.move(src_mask, dest_mask)
+                # Cópia: raw/ guarda o dataset bruto para remontar sem baixar de novo
+                shutil.copy2(src_rgb, dest_rgb)
+                shutil.copy2(src_mask, dest_mask)
 
                 index += 1
