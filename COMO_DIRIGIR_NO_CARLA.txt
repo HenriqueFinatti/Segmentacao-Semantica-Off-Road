@@ -41,7 +41,7 @@ PASSO 2: INICIAR O SERVIDOR DE DIREÇÃO (terminal 2)
 
 Na pasta do projeto:
 
-  .venv/bin/python -m modules.driving.server --mode mask --weather ClearNoon --min-speed 2 --max-speed 4
+  .venv/bin/python -m modules.driving.server --mode mask --weather ClearNoon --min-speed 4 --max-speed 8
 
 Espere aparecer:
 

@@ -10,11 +10,12 @@ __pycache__/
 # Source Code
 ##############################
 /dataset/
-results/
-images/
+./images/
 video
 *.pth
 raw/
+frames/
+validacao_imagens.txt
 
 ##############################
 # Latex
