@@ -40,12 +40,33 @@ async function pedir(metodo, url, corpo, { formulario = false } = {}) {
   return dados;
 }
 
+// Envio de arquivos com progresso (fetch não informa quanto já foi enviado)
+function enviarComProgresso(url, formData, aoProgredir) {
+  return new Promise((resolver, rejeitar) => {
+    const pedido = new XMLHttpRequest();
+    pedido.open('POST', url);
+    pedido.upload.onprogress = (evento) => {
+      if (evento.lengthComputable && aoProgredir) aoProgredir(evento.loaded, evento.total);
+    };
+    pedido.onerror = () => rejeitar(new ErroApi({
+      tipo: 'CE', mensagem: 'Não foi possível falar com o sistema. Confira se o programa da interface continua aberto no computador.',
+    }, 0));
+    pedido.onload = () => {
+      let dados = null;
+      try { dados = pedido.responseText ? JSON.parse(pedido.responseText) : null; } catch { dados = null; }
+      if (pedido.status >= 200 && pedido.status < 300) resolver(dados);
+      else rejeitar(new ErroApi(dados?.erro || { tipo: 'CE', mensagem: 'O sistema não conseguiu concluir a ação.' }, pedido.status));
+    };
+    pedido.send(formData);
+  });
+}
+
 export const api = {
   get: (url) => pedir('GET', url),
   post: (url, corpo = {}) => pedir('POST', url, corpo),
   put: (url, corpo = {}) => pedir('PUT', url, corpo),
   delete: (url) => pedir('DELETE', url),
-  enviar: (url, formData) => pedir('POST', url, formData, { formulario: true }),
+  enviar: (url, formData, aoProgredir) => enviarComProgresso(url, formData, aoProgredir),
 };
 
 export const enc = encodeURIComponent;

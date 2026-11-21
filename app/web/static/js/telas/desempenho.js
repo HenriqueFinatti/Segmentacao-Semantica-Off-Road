@@ -2,7 +2,7 @@
 // O06.1 Escolher as configurações · O06.2 Conferir se a comparação é válida · O06.3 Ler o desempenho ·
 // O06.4 Consultar a matriz de confusão · O07.2 Julgar a diferença entre configurações (reusada na apresentação).
 import { api, enc, ErroApi } from '../api.js';
-import { h, limpar, cabecalho, mensagem, termo, dialogo, falhaDaApi, formato, situacao, conjuntoTexto } from '../ui.js';
+import { h, limpar, cabecalho, mensagem, termo, rotuloComTermo, dialogo, falhaDaApi, formato, situacao, conjuntoTexto, exigir } from '../ui.js';
 import { graficoDeBarras, CORES_SERIES } from '../graficos.js';
 
 export const LINHAS_METRICAS = [
@@ -48,7 +48,7 @@ export function tabelaDesempenho(analise) {
     configuracoes.map((c) => {
       const maior = (analise.maior_valor?.[linha.chave] || []).includes(c.id);
       return h('td', { class: `numero ${maior ? 'maior-valor' : ''}` }, valorTexto(linha, c.metricas[linha.chave]),
-        maior ? h('span', { class: 'marca-maior' }, '▲ maior valor') : null);
+        maior ? h('span', { class: 'marca-maior' }, '▲ maior valor · não é recomendação') : null);
     }),
     h('td', { class: 'numero' }, referencia ? valorTexto(linha, referencia.metricas[linha.chave]) : '—')));
 
@@ -114,7 +114,7 @@ export function painelDiferenca(analise, { aoVoltar, rotuloVoltar = 'Voltar à a
     aoVoltar ? h('button', { type: 'button', class: 'botao botao-secundario', onclick: aoVoltar }, rotuloVoltar) : null);
 }
 
-export async function render(main, _p, consulta) {
+export async function render(main, _p, consulta, contexto) {
   const [configuracoes, ciclos] = await Promise.all([api.get('/api/configuracoes'), api.get('/api/ciclos')]);
   const disponiveis = configuracoes.filter((c) => c.disponivel);
   const pedidas = (consulta.get('configuracoes') || '').split(',').filter(Boolean);
@@ -167,18 +167,19 @@ export async function render(main, _p, consulta) {
               semExecucao ? 'Sem execução concluída neste ciclo de testes' : 'Com execução concluída neste ciclo de testes') : null));
       }));
 
+    const botaoComparar = h('button', { type: 'submit', class: 'botao' }, 'Comparar as selecionadas');
     limpar(escolha, h('form', { class: 'cartao', novalidate: true, onsubmit: (e) => { e.preventDefault(); estado.compararMesmoAssim = false; comparar(); } },
       h('h2', {}, 'Escolher as configurações'),
-      h('div', { class: 'campo' }, h('label', { for: 'ciclo-desempenho' }, termo('Ciclo de testes', 'ciclo_de_testes')), seletorCiclo),
-      lista,
-      h('p', { class: 'erro-campo', role: 'alert', id: 'erro-escolha' }),
-      h('div', { class: 'linha', style: 'margin-top:.75rem' }, h('button', { type: 'submit', class: 'botao' }, 'Comparar as selecionadas'))));
+      h('div', { class: 'campo' }, rotuloComTermo('ciclo-desempenho', 'Ciclo de testes', 'ciclo_de_testes'), seletorCiclo),
+      h('div', { 'data-campo': 'configuracoes' }, lista),
+      h('div', { class: 'linha', style: 'margin-top:.75rem' }, botaoComparar)));
+    exigir(escolha.querySelector('form'), botaoComparar, [
+      { campo: 'configuracoes', valido: () => estado.selecionadas.length > 0, mensagem: 'escolha pelo menos uma configuração para comparar.' },
+    ]);
   }
 
   async function comparar() {
-    const aviso = escolha.querySelector('#erro-escolha');
-    if (!estado.selecionadas.length) { aviso.textContent = 'Escolha pelo menos uma configuração para comparar.'; return; }
-    aviso.textContent = '';
+    if (!estado.selecionadas.length) return;
 
     try {
       estado.analise = await api.post('/api/desempenho', {
@@ -201,13 +202,15 @@ export async function render(main, _p, consulta) {
           acoes: [{ rotulo: 'Entendi', valor: 'ok', primaria: true }],
         });
       } else if (ruptura === 'sem_avaliacao_no_teste') {
-        await dialogo({
+        // Captura de erro: qual configuração está sem métricas e onde a avaliação é feita (O11.3)
+        const destino = await dialogo({
           tipo: 'falha', titulo: 'Configuração sem avaliação no conjunto de teste',
           corpo: h('div', {},
-            erro.dados.configuracoes.map((nome) => h('p', {}, `A configuração ${nome} ainda não foi avaliada no conjunto de teste.`)),
-            h('p', {}, 'Peça a avaliação a quem prepara os datasets (tela Datasets).')),
-          acoes: [{ rotulo: 'Entendi', valor: 'ok', primaria: true }],
+            erro.dados.configuracoes.map((nome) => h('p', {}, `A configuração ${nome} ainda não foi avaliada no conjunto de teste atual.`)),
+            h('p', {}, 'A comparação não segue sem as métricas. A avaliação no conjunto de teste é feita na tela Datasets, em "Avaliar as selecionadas", por quem prepara os dados.')),
+          acoes: [{ rotulo: 'Entendi', valor: 'ok' }, { rotulo: 'Abrir Datasets', valor: 'datasets', primaria: true }],
         });
+        if (destino === 'datasets') contexto.navegar('#/datasets');
       } else if (ruptura === 'conjuntos_diferentes') {
         // O06.2 Conferir se a comparação é válida (alerta)
         const escolhaAlerta = await dialogo({
@@ -215,11 +218,16 @@ export async function render(main, _p, consulta) {
           corpo: h('div', {},
             h('p', {}, 'As configurações escolhidas foram avaliadas em conjuntos de teste diferentes. Comparar resultados de conjuntos diferentes pode levar a uma conclusão errada.'),
             h('ul', {}, erro.dados.conjuntos.map((item) => h('li', {}, `${item.configuracao}: ${conjuntoTexto(item.conjunto)}`)))),
-          acoes: [{ rotulo: 'Escolher outras configurações', valor: 'outras', primaria: true }, { rotulo: 'Comparar mesmo assim', valor: 'mesmo assim' }],
+          // Vindo da comparação na mesma imagem (O05.2), a volta é aos quadros; vindo da O06.1, a outras configurações
+          acoes: sessaoOrigem
+            ? [{ rotulo: 'Voltar aos quadros', valor: 'quadros', primaria: true }, { rotulo: 'Comparar mesmo assim', valor: 'mesmo assim' }]
+            : [{ rotulo: 'Escolher outras configurações', valor: 'outras', primaria: true }, { rotulo: 'Comparar mesmo assim', valor: 'mesmo assim' }],
         });
         if (escolhaAlerta === 'mesmo assim') {
           estado.compararMesmoAssim = true;
           await comparar();
+        } else if (escolhaAlerta === 'quadros') {
+          contexto.navegar(`#/sessao/${enc(sessaoOrigem)}/comparar`);
         } else {
           escolha.querySelector('input[type="checkbox"]')?.focus();
         }

@@ -1,43 +1,52 @@
-// Tela de apoio (fora dos MoLIC): baixar os datasets brutos para raw/, montar o dataset e avaliar
-// as configurações no conjunto de teste atual. raw/ nunca é apagado: remontar não exige baixar de novo.
+// M03, conversa 3 (preparar os dados de treino e de teste, O11), aberta pelo menu "Datasets":
+// O11.1 Conferir os datasets · O11.2 Montar o dataset (alerta "Confirmar a remontagem") ·
+// O11.3 Avaliar as configurações no conjunto de teste (uma de cada vez; ruptura "falha na avaliação").
+// raw/ nunca é apagado: remontar não exige baixar de novo.
 import { api, enc } from '../api.js';
-import { h, limpar, cabecalho, mensagem, estado, progresso, dialogo, falhaDaApi, anunciar, formato, conjuntoTexto } from '../ui.js';
+import {
+  h, limpar, cabecalho, mensagem, estado, progresso, dialogo, falhaDaApi, anunciar, formato, conjuntoTexto, termo, botaoTermo, exigir,
+} from '../ui.js';
 
 export async function render(main, _p, _c, contexto) {
   let dados = await api.get('/api/datasets');
+  // Avaliações pedidas nesta visita: ao fim de todas, "Avaliação concluída"
+  const pedidas = new Set();
+  let montagemPedida = false;
+
   const corpo = h('div', {});
-  limpar(main, cabecalho('Datasets', 'Prepare os dados do TCC: baixe os datasets brutos, monte o dataset e avalie as configurações no conjunto de teste.'),
-    mensagem('neutra', h('p', { class: 'pequeno' }, 'Esta tela prepara os dados para o treino e para as métricas. As imagens dos testes de campo são enviadas em ',
-      h('a', { href: '#/segmentar' }, 'Segmentar imagens'), '.')),
+  limpar(main, cabecalho('Datasets', 'Prepare os dados de treino e de teste: confira os datasets, monte o dataset e avalie as configurações no conjunto de teste.'),
     corpo);
+
+  async function recarregar() {
+    await contexto.atualizarEstado();
+    dados = await api.get('/api/datasets');
+    desenhar();
+  }
 
   async function executar(promessa, mensagemOk) {
     try {
-      await promessa;
+      const resultado = await promessa;
       anunciar(mensagemOk);
-      await contexto.atualizarEstado();
-      dados = await api.get('/api/datasets');
-      desenhar();
+      await recarregar();
+      return resultado;
     } catch (erro) {
       await falhaDaApi(erro);
+      return null;
     }
   }
 
-  function tarefasAtivas() {
-    return (contexto.estado?.tarefas || []).filter((t) => t.tipo === 'dataset');
-  }
+  const tarefa = (filtro) => (contexto.estado?.tarefas || []).find(filtro);
 
-  function desenhar() {
-    const ativas = tarefasAtivas();
-    const ocupado = ativas.length > 0;
-
+  // O11.1 Conferir os datasets
+  function conferir() {
+    const ativas = dados.tarefas;
     const linhas = dados.datasets.map((d) => {
-      const tarefa = ativas.find((t) => t.alvo?.dataset === d.id);
+      const download = ativas.find((t) => t.alvo?.dataset === d.id);
       let acao;
-      if (tarefa) acao = h('div', {}, estado(tarefa.estado), progresso(tarefa.progresso.atual, tarefa.progresso.total, tarefa.progresso.texto));
+      if (download) acao = h('div', {}, estado(download.estado), progresso(download.progresso.atual, download.progresso.total, download.progresso.texto));
       else if (d.bruto_disponivel) acao = h('span', { class: 'pequeno' }, 'Arquivos brutos guardados.');
       else if (d.pode_baixar) {
-        acao = h('button', { type: 'button', class: 'botao botao-pequeno', disabled: ocupado,
+        acao = h('button', { type: 'button', class: 'botao botao-pequeno',
           onclick: () => executar(api.post(`/api/datasets/${enc(d.id)}/baixar`), `Download do ${d.nome} na fila.`) }, `Baixar ${d.nome}`);
       } else {
         acao = h('span', { class: 'pequeno' }, 'Copie a pasta CaSSed_Dataset (extraída do CaSSeD.tar.gz) para raw/CaSSed_Dataset.');
@@ -50,74 +59,143 @@ export async function render(main, _p, _c, contexto) {
         h('td', {}, acao));
     });
 
-    const montagem = ativas.find((t) => t.alvo?.dataset === 'todos');
-    const brutos = dados.datasets.filter((d) => d.bruto_disponivel);
-    const avaliacoes = ativas.filter((t) => t.alvo?.configuracao);
-
-    // Falhas recentes: causa e o que fazer, em linguagem de usuário
-    const falhas = (contexto.estado?.tarefas_recentes || []).filter((t) => t.tipo === 'dataset' && t.estado === 'falhou').slice(-3);
-
-    limpar(corpo,
-      falhas.map((t) => mensagem('falha', h('p', {}, h('strong', {}, 'Falhou: '), `${t.titulo} não terminou porque ${t.causa}.`),
-        t.sugestao ? h('p', {}, t.sugestao) : null)),
-      h('div', { class: 'cartao' },
-        h('h2', {}, 'Datasets do TCC'),
-        h('div', { class: 'tabela-rolagem' }, h('table', {},
-          h('thead', {}, h('tr', {}, h('th', {}, 'Dataset'), h('th', {}, 'Arquivos brutos (raw/)'), h('th', { class: 'numero' }, 'Imagens de treino'),
-            h('th', { class: 'numero' }, 'Imagens de teste'), h('th', {}, 'Ação'))),
-          h('tbody', {}, linhas)))),
-      h('div', { class: 'cartao' },
-        h('h2', {}, 'Montar o dataset'),
-        dados.montagem ? h('p', {}, `Montado em ${formato.data(dados.montagem.data)}${dados.montagem.datasets?.length ? ` com ${dados.montagem.datasets.join(', ')}` : ''}.`)
-          : h('p', {}, 'O dataset ainda não foi montado pela interface.'),
-        h('p', {}, h('strong', {}, 'Conjunto de teste atual: '), dados.conjunto_de_teste ? conjuntoTexto(dados.conjunto_de_teste) : 'nenhum.'),
-        montagem ? h('div', {}, estado(montagem.estado), progresso(montagem.progresso.atual, montagem.progresso.total, montagem.progresso.texto))
-          : h('button', { type: 'button', class: 'botao', disabled: ocupado || !brutos.length, onclick: confirmarMontagem }, 'Remontar o dataset'),
-        !brutos.length ? h('p', { class: 'pequeno suave' }, 'Baixe ou copie pelo menos um dataset bruto para montar.') : null),
-      h('div', { class: 'cartao' },
-        h('h2', {}, 'Avaliar no conjunto de teste'),
-        avaliacoes.length ? avaliacoes.map((t) => h('div', { style: 'margin-bottom:.5rem' }, h('div', { class: 'linha' }, h('strong', {}, t.titulo), estado(t.estado)),
-          progresso(t.progresso.atual, t.progresso.total, t.progresso.texto))) : null,
-        dados.configuracoes_a_avaliar.length ? formularioAvaliacao(ocupado)
-          : h('p', {}, 'Todas as configurações disponíveis estão avaliadas no conjunto de teste atual.')));
+    const semAvaliacao = dados.configuracoes_a_avaliar;
+    return h('section', { class: 'cartao', 'aria-labelledby': 'titulo-conferir' },
+      h('h2', { id: 'titulo-conferir' }, 'Conferir os datasets'),
+      h('div', { class: 'tabela-rolagem' }, h('table', {},
+        h('caption', { class: 'oculto-visual' }, 'Datasets do TCC no dataset montado'),
+        h('thead', {}, h('tr', {}, h('th', {}, 'Dataset'), h('th', {}, 'Arquivos brutos (raw/)'),
+          h('th', { class: 'numero' }, 'Imagens de treino'), h('th', { class: 'numero' }, 'Imagens de teste'), h('th', {}, 'Ação'))),
+        h('tbody', {}, linhas))),
+      h('p', { style: 'margin-top:.75rem' }, h('strong', {}, termo('Conjunto de teste', 'conjunto_de_teste'), ' atual: '),
+        dados.conjunto_de_teste ? conjuntoTexto(dados.conjunto_de_teste) : 'nenhum (monte o dataset).'),
+      h('p', {}, h('strong', {}, termo('Sem avaliação no conjunto de teste', 'avaliacao_no_conjunto_de_teste'), ': '),
+        semAvaliacao.length ? semAvaliacao.map((c) => `${c.nome} (${c.motivo})`).join('; ') : 'nenhuma configuração.'));
   }
 
-  function formularioAvaliacao(ocupado) {
-    const form = h('form', { novalidate: true },
-      h('p', { class: 'pequeno' }, 'Estas configurações precisam ser avaliadas no conjunto de teste atual para entrar na comparação de desempenho:'),
-      dados.configuracoes_a_avaliar.map((c) => h('label', { class: 'opcao' },
-        h('input', { type: 'checkbox', name: 'configuracoes', value: c.id, checked: true }), h('span', {}, c.nome, h('span', { class: 'pequeno suave' }, ` · ${c.motivo}`)))),
-      h('button', { type: 'submit', class: 'botao', disabled: ocupado }, 'Avaliar as selecionadas'));
-    form.addEventListener('submit', (evento) => {
-      evento.preventDefault();
-      const configuracoes = new FormData(form).getAll('configuracoes');
-      if (configuracoes.length) executar(api.post('/api/datasets/avaliar', { configuracoes }), 'Avaliação na fila.');
-    });
-    return form;
+  // O11.2 Montar o dataset
+  function montar() {
+    const ativa = dados.tarefas.find((t) => t.alvo?.dataset === 'todos');
+    const ultima = dados.ultima_montagem;
+    const brutos = dados.datasets.filter((d) => d.bruto_disponivel);
+    const partes = [
+      h('h2', { id: 'titulo-montar' }, 'Montar o dataset ', botaoTermo('Dataset montado', 'dataset_montado')),
+      dados.montagem ? h('p', {}, `Última montagem: ${formato.data(dados.montagem.data)}${dados.montagem.datasets?.length ? `, com ${dados.montagem.datasets.join(', ')}` : ''}.`)
+        : h('p', {}, 'O dataset ainda não foi montado pela interface.'),
+    ];
+
+    if (ativa) {
+      partes.push(h('div', {}, h('div', { class: 'linha' }, h('strong', {}, 'Montagem do dataset'), estado(ativa.estado)),
+        ativa.estado === 'na fila' ? h('p', { class: 'pequeno' }, 'Aguardando a vez: os processamentos rodam um de cada vez.')
+          : progresso(ativa.progresso.atual, ativa.progresso.total, ativa.progresso.texto)));
+    } else {
+      if (montagemPedida && ultima?.estado === 'concluído') {
+        partes.push(mensagem('ok', h('p', {}, h('strong', {}, 'Dataset montado. '), 'Confira acima as imagens de cada dataset e o conjunto de teste atual.')));
+      }
+      if (montagemPedida && ultima?.estado === 'falhou') {
+        partes.push(mensagem('falha', h('p', {}, h('strong', {}, 'Falhou: '), `a montagem do dataset não terminou porque ${ultima.causa}.`),
+          ultima.sugestao ? h('p', {}, ultima.sugestao) : null));
+      }
+      partes.push(h('button', { type: 'button', class: 'botao', disabled: !brutos.length, onclick: confirmarMontagem }, 'Remontar'),
+        !brutos.length ? h('p', { class: 'falta-campo' }, 'baixe ou copie pelo menos um dataset bruto para montar.') : null);
+    }
+    return h('section', { class: 'cartao', 'aria-labelledby': 'titulo-montar' }, partes);
   }
 
   async function confirmarMontagem() {
+    // Alerta "Confirmar a remontagem" (AL)
     const escolha = await dialogo({
-      tipo: 'alerta', titulo: 'Remontar o dataset',
+      tipo: 'alerta', titulo: 'Confirmar a remontagem',
       corpo: h('div', {},
-        h('p', {}, 'O dataset montado será substituído por uma nova cópia feita a partir dos arquivos brutos de raw/. Os arquivos brutos não mudam.'),
-        h('p', {}, 'O conjunto de teste pode mudar. As configurações avaliadas no conjunto anterior precisarão ser avaliadas de novo para entrar na mesma comparação.')),
-      acoes: [{ rotulo: 'Cancelar', valor: 'cancelar' }, { rotulo: 'Remontar', valor: 'remontar', primaria: true }],
+        h('p', {}, 'O conjunto de teste pode mudar, e as configurações avaliadas terão de ser avaliadas de novo.'),
+        h('p', { class: 'pequeno' }, 'O dataset montado é substituído por uma nova cópia dos arquivos brutos (raw/), que não mudam.')),
+      acoes: [{ rotulo: 'Cancelar', valor: 'cancelar' }, { rotulo: 'Confirmar', valor: 'confirmar', primaria: true }],
     });
-    if (escolha === 'remontar') executar(api.post('/api/datasets/remontar'), 'Montagem do dataset na fila.');
+    if (escolha === 'confirmar') {
+      montagemPedida = true;
+      await executar(api.post('/api/datasets/remontar'), 'Montagem do dataset na fila.');
+    }
+  }
+
+  // O11.3 Avaliar as configurações no conjunto de teste
+  function avaliar() {
+    const lista = dados.avaliacoes.filter((a) => pedidas.has(a.id) || ['na fila', 'processando', 'falhou'].includes(a.estado));
+    const partes = [h('h2', { id: 'titulo-avaliar' }, 'Avaliar as configurações no ', termo('conjunto de teste', 'conjunto_de_teste'))];
+
+    if (dados.configuracoes_a_avaliar.length) {
+      const botao = h('button', { type: 'submit', class: 'botao' }, 'Avaliar as selecionadas');
+      const form = h('form', { novalidate: true },
+        h('fieldset', { 'data-campo': 'configuracoes' },
+          h('legend', {}, 'Configurações sem avaliação no conjunto de teste atual'),
+          dados.configuracoes_a_avaliar.map((c) => h('label', { class: 'opcao' },
+            h('input', { type: 'checkbox', name: 'configuracoes', value: c.id }),
+            h('span', {}, c.nome, h('span', { class: 'pequeno suave' }, ` · ${c.motivo}`))))),
+        h('div', { class: 'linha' }, botao));
+      exigir(form, botao, [
+        { campo: 'configuracoes', valido: () => form.querySelectorAll('input:checked').length > 0, mensagem: 'escolha pelo menos uma configuração para avaliar.' },
+      ]);
+      form.addEventListener('submit', async (evento) => {
+        evento.preventDefault();
+        const configuracoes = new FormData(form).getAll('configuracoes');
+        if (!configuracoes.length) return;
+        configuracoes.forEach((cid) => pedidas.add(cid));
+        await executar(api.post('/api/datasets/avaliar', { configuracoes }), 'Avaliação na fila.');
+      });
+      partes.push(form);
+    } else if (!lista.length) {
+      partes.push(h('p', {}, 'Todas as configurações disponíveis estão avaliadas no conjunto de teste atual.'));
+    }
+
+    if (lista.length) {
+      partes.push(h('h3', { style: 'margin-top:1rem' }, 'Estado das avaliações'),
+        h('ul', { class: 'lista-avaliacoes', 'aria-live': 'polite' }, lista.map((a) => linhaAvaliacao(a))));
+      const todasConcluidas = [...pedidas].length > 0
+        && [...pedidas].every((cid) => dados.avaliacoes.find((a) => a.id === cid)?.estado === 'concluída');
+      if (todasConcluidas) {
+        partes.push(mensagem('ok', h('p', {}, h('strong', {}, 'Avaliação concluída. '), 'As configurações avaliadas já podem entrar na comparação de desempenho.')));
+      }
+    }
+    return h('section', { class: 'cartao', 'aria-labelledby': 'titulo-avaliar' }, partes);
+  }
+
+  function linhaAvaliacao(a) {
+    const emCurso = tarefa((t) => t.tipo === 'avaliacao' && t.alvo?.configuracao === a.id);
+    const itens = [h('div', { class: 'linha-entre' }, h('strong', {}, a.nome), estado(a.estado))];
+    if (a.estado === 'na fila') itens.push(h('p', { class: 'pequeno' }, 'Aguardando a vez: as configurações são avaliadas uma de cada vez.'));
+    if (a.estado === 'processando' && emCurso) itens.push(progresso(emCurso.progresso.atual, emCurso.progresso.total, emCurso.progresso.texto));
+    if (a.estado === 'falhou') {
+      // RA: tentar de novo aqui; CE: o que fazer fora do sistema
+      itens.push(mensagem('falha',
+        h('p', {}, h('strong', {}, 'Falhou: '), `a avaliação da ${a.nome} não terminou porque ${a.causa}.`),
+        a.sugestao ? h('p', {}, h('strong', {}, a.tipo_falha === 'CE' ? 'O que fazer: ' : 'Sugestão: '), a.sugestao) : null,
+        h('button', { type: 'button', class: 'botao botao-pequeno', onclick: () => {
+          pedidas.add(a.id);
+          executar(api.post(`/api/configuracoes/${enc(a.id)}/avaliar`), 'Avaliação pedida de novo.');
+        } }, 'Tentar de novo')));
+    }
+    return h('li', { class: 'cartao', style: 'box-shadow:none' }, itens);
+  }
+
+  function desenhar() {
+    // Falhas recentes de download: causa e o que fazer
+    const falhas = (dados.tarefas_recentes || []).filter((t) => t.estado === 'falhou' && t.alvo?.dataset && t.alvo.dataset !== 'todos');
+    limpar(corpo,
+      falhas.map((t) => mensagem('falha', h('p', {}, h('strong', {}, 'Falhou: '), `${t.titulo} não terminou porque ${t.causa}.`),
+        t.sugestao ? h('p', {}, t.sugestao) : null)),
+      conferir(), montar(), avaliar());
   }
 
   desenhar();
 
   let ultimo = '';
   return {
-    async atualizar() {
-      const ativas = tarefasAtivas().map((t) => [t.id, t.estado, t.progresso.atual, t.progresso.texto]);
+    async atualizar(estadoGeral) {
+      const ativas = (estadoGeral?.tarefas || []).filter((t) => t.tipo === 'dataset' || t.tipo === 'avaliacao')
+        .map((t) => [t.id, t.estado, t.progresso.atual, t.progresso.texto]);
       const chave = JSON.stringify(ativas);
       if (chave === ultimo) return;
-      const terminou = ultimo && ativas.length < JSON.parse(ultimo).length;
       ultimo = chave;
-      if (terminou || !ativas.length) dados = await api.get('/api/datasets');
+      dados = await api.get('/api/datasets');
       desenhar();
     },
   };

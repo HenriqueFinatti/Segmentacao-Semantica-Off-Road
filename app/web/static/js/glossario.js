@@ -144,6 +144,21 @@ export const TERMOS = {
     indica: 'Define se o treino gera os gráficos de treino e validação.',
     nao: 'A tabela das épocas aparece sempre, com ou sem gráficos.',
   },
+  dataset_montado: {
+    titulo: 'Dataset montado',
+    indica: 'A cópia dos datasets brutos usada no treino e no teste. Montar ou remontar o dataset define as imagens de treino e o conjunto de teste atual.',
+    nao: 'Os dados brutos (pasta raw/) não são apagados ao remontar.',
+  },
+  avaliacao_no_conjunto_de_teste: {
+    titulo: 'Avaliação no conjunto de teste',
+    indica: 'O cálculo das métricas da configuração (IoU, acurácia, tempo de inferência e matriz de confusão) no conjunto de teste atual. Ao fim de um treino, o sistema avalia a configuração automaticamente.',
+    nao: 'Uma configuração sem avaliação no conjunto de teste atual não entra na comparação de desempenho.',
+  },
+  estado: {
+    titulo: 'Estado',
+    indica: 'Em que ponto está um processamento (treino, avaliação, montagem do dataset ou execução): na fila, processando (ou treinando), concluído ou falhou. Os processamentos rodam um de cada vez.',
+    nao: 'Na fila não é falha: o processamento começa quando o anterior terminar.',
+  },
   graficos_treino: {
     titulo: 'Gráficos de treino e validação',
     indica: 'A evolução do treino a cada época: loss (erro do treino, quanto menor melhor), acurácia e IoU médio, no treino e na validação.',
@@ -205,4 +220,59 @@ export function fecharTermo() {
   document.getElementById('painel-termo').hidden = true;
   if (origem && document.body.contains(origem)) origem.focus();
   origem = null;
+}
+
+
+let popover = null;
+
+export function fecharExplicacao() {
+  if (!popover) return;
+  const { elemento, botao, aoFechar } = popover;
+  elemento.remove();
+  document.removeEventListener('pointerdown', aoFechar, true);
+  popover = null;
+  if (botao && document.body.contains(botao)) {
+    botao.setAttribute('aria-expanded', 'false');
+    botao.focus();
+  }
+}
+
+export function abrirExplicacao(chave, botao) {
+  const mesmo = popover && popover.botao === botao;
+  fecharExplicacao();
+  if (mesmo || !TERMOS[chave]) return;
+
+  const termo = TERMOS[chave];
+  const id = `explicacao-${chave}`;
+  const elemento = document.createElement('div');
+  elemento.className = 'popover-termo';
+  elemento.id = id;
+  elemento.setAttribute('role', 'dialog');
+  elemento.setAttribute('aria-modal', 'false');
+  elemento.setAttribute('aria-labelledby', `${id}-titulo`);
+
+  const titulo = Object.assign(document.createElement('h2'), { id: `${id}-titulo`, textContent: termo.titulo, tabIndex: -1 });
+  const fechar = Object.assign(document.createElement('button'), { type: 'button', className: 'botao botao-secundario botao-pequeno', textContent: 'Fechar' });
+  fechar.addEventListener('click', fecharExplicacao);
+  elemento.append(titulo, definicao('O que indica', termo.indica), definicao('O que não indica', termo.nao), fechar);
+  elemento.addEventListener('keydown', (evento) => {
+    if (evento.key === 'Escape') { evento.stopPropagation(); fecharExplicacao(); }
+  });
+
+  document.body.append(elemento);
+  const caixa = botao.getBoundingClientRect();
+  const largura = Math.min(360, window.innerWidth - 24);
+  elemento.style.width = `${largura}px`;
+  elemento.style.left = `${Math.max(12, Math.min(caixa.left + window.scrollX, window.scrollX + window.innerWidth - largura - 12))}px`;
+  elemento.style.top = `${caixa.bottom + window.scrollY + 8}px`;
+
+  // Clique fora fecha sem tirar a pessoa da tela
+  const aoFechar = (evento) => {
+    if (!elemento.contains(evento.target) && evento.target !== botao) fecharExplicacao();
+  };
+  document.addEventListener('pointerdown', aoFechar, true);
+  popover = { elemento, botao, aoFechar };
+  botao.setAttribute('aria-expanded', 'true');
+  botao.setAttribute('aria-controls', id);
+  titulo.focus({ preventScroll: true });
 }

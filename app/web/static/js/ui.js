@@ -1,5 +1,5 @@
 // Componentes de interface usados por todas as telas.
-import { abrirTermo } from './glossario.js';
+import { abrirExplicacao } from './glossario.js';
 
 export function h(tag, atributos = {}, ...filhos) {
   const elemento = document.createElement(tag);
@@ -54,6 +54,7 @@ const ESTADOS = {
   processando: ['estado-andamento', 'andamento', 'Processando'],
   treinando: ['estado-andamento', 'andamento', 'Treinando'],
   'concluído': ['estado-concluido', 'ok', 'Concluído'],
+  'concluída': ['estado-concluido', 'ok', 'Concluída'],
   falhou: ['estado-falhou', 'falha', 'Falhou'],
 };
 
@@ -80,15 +81,24 @@ export function anunciar(texto) {
 }
 
 // Termo técnico com a explicação no ponto de uso (O07.1)
+export function botaoTermo(rotulo, chave) {
+  return h('button', {
+    type: 'button',
+    class: 'termo-ajuda',
+    'aria-label': `O que é ${rotulo}?`,
+    title: `O que é ${rotulo}?`,
+    'aria-expanded': 'false',
+    onclick: (evento) => abrirExplicacao(chave, evento.currentTarget),
+  }, '?');
+}
+
 export function termo(rotulo, chave) {
-  return h('span', { class: 'termo' }, rotulo,
-    h('button', {
-      type: 'button',
-      class: 'termo-ajuda',
-      'aria-label': `O que é ${rotulo}?`,
-      title: `O que é ${rotulo}?`,
-      onclick: (evento) => abrirTermo(chave, evento.currentTarget),
-    }, '?'));
+  return h('span', { class: 'termo' }, rotulo, botaoTermo(rotulo, chave));
+}
+
+// Rótulo ligado ao campo, com o "?" fora do <label> (o nome do campo não inclui o botão)
+export function rotuloComTermo(paraId, rotulo, chave) {
+  return h('span', { class: 'termo' }, h('label', { for: paraId }, rotulo), botaoTermo(rotulo, chave));
 }
 
 // Legenda fixa das classes (RQ04): o nome acompanha sempre a cor
@@ -203,4 +213,53 @@ export function erroCampo(formulario, erro) {
   } else {
     formulario.prepend(aviso);
   }
+}
+
+/**
+ * Campo obrigatório com o mesmo comportamento em todas as telas: enquanto falta algo, o botão fica
+ * desabilitado e, junto do campo, uma mensagem diz o que falta (prevenção ativa).
+ * regras: [{ campo: 'nome do data-campo', valido: () => bool, mensagem: 'o que falta' }]
+ */
+export function exigir(formulario, botao, regras) {
+  const resumo = h('p', { class: 'falta-resumo', id: `falta-resumo-${Math.random().toString(36).slice(2, 8)}`, 'aria-live': 'polite' });
+  botao.insertAdjacentElement('afterend', resumo);
+
+  function atualizar() {
+    const faltando = [];
+    for (const regra of regras) {
+      const recipiente = formulario.querySelector(`[data-campo="${regra.campo}"]`);
+      if (!recipiente) continue;
+      let aviso = recipiente.querySelector(`:scope > .falta-campo`);
+      const valido = regra.valido();
+      if (!valido) {
+        faltando.push(regra.mensagem);
+        if (!aviso) {
+          aviso = h('p', { class: 'falta-campo', id: `falta-${regra.campo}` });
+          recipiente.append(aviso);
+        }
+        aviso.textContent = regra.mensagem;
+        recipiente.querySelectorAll('input, select, textarea').forEach((entrada) => {
+          const atuais = (entrada.getAttribute('aria-describedby') || '').split(' ').filter(Boolean);
+          if (!atuais.includes(aviso.id)) entrada.setAttribute('aria-describedby', [...atuais, aviso.id].join(' '));
+        });
+      } else if (aviso) {
+        recipiente.querySelectorAll('input, select, textarea').forEach((entrada) => {
+          const atuais = (entrada.getAttribute('aria-describedby') || '').split(' ').filter((x) => x && x !== aviso.id);
+          if (atuais.length) entrada.setAttribute('aria-describedby', atuais.join(' '));
+          else entrada.removeAttribute('aria-describedby');
+        });
+        aviso.remove();
+      }
+    }
+    botao.disabled = faltando.length > 0;
+    resumo.textContent = faltando.length ? `Para continuar: ${faltando.join(' ')}` : '';
+    if (faltando.length) botao.setAttribute('aria-describedby', resumo.id);
+    else botao.removeAttribute('aria-describedby');
+    return faltando.length === 0;
+  }
+
+  formulario.addEventListener('input', atualizar);
+  formulario.addEventListener('change', atualizar);
+  atualizar();
+  return { atualizar };
 }

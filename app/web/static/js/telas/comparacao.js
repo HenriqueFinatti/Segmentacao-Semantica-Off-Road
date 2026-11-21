@@ -1,7 +1,7 @@
 // O05 Comparar configurações sobre a mesma entrada:
 // O05.1 Escolher as configurações a comparar · O05.2 Comparar na mesma imagem e região (cena reusada pelo M01 e pelo M03).
 import { api, enc } from '../api.js';
-import { h, limpar, cabecalho, mensagem, legenda, termo, falhaDaApi } from '../ui.js';
+import { h, limpar, cabecalho, mensagem, legenda, termo, falhaDaApi, exigir } from '../ui.js';
 import { Regiao, Visualizador, controlesDeRegiao } from '../visualizador.js';
 import {
   configuracoesExecutadas, imagensComResultado, marcadorAvaliacao, rotuloImagem, seletorDeConfiguracoes, temMascara, textoAvaliacao, urlImagem,
@@ -31,29 +31,30 @@ export async function renderEscolher(main, { id }, _consulta, contexto) {
     h('input', { type: 'checkbox', name: 'imagens', value: imagem.nome, checked: marcada }),
     h('span', {}, rotuloImagem(imagem), ' ', marcadorAvaliacao(sessao.avaliacoes[imagem.nome])));
 
+  const botaoExecutar = h('button', { type: 'submit', class: 'botao' }, 'Executar nas imagens escolhidas');
   const formulario = h('form', { novalidate: true },
     h('div', { class: 'grade-2' },
-      h('div', { class: 'cartao' },
+      h('div', { class: 'cartao', 'data-campo': 'imagens' },
         h('h2', {}, 'Imagens'),
-        duvidosas.length ? h('fieldset', { 'data-campo': 'imagens' }, h('legend', {}, `Imagens duvidosas (${duvidosas.length})`), duvidosas.map((i) => caixaImagem(i, true)))
+        duvidosas.length ? h('fieldset', {}, h('legend', {}, `Imagens duvidosas (${duvidosas.length})`), duvidosas.map((i) => caixaImagem(i, true)))
           : mensagem('neutra', h('p', {}, 'Nenhuma imagem está marcada como duvidosa. Escolha as imagens abaixo.')),
         outras.length ? h('details', {}, h('summary', {}, `Outras imagens da sessão (${outras.length})`), outras.map((i) => caixaImagem(i, false))) : null),
       h('div', { class: 'cartao' },
         h('h2', {}, 'Configurações'),
         h('p', { class: 'pequeno suave' }, 'Cada configuração mostra a descrição e as métricas no conjunto de teste.'),
         h('div', { 'data-campo': 'configuracoes' }, seletor.elemento))),
-    h('p', { class: 'erro-campo', role: 'alert', id: 'erro-comparar' }),
-    h('div', { class: 'linha' }, h('button', { type: 'submit', class: 'botao' }, 'Executar nas imagens escolhidas')));
+    h('div', { class: 'linha' }, botaoExecutar));
   main.append(formulario);
+  exigir(formulario, botaoExecutar, [
+    { campo: 'imagens', valido: () => formulario.querySelectorAll('input[name="imagens"]:checked').length > 0, mensagem: 'escolha pelo menos uma imagem.' },
+    { campo: 'configuracoes', valido: () => seletor.valores().length > 0, mensagem: 'escolha pelo menos uma configuração.' },
+  ]);
 
   formulario.addEventListener('submit', async (evento) => {
     evento.preventDefault();
-    const aviso = formulario.querySelector('#erro-comparar');
     const imagens = [...formulario.querySelectorAll('input[name="imagens"]:checked')].map((e) => e.value);
     const escolhidas = seletor.valores();
-    if (!imagens.length) { aviso.textContent = 'Escolha pelo menos uma imagem.'; return; }
-    if (!escolhidas.length) { aviso.textContent = 'Escolha pelo menos uma configuração.'; return; }
-    aviso.textContent = '';
+    if (!imagens.length || !escolhidas.length) return;
 
     const executar = escolhidas.filter((cid) => !jaExecutadaEm({ id: cid }, imagens));
     const comparadas = [...new Set([...configuracoesExecutadas(sessao).map((c) => c.id), ...escolhidas])];

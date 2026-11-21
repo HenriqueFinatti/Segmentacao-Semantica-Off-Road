@@ -577,3 +577,39 @@ input[type="range"] { accent-color: var(--primaria); min-height: 32px; }
 
 /* Um só visualizador: largura limitada para a imagem e a avaliação caberem em tela de notebook */
 .grade-visualizadores:not([class*="colunas-"]) .visualizador { max-width: min(100%, calc(62vh * 16 / 9)); }
+
+/* Explicação do termo no ponto de uso (O07.1) */
+.popover-termo {
+  position: absolute;
+  z-index: 60;
+  background: var(--superficie);
+  border: 1px solid var(--borda-forte);
+  border-radius: var(--raio);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .2);
+  padding: .8rem .9rem;
+  font-size: .95rem;
+}
+.popover-termo h2 { font-size: 1.05rem; margin: 0 0 .3rem; }
+.popover-termo dl { margin: .3rem 0; }
+.popover-termo dt { font-weight: 700; }
+.popover-termo dd { margin: .1rem 0 .4rem; }
+.termo-ajuda[aria-expanded="true"] { background: var(--primaria); color: #fff; }
+
+/* Campo obrigatório: mensagem junto do campo e resumo junto do botão */
+.falta-campo {
+  margin: .35rem 0 0;
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--alerta);
+}
+.falta-campo::before { content: "Falta: "; }
+.falta-resumo { margin: .4rem 0 0; font-size: .9rem; color: var(--alerta); flex-basis: 100%; }
+.falta-resumo:empty { display: none; }
+
+.indicador-treino[aria-disabled="true"] { cursor: default; opacity: .9; }
+.indicador-treino[aria-disabled="true"]:hover { background: #3a4c6d; }
+
+.rodape .versao { display: block; margin-top: .3rem; font-size: .8rem; color: var(--texto-suave); font-variant-numeric: tabular-nums; }
+
+.lista-avaliacoes { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
+.lista-avaliacoes > li { margin: 0; }

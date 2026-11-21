@@ -1,7 +1,7 @@
 // M02, conversa 2 (acesso ubíquo "Apresentar a recomendação"):
 // O09.1 Retomar a análise · O09.2 Responder a uma dúvida (usa a O07.2) · O10 Registrar a decisão da coordenação.
 import { api, enc } from '../api.js';
-import { h, limpar, cabecalho, mensagem, falhaDaApi, anunciar, formato, erroCampo } from '../ui.js';
+import { h, limpar, cabecalho, mensagem, falhaDaApi, anunciar, formato, erroCampo, exigir } from '../ui.js';
 import { painelDiferenca, tabelaDesempenho } from './desempenho.js';
 import { resumoConclusao } from './conclusao.js';
 
@@ -33,8 +33,8 @@ export async function render(main, _p, consulta, contexto) {
 
   function formularioDecisao() {
     const condicao = h('textarea', { id: 'condicao', name: 'condicao', disabled: true, 'aria-describedby': 'ajuda-condicao' });
-    const botao = h('button', { type: 'submit', class: 'botao', disabled: true }, 'Registrar');
-    const ajuda = h('span', { class: 'ajuda', id: 'ajuda-condicao' }, 'Escolha a decisão.');
+    const botao = h('button', { type: 'submit', class: 'botao' }, 'Registrar');
+    const ajuda = h('span', { class: 'ajuda', id: 'ajuda-condicao' }, 'O que precisa acontecer para a decisão valer. Só é usada quando a decisão é "aceita com condição".');
 
     const form = h('form', { class: 'cartao', id: 'form-decisao', novalidate: true, tabindex: '-1' },
       h('h2', {}, 'Registrar a decisão da coordenação'),
@@ -44,20 +44,21 @@ export async function render(main, _p, consulta, contexto) {
       h('div', { class: 'linha' }, botao,
         h('button', { type: 'button', class: 'botao botao-secundario', onclick: () => { painel = null; desenhar(); } }, 'Voltar à apresentação')));
 
-    // Prevenção ativa: "aceita com condição" não pode ser registrada sem a condição
-    const atualizar = () => {
-      const decisao = form.querySelector('input[name="decisao"]:checked')?.value;
-      const condicional = decisao === 'aceita com condição';
+    // Prevenção ativa: "aceita com condição" não pode ser registrada sem a condição (mesmo comportamento das outras telas)
+    const decisaoEscolhida = () => form.querySelector('input[name="decisao"]:checked')?.value;
+    form.addEventListener('change', () => {
+      const condicional = decisaoEscolhida() === 'aceita com condição';
       condicao.disabled = !condicional;
       if (!condicional) condicao.value = '';
-      const falta = condicional && !condicao.value.trim();
-      botao.disabled = !decisao || falta;
-      ajuda.textContent = !decisao ? 'Escolha a decisão.'
-        : condicional ? (falta ? 'Informe a condição para poder registrar a decisão.' : 'O que precisa acontecer para a decisão valer.')
-          : 'A condição só é usada quando a decisão é "aceita com condição".';
-    };
-    form.addEventListener('change', atualizar);
-    condicao.addEventListener('input', atualizar);
+    });
+    const regras = exigir(form, botao, [
+      { campo: 'decisao', valido: () => Boolean(decisaoEscolhida()), mensagem: 'escolha a decisão.' },
+      {
+        campo: 'condicao', valido: () => decisaoEscolhida() !== 'aceita com condição' || condicao.value.trim().length > 0,
+        mensagem: 'informe a condição para a decisão "aceita com condição".',
+      },
+    ]);
+    form.addEventListener('change', regras.atualizar);
 
     form.addEventListener('submit', async (evento) => {
       evento.preventDefault();

@@ -100,8 +100,17 @@ class Sistema:
                 if training.get('estado') in ('na fila', 'treinando'):
                     training.update({
                         'estado': 'falhou',
-                        'causa': 'a interface foi fechada antes de o treino terminar',
-                        'sugestao': 'Reinicie o treino.',
+                        'causa': 'o programa foi fechado antes de o treino terminar',
+                        'sugestao': 'Reinicie o treino; os parâmetros da configuração foram mantidos.',
+                        'tipo_falha': 'RA',
+                        'etapa_falha': 'treino',
+                    })
+                evaluation = configuration.get('avaliacao') or {}
+                if evaluation.get('estado') in ('na fila', 'processando'):
+                    evaluation.update({
+                        'estado': 'falhou',
+                        'causa': 'o programa foi fechado antes de a avaliação terminar',
+                        'sugestao': 'Tente a avaliação de novo.',
                         'tipo_falha': 'RA',
                     })
 
@@ -291,6 +300,7 @@ class Sistema:
             'disponivel': self.is_available(configuration),
             'criada_em': configuration.get('criada_em'),
             'teste': configuration.get('teste'),
+            'avaliacao': configuration.get('avaliacao'),
             'treino': {k: v for k, v in (configuration.get('treino') or {}).items() if detailed or k != 'historico'},
             'origem': configuration.get('origem'),
         }
@@ -393,7 +403,7 @@ class Sistema:
 
         with self.registro.transaction() as data:
             if any(c['nome'].casefold() == name.casefold() for c in data['configuracoes'].values()):
-                raise Recusa('RA', f'Já existe uma configuração com o nome "{name}". Escolha outro nome.', 'nome',
+                raise Recusa('RA', 'Já existe uma configuração com este nome. Escolha outro.', 'nome',
                              {'sugestao': self.unique_name(name, data)})
 
             configuration_id = new_id('c-')
@@ -447,6 +457,7 @@ class Sistema:
                     'causa': description['causa'],
                     'sugestao': description['sugestao'],
                     'tipo_falha': description['tipo'],
+                    'etapa_falha': 'treino',
                     'terminado_em': now(),
                 })
                 if description['causa'] == 'faltou memória no computador':
@@ -513,20 +524,70 @@ class Sistema:
 
         def finish_training(c):
             c['treino'].update({
+                'estado': 'concluído',
                 'motivo_termino': result['motivo_termino'],
                 'epoca_final': result['epoca_final'],
                 'melhor_epoca': result['melhor_epoca'],
                 'tempo_total_s': result['tempo_total_s'],
-                'etapa': 'Avaliando no conjunto de teste',
+                'terminado_em': now(),
+                'etapa': None,
             })
+            # Pesos novos: métricas antigas (se houver) deixam de valer até a nova avaliação
+            c['teste'] = None
         self.registro.update_configuration(configuration_id, finish_training)
 
-        task.set_progress(0, 0, 'Avaliando no conjunto de teste')
-        self.evaluate_on_test_set(configuration_id, task)
+        # Ao fim do treino, o sistema avalia a configuração no conjunto de teste (outra tarefa da fila)
+        self.enqueue_evaluation(configuration_id)
 
-        self.registro.update_configuration(configuration_id, lambda c: c['treino'].update({
-            'estado': 'concluído', 'terminado_em': now(), 'etapa': None,
+
+    def enqueue_evaluation(self, configuration_id):
+        configuration = self.registro.configuration(configuration_id)
+        if configuration is None or not self.is_available(configuration):
+            raise Recusa('PA', 'Só configurações com treino concluído podem ser avaliadas.')
+        if (configuration.get('avaliacao') or {}).get('estado') in ('na fila', 'processando'):
+            return None
+
+        self.registro.update_configuration(configuration_id, lambda c: c.update({'avaliacao': {
+            'estado': 'na fila', 'solicitada_em': now(),
+        }}))
+
+        def on_failure(task, description):
+            self.registro.update_configuration(configuration_id, lambda c: c['avaliacao'].update({
+                'estado': 'falhou', 'causa': description['causa'], 'sugestao': description['sugestao'],
+                'tipo_falha': description['tipo'], 'terminada_em': now(),
+            }))
+
+        return self.fila.submit('avaliacao', f"Avaliação da {configuration['nome']} no conjunto de teste",
+                                lambda task: self.run_evaluation(task, configuration_id),
+                                alvo={'configuracao': configuration_id}, on_failure=on_failure).to_dict()
+
+
+    def run_evaluation(self, task, configuration_id):
+        self.registro.update_configuration(configuration_id, lambda c: c['avaliacao'].update({
+            'estado': 'processando', 'iniciada_em': now(),
         }))
+        task.set_progress(0, 0, 'Avaliando no conjunto de teste')
+
+        configuration = self.registro.configuration(configuration_id)
+        if not os.path.isfile(self.weights_path(configuration)):
+            raise ErroDeUsuario(f"os pesos da {configuration['nome']} não foram encontrados no computador",
+                                'Confira a pasta de resultados com quem treinou a configuração e tente de novo.', 'CE')
+
+        if self.evaluate_on_test_set(configuration_id, task) is None:
+            raise ErroDeUsuario('não há conjunto de teste montado',
+                                'Monte o dataset na tela Datasets e avalie a configuração lá.', 'CE')
+
+        self.registro.update_configuration(configuration_id, lambda c: c['avaliacao'].update({
+            'estado': 'concluída', 'terminada_em': now(), 'causa': None, 'sugestao': None,
+        }))
+
+
+    def retry_evaluation(self, configuration_id):
+        configuration = self.registro.configuration(configuration_id)
+        if configuration is None:
+            raise Recusa('CE', 'Configuração não encontrada.')
+        self.enqueue_evaluation(configuration_id)
+        return self.get_configuration(configuration_id)
 
 
     def evaluate_on_test_set(self, configuration_id, task=None):
@@ -1108,7 +1169,7 @@ class Sistema:
                     'nome': in_use['nome'],
                     'metricas': in_use['teste']['metricas'],
                     'conjunto': in_use['teste']['conjunto'],
-                    'origem': f"configuração em uso ({in_use['nome']}, a última executada), no conjunto de teste",
+                    'origem': f"configuração em uso (a última executada): {in_use['nome']}, no conjunto de teste",
                 }
 
             return {
@@ -1264,19 +1325,31 @@ class Sistema:
         current = self.dataset_service.current_test_set()
 
         def build(data):
-            outdated = []
+            outdated, evaluations = [], []
             for configuration in data['configuracoes'].values():
                 if not self.is_available(configuration):
                     continue
                 test = configuration.get('teste')
-                if current and (not test or test['conjunto']['id'] != current['id']):
+                evaluation = configuration.get('avaliacao') or {}
+                missing = current and (not test or test['conjunto']['id'] != current['id'])
+                if missing and evaluation.get('estado') not in ('na fila', 'processando'):
                     outdated.append({'id': configuration['id'], 'nome': configuration['nome'],
                                      'motivo': 'sem avaliação no conjunto de teste' if not test else 'avaliada em outro conjunto de teste'})
-            return outdated
+                if evaluation:
+                    evaluations.append({'id': configuration['id'], 'nome': configuration['nome'], **evaluation})
+            evaluations.sort(key=lambda e: e.get('solicitada_em') or '', reverse=True)
+            return outdated, evaluations
+
+        outdated, evaluations = self.registro.read(build)
+        tasks = self.fila.list()
+        assemblies = [t for t in tasks if t['tipo'] == 'dataset' and t['alvo'].get('dataset') == 'todos']
 
         status['conjunto_de_teste'] = current
-        status['configuracoes_a_avaliar'] = self.registro.read(build)
-        status['tarefas'] = [t for t in self.fila.list() if t['tipo'] == 'dataset' and t['estado'] not in ('concluído', 'falhou')]
+        status['configuracoes_a_avaliar'] = outdated
+        status['avaliacoes'] = evaluations
+        status['ultima_montagem'] = assemblies[-1] if assemblies else None
+        status['tarefas'] = [t for t in tasks if t['tipo'] == 'dataset' and t['estado'] not in ('concluído', 'falhou')]
+        status['tarefas_recentes'] = [t for t in tasks if t['tipo'] == 'dataset'][-5:]
         return status
 
 
@@ -1303,14 +1376,16 @@ class Sistema:
 
 
     def evaluate_configurations(self, configuration_ids):
+        if not configuration_ids:
+            raise Recusa('PA', 'Escolha pelo menos uma configuração para avaliar.', 'configuracoes')
         tasks = []
         for configuration_id in configuration_ids:
             configuration = self.registro.configuration(configuration_id)
             if configuration is None or not self.is_available(configuration):
                 continue
-            tasks.append(self.fila.submit('dataset', f"Avaliação da {configuration['nome']} no conjunto de teste",
-                                          lambda task, cid=configuration_id: self.evaluate_on_test_set(cid, task),
-                                          alvo={'configuracao': configuration_id}).to_dict())
+            task = self.enqueue_evaluation(configuration_id)
+            if task:
+                tasks.append(task)
         return tasks
 
 
@@ -1332,7 +1407,7 @@ class Sistema:
                     'estado': latest_training['treino'].get('estado'),
                     'epoca': latest_training['treino'].get('epoca'),
                     'total': latest_training['treino'].get('total'),
-                    'etapa': latest_training['treino'].get('etapa'),
+                    'avaliacao': (latest_training.get('avaliacao') or {}).get('estado'),
                 } if latest_training else None,
             }
 

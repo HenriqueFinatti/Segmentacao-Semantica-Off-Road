@@ -2,7 +2,7 @@
 // O tipo define os campos: validação (P01), experimento (P02) e recomendação (P03).
 // O08.1 Informar a conclusão · O08.2 Conferir a conclusão ("confirmar" ou "corrigir").
 import { api, enc, ErroApi } from '../api.js';
-import { h, limpar, cabecalho, mensagem, termo, dialogo, falhaDaApi, erroCampo, anunciar, formato } from '../ui.js';
+import { h, limpar, cabecalho, mensagem, termo, rotuloComTermo, dialogo, falhaDaApi, erroCampo, anunciar, formato, exigir } from '../ui.js';
 import { imagensComResultado, rotuloImagem, textoAvaliacao } from './comum.js';
 import { tabelaDesempenho } from './desempenho.js';
 
@@ -104,7 +104,7 @@ function formulario(main, { tipo, configuracoes, ciclos, sessao, analise, ciclo,
     } else {
       const campoCiclo = h('input', { type: 'text', id: 'campo-ciclo', name: 'ciclo', value: existente?.ciclo || ciclo, list: 'ciclos-conclusao', autocomplete: 'off' });
       partes.push(
-        h('div', { class: 'campo', 'data-campo': 'ciclo' }, h('label', { for: 'campo-ciclo' }, termo('Ciclo de testes', 'ciclo_de_testes')), campoCiclo,
+        h('div', { class: 'campo', 'data-campo': 'ciclo' }, rotuloComTermo('campo-ciclo', 'Ciclo de testes', 'ciclo_de_testes'), campoCiclo,
           h('datalist', { id: 'ciclos-conclusao' }, ciclos.map((c) => h('option', { value: c.ciclo })))),
         seletorConfiguracao('configuracao_indicada', 'Qual configuração você recomenda?', idsAnalise, campos.configuracao_indicada, true),
         texto('ressalva', 'Ressalva', campos.ressalva, 'Ex.: a diferença é pequena e o desempenho nos trechos de sombra não foi conferido.'));
@@ -115,8 +115,21 @@ function formulario(main, { tipo, configuracoes, ciclos, sessao, analise, ciclo,
   const form = h('form', { class: 'cartao', novalidate: true }, partes, h('div', { class: 'linha' }, botao));
   main.append(form);
 
+  // Campos obrigatórios conforme o tipo de conclusão (mesmo comportamento das outras telas)
+  const valorDe = (nome) => (form.querySelector(`[name="${nome}"]`)?.value || '').trim();
+  const regras = tipo === 'experimento'
+    ? [{ campo: 'conclusao', valido: () => valorDe('conclusao').length > 0, mensagem: 'escreva a conclusão do experimento.' }]
+    : tipo === 'recomendação'
+      ? [
+        { campo: 'ciclo', valido: () => valorDe('ciclo').length > 0, mensagem: 'informe o ciclo de testes.' },
+        { campo: 'configuracao', valido: () => Boolean(form.querySelector('input[name="configuracao_indicada"]:checked')), mensagem: 'escolha a configuração que você recomenda.' },
+      ]
+      : [];
+  const obrigatorios = exigir(form, botao, regras);
+
   form.addEventListener('submit', async (evento) => {
     evento.preventDefault();
+    if (!obrigatorios.atualizar()) return;
     erroCampo(form, null);
     const dadosForm = new FormData(form);
     const corpo = {
@@ -167,7 +180,7 @@ function formulario(main, { tipo, configuracoes, ciclos, sessao, analise, ciclo,
       if (erro instanceof ErroApi && erro.tipo === 'PA') erroCampo(form, erro);
       else await falhaDaApi(erro, 'Não foi possível registrar');
     } finally {
-      botao.disabled = false;
+      obrigatorios.atualizar();
     }
   });
   return null;

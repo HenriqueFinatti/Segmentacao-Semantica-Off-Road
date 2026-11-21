@@ -58,7 +58,8 @@ export async function render(main, { id }, consulta, contexto) {
     } else if (execucao.estado === 'falhou') {
       itens.push(mensagem('falha',
         h('p', {}, h('strong', {}, 'Falhou: '), `a execução da ${nome} não terminou porque ${execucao.causa}.`),
-        execucao.sugestao ? h('p', {}, execucao.sugestao) : null,
+        // CE: a solução está fora do sistema; RA: pode tentar de novo aqui
+        execucao.sugestao ? h('p', {}, h('strong', {}, execucao.tipo_falha === 'CE' ? 'O que fazer: ' : 'Sugestão: '), execucao.sugestao) : null,
         h('div', { class: 'linha' },
           h('button', { type: 'button', class: 'botao botao-pequeno', onclick: () => agir({ configuracao: configuracaoId, acao: 'tentar de novo' }, 'Execução pedida de novo.') }, 'Tentar de novo'),
           h('button', { type: 'button', class: 'botao botao-secundario botao-pequeno', onclick: () => agir({ configuracao: configuracaoId, acao: 'deixar de fora' }, 'Configuração deixada de fora.') }, 'Deixar esta configuração de fora'))));
@@ -69,7 +70,7 @@ export async function render(main, { id }, consulta, contexto) {
     for (const [imagem, falha] of Object.entries(execucao.falhas || {})) {
       itens.push(mensagem('falha',
         h('p', {}, h('strong', {}, 'Falhou: '), `a segmentação da imagem ${rotuloImagem(imagens[imagem] || { nome: imagem })} não terminou porque ${falha.causa}. As outras imagens não foram afetadas.`),
-        falha.sugestao ? h('p', {}, falha.sugestao) : null,
+        falha.sugestao ? h('p', {}, h('strong', {}, falha.tipo === 'CE' ? 'O que fazer: ' : 'Sugestão: '), falha.sugestao) : null,
         h('p', {}, 'Você pode tentar de novo ou deixar essa imagem de fora.'),
         h('div', { class: 'linha' },
           h('button', { type: 'button', class: 'botao botao-pequeno', disabled: execucao.estado !== 'concluído',
@@ -97,7 +98,7 @@ export async function render(main, { id }, consulta, contexto) {
         h('p', {}, h('strong', {}, 'Concluído: '), `as ${total} imagens foram segmentadas. Os resultados estão reunidos nesta `, h('strong', {}, 'sessão'), '.'),
         h('a', { class: 'botao', href: destino, id: 'ver-resultado' }, comparar ? 'Comparar na mesma imagem e região' : 'Avaliar as imagens')) : null,
       !execucoes.length ? mensagem('neutra', h('p', {}, 'Nenhuma configuração foi executada nesta sessão.')) : null,
-      h('ul', { style: 'list-style:none;padding:0;margin:0' },
+      h('ul', { style: 'list-style:none;padding:0;margin:0', 'aria-live': 'polite' },
         sessao.videos.map(linhaVideo),
         execucoes.map(([configuracaoId, execucao]) => linhaExecucao(configuracaoId, execucao))));
 

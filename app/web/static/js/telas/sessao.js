@@ -55,7 +55,6 @@ export async function render(main, { id }, consulta) {
     configuracao: executadas.some((c) => c.id === consulta.get('cfg')) ? consulta.get('cfg') : executadas[0].id,
     modo: lerPreferencia('modo-visualizacao', 'sobreposicao'),
     transparencia: Number(lerPreferencia('transparencia', '50')),
-    mostrarMetricas: false,
   };
   let visualizadores = [];
   const regiao = new Regiao();
@@ -102,7 +101,6 @@ export async function render(main, { id }, consulta) {
 
   function escolherImagem(nome, focar = false) {
     estado.imagem = nome;
-    estado.mostrarMetricas = false;
     regiao.inteira();
     history.replaceState(null, '', `#/sessao/${enc(id)}/imagem?nome=${enc(nome)}&cfg=${enc(estado.configuracao)}`);
     desenharLista();
@@ -169,18 +167,15 @@ export async function render(main, { id }, consulta) {
   }
 
   function painelMetricas() {
-    // O04.2: imagens enviadas não têm anotação de referência (prevenção passiva)
-    if (!estado.mostrarMetricas) {
-      return h('button', { type: 'button', class: 'botao botao-secundario', onclick: () => { estado.mostrarMetricas = true; desenharArea(); area.querySelector('#painel-metricas')?.focus(); } },
-        'Qual é o IoU desta imagem?');
-    }
-    return h('div', { id: 'painel-metricas', tabindex: '-1' }, mensagem('neutra',
-      h('p', {}, 'Esta imagem não tem ', termo('anotação de referência', 'anotacao_de_referencia'), ', por isso não há ',
-        termo('IoU', 'iou'), ' nem ', termo('acurácia', 'acuracia'), ' para ela.'),
-      h('p', {}, h('strong', {}, 'Sem métricas, avaliação visual: '), 'compare a máscara com a imagem original, com a sobreposição e a região ampliada.'),
-      h('p', { class: 'pequeno' }, 'As métricas da configuração existem só para o ', termo('conjunto de teste', 'conjunto_de_teste'),
-        ' e estão em ', h('a', { href: '#/desempenho' }, 'Comparar o desempenho'), '.'),
-      h('button', { type: 'button', class: 'botao botao-secundario botao-pequeno', onclick: () => { estado.mostrarMetricas = false; desenharArea(); } }, 'Voltar à imagem')));
+    // O04.2: imagens de campo não têm anotação de referência; nunca há IoU ou acurácia por imagem (prevenção passiva)
+    return h('section', { class: 'cartao', 'aria-labelledby': 'titulo-metricas' },
+      h('h2', { id: 'titulo-metricas' }, 'Métricas desta imagem'),
+      mensagem('neutra',
+        h('p', {}, h('strong', {}, 'Sem métricas: avaliação visual. '), 'As métricas estão no ',
+          h('a', { href: '#/desempenho' }, 'desempenho consolidado'), '.'),
+        h('p', { class: 'pequeno' }, 'Esta imagem de campo não tem ', termo('anotação de referência', 'anotacao_de_referencia'),
+          ', por isso não há ', termo('IoU', 'iou'), ' nem ', termo('acurácia', 'acuracia'), ' para ela. Compare a máscara com a imagem original, com a ',
+          termo('sobreposição', 'sobreposicao'), ' e a ', termo('região ampliada', 'regiao_ampliada'), '.')));
   }
 
   function formularioAvaliacao() {

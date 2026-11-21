@@ -32,6 +32,20 @@ class SafeJSONResponse(JSONResponse):
         return json.dumps(clean_numbers(content), ensure_ascii=False).encode('utf-8')
 
 
+def read_version():
+    """Hash curto do commit em que a interface está rodando, para identificar a versão nas capturas e nos testes."""
+    import subprocess
+    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    try:
+        commit = subprocess.run(['git', 'rev-parse', '--short', 'HEAD'], cwd=root, capture_output=True, text=True, timeout=5)
+        if commit.returncode != 0:
+            return {'commit': None, 'alteracoes': False}
+        changed = subprocess.run(['git', 'diff', '--quiet', 'HEAD', '--', '.'], cwd=root, timeout=5).returncode != 0
+        return {'commit': commit.stdout.strip(), 'alteracoes': changed}
+    except (OSError, subprocess.SubprocessError):
+        return {'commit': None, 'alteracoes': False}
+
+
 def refusal(error, status=400):
     return SafeJSONResponse({'erro': error.to_dict()}, status_code=status)
 
@@ -62,9 +76,11 @@ def create_app():
 
     # Estado geral
 
+    version = read_version()
+
     @app.get('/api/estado')
     def state():
-        return sistema.overview()
+        return {**sistema.overview(), 'versao': version}
 
     @app.get('/api/formatos')
     def formats():
@@ -97,6 +113,10 @@ def create_app():
     @app.post('/api/treino')
     async def start_training(request: Request):
         return sistema.start_training(await request.json())
+
+    @app.post('/api/configuracoes/{configuration_id}/avaliar')
+    def evaluate_configuration(configuration_id: str):
+        return sistema.retry_evaluation(configuration_id)
 
     @app.post('/api/treino/{configuration_id}/reiniciar')
     async def restart_training(configuration_id: str, request: Request):

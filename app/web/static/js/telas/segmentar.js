@@ -1,11 +1,11 @@
 // O03.1 Enviar as entradas e escolher as configurações (M01 e M03).
-// Ruptura: imagens em formato não aceito → alerta com "trocar os arquivos" ou "seguir sem elas".
+// Ruptura: arquivos em formato não aceito → alerta com "trocar os arquivos" ou "seguir sem eles" (os aceitos entram na fila).
 import { api, ErroApi } from '../api.js';
-import { h, limpar, cabecalho, mensagem, termo, dialogo, falhaDaApi, erroCampo } from '../ui.js';
+import { h, limpar, cabecalho, mensagem, termo, rotuloComTermo, dialogo, falhaDaApi, erroCampo, exigir, anunciar } from '../ui.js';
 import { seletorDeConfiguracoes } from './comum.js';
 
 const ACEITOS = ['.jpg', '.jpeg', '.png', '.mp4'];
-const FORMATOS = 'imagens em JPG ou PNG e vídeos em MP4';
+const FORMATOS = 'imagens JPG ou PNG e vídeos MP4 (o sistema extrai os quadros dos vídeos)';
 
 function extensao(nome) {
   const ponto = nome.lastIndexOf('.');
@@ -17,6 +17,7 @@ export async function render(main, _parametros, consulta, contexto) {
   const disponiveis = configuracoes.filter((c) => c.disponivel);
   const preSelecionadas = (consulta.get('configuracoes') || '').split(',').filter(Boolean);
   let arquivos = [];
+  let regras = null;
 
   limpar(main, cabecalho('Segmentar imagens', 'Envie as imagens do teste e escolha com quais configurações segmentar.'));
 
@@ -53,6 +54,7 @@ export async function render(main, _parametros, consulta, contexto) {
         onclick: () => { arquivos.splice(indice, 1); desenharArquivos(); },
       }, 'Retirar'))));
     contador.textContent = arquivos.length ? `${arquivos.length} arquivo(s) escolhido(s).` : 'Nenhum arquivo escolhido.';
+    regras?.atualizar();
   }
 
   function adicionarArquivos(lista) {
@@ -75,7 +77,7 @@ export async function render(main, _parametros, consulta, contexto) {
         h('div', { class: 'cartao' },
           h('h2', {}, '1. Imagens'),
           h('div', { class: 'campo', 'data-campo': 'ciclo' },
-            h('label', { for: 'ciclo' }, termo('Ciclo de testes', 'ciclo_de_testes')),
+            rotuloComTermo('ciclo', 'Ciclo de testes', 'ciclo_de_testes'),
             h('span', { class: 'ajuda', id: 'ajuda-ciclo' }, 'O nome ou a data do teste de campo destas imagens.'),
             campoCiclo,
             h('datalist', { id: 'ciclos-existentes' }, ciclos.map((c) => h('option', { value: c.ciclo })))),
@@ -89,15 +91,20 @@ export async function render(main, _parametros, consulta, contexto) {
 
   main.append(formulario);
 
+  // Campos obrigatórios: botão desabilitado e, junto do campo, o que falta
+  regras = exigir(formulario, botaoExecutar, [
+    { campo: 'ciclo', valido: () => campoCiclo.value.trim().length > 0, mensagem: 'informe o ciclo de testes (nome ou data do teste de campo).' },
+    { campo: 'arquivos', valido: () => arquivos.length > 0, mensagem: 'escolha pelo menos uma imagem ou um vídeo.' },
+    { campo: 'configuracoes', valido: () => seletor.valores().length > 0, mensagem: 'escolha pelo menos uma configuração.' },
+  ]);
+
   formulario.addEventListener('submit', async (evento) => {
     evento.preventDefault();
     erroCampo(formulario, null);
 
+    if (!regras.atualizar()) return;
     const ciclo = campoCiclo.value.trim();
     const escolhidas = seletor.valores();
-    if (!ciclo) return erroCampo(formulario, { campo: 'ciclo', message: 'Informe o ciclo de testes: o nome ou a data do teste de campo.' });
-    if (!arquivos.length) return erroCampo(formulario, { campo: 'arquivos', message: 'Escolha pelo menos uma imagem ou um vídeo.' });
-    if (!escolhidas.length) return erroCampo(formulario, { campo: 'configuracoes', message: 'Escolha pelo menos uma configuração.' });
 
     // Ruptura prevista: formato não aceito, avisado antes de começar
     const recusados = arquivos.filter((a) => !ACEITOS.includes(extensao(a.name)));
@@ -108,12 +115,17 @@ export async function render(main, _parametros, consulta, contexto) {
     }
 
     botaoExecutar.disabled = true;
-    botaoExecutar.textContent = 'Enviando os arquivos…';
+    botaoExecutar.textContent = 'Enviando os arquivos: 0%';
+    let anunciado = 0;
     try {
       const dados = new FormData();
       dados.append('ciclo', ciclo);
       aceitos.forEach((arquivo) => dados.append('arquivos', arquivo, arquivo.name));
-      const resposta = await api.enviar('/api/sessoes', dados);
+      const resposta = await api.enviar('/api/sessoes', dados, (enviado, total) => {
+        const porcentagem = Math.floor((100 * enviado) / total);
+        botaoExecutar.textContent = porcentagem >= 100 ? 'Conferindo os arquivos…' : `Enviando os arquivos: ${porcentagem}%`;
+        if (porcentagem >= anunciado + 25) { anunciado = porcentagem - (porcentagem % 25); anunciar(`Enviando os arquivos: ${anunciado}%`); }
+      });
 
       // O servidor também confere o conteúdo: arquivos corrompidos voltam aqui
       if (resposta.recusadas.length) {
@@ -132,27 +144,27 @@ export async function render(main, _parametros, consulta, contexto) {
       if (erro instanceof ErroApi && erro.tipo === 'PA') erroCampo(formulario, erro);
       else await falhaDaApi(erro, 'Não foi possível executar');
     } finally {
-      botaoExecutar.disabled = false;
       botaoExecutar.textContent = 'Executar';
+      regras.atualizar();
     }
   });
 }
 
 async function alertaFormato(nomes, total, restantes, ilegiveis = false) {
   const corpo = h('div', {},
-    h('p', {}, `${nomes.length} de ${total} arquivo(s) ${ilegiveis ? 'não puderam ser lidos' : 'estão em um formato que não consigo processar'}:`),
+    h('p', {}, `${nomes.length} de ${total} arquivo(s) ${ilegiveis ? 'não puderam ser lidos' : 'não estão em um formato aceito'}:`),
     h('ul', {}, nomes.slice(0, 12).map((nome) => h('li', {}, nome)), nomes.length > 12 ? h('li', {}, `e mais ${nomes.length - 12}`) : null),
-    h('p', {}, `Aceito ${FORMATOS}.`),
+    h('p', {}, `Formatos aceitos: ${FORMATOS}.`),
     restantes > 0
-      ? h('p', {}, `Quer seguir com as outras ${restantes} ou trocar esses arquivos antes?`)
+      ? h('p', {}, `Quer seguir sem eles (os outros ${restantes} entram na fila) ou trocar esses arquivos antes?`)
       : h('p', {}, 'Nenhum arquivo pode ser segmentado assim. Troque os arquivos para continuar.'));
 
   return dialogo({
     tipo: 'alerta',
-    titulo: ilegiveis ? 'Arquivos que não puderam ser lidos' : 'Imagens fora do formato aceito',
+    titulo: ilegiveis ? 'Arquivos que não puderam ser lidos' : 'Arquivos fora do formato aceito',
     corpo,
     acoes: restantes > 0
-      ? [{ rotulo: 'Trocar os arquivos', valor: 'trocar' }, { rotulo: 'Seguir sem elas', valor: 'seguir', primaria: true }]
+      ? [{ rotulo: 'Trocar os arquivos', valor: 'trocar' }, { rotulo: 'Seguir sem eles', valor: 'seguir', primaria: true }]
       : [{ rotulo: 'Trocar os arquivos', valor: 'trocar', primaria: true }],
   });
 }

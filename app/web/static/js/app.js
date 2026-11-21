@@ -2,7 +2,7 @@
 // ("Em que ponto está o treino?" e "O que é este termo?").
 import { api } from './api.js';
 import { h, limpar, mensagem, icone } from './ui.js';
-import { abrirTermo, fecharTermo } from './glossario.js';
+import { abrirTermo, fecharTermo, fecharExplicacao } from './glossario.js';
 
 import * as segmentar from './telas/segmentar.js';
 import * as processamento from './telas/processamento.js';
@@ -63,6 +63,7 @@ async function rotear() {
   telaAtual?.sair?.();
   telaAtual = null;
   fecharTermo();
+  fecharExplicacao();
 
   const { caminho, consulta } = separar(location.hash);
   if (!caminho) {
@@ -106,35 +107,51 @@ function marcarMenu(rota) {
   });
 }
 
-// Acesso ubíquo do M03: "Em que ponto está o treino?"
+// Acesso ubíquo do M03: "Em que ponto está o treino?", sempre visível
 function desenharIndicador(estado) {
   const botao = document.getElementById('indicador-treino');
   const recente = estado?.treino_recente;
-  if (!recente) { botao.hidden = true; return; }
+  botao.hidden = false;
 
   let texto;
   let nomeIcone;
-  if (recente.estado === 'treinando') {
-    const etapa = recente.etapa === 'Avaliando no conjunto de teste' ? 'avaliando no conjunto de teste'
-      : `época ${recente.epoca || 0} de ${recente.total || '?'}`;
-    texto = `Treinando: ${recente.nome} · ${etapa}`;
+  if (!recente) {
+    texto = 'Nenhum treino em andamento';
+    nomeIcone = 'sem';
+  } else if (recente.estado === 'treinando') {
+    texto = `Treinando: ${recente.nome} · época ${recente.epoca || 0} de ${recente.total || '?'}`;
     nomeIcone = 'andamento';
   } else if (recente.estado === 'na fila') {
     texto = `Treino na fila: ${recente.nome}`;
     nomeIcone = 'fila';
-  } else if (recente.estado === 'falhou') {
-    texto = `Treino interrompido: ${recente.nome}`;
+  } else if (recente.estado === 'falhou' || recente.avaliacao === 'falhou') {
+    texto = `Treino ou avaliação interrompidos: ${recente.nome}`;
     nomeIcone = 'falha';
+  } else if (recente.avaliacao === 'na fila' || recente.avaliacao === 'processando') {
+    texto = `Avaliação no conjunto de teste ${recente.avaliacao}: ${recente.nome}`;
+    nomeIcone = recente.avaliacao === 'na fila' ? 'fila' : 'andamento';
   } else {
     texto = `Treino concluído: ${recente.nome}`;
     nomeIcone = 'ok';
   }
 
-  botao.hidden = false;
   limpar(botao, icone(nomeIcone), h('span', {}, texto));
   botao.setAttribute('aria-label', `Em que ponto está o treino? ${texto}`);
   botao.title = 'Em que ponto está o treino?';
-  botao.onclick = () => contexto.navegar(`#/treino/${encodeURIComponent(recente.id)}`);
+  if (recente) {
+    botao.removeAttribute('aria-disabled');
+    botao.onclick = () => contexto.navegar(`#/treino/${encodeURIComponent(recente.id)}`);
+  } else {
+    botao.setAttribute('aria-disabled', 'true');
+    botao.onclick = null;
+  }
+
+  const versao = document.getElementById('versao');
+  if (estado?.versao && versao && !versao.textContent) {
+    versao.textContent = estado.versao.commit
+      ? `Versão ${estado.versao.commit}${estado.versao.alteracoes ? ' (com alterações não registradas no git)' : ''}`
+      : 'Versão sem registro no git';
+  }
 }
 
 async function atualizarEstado() {
@@ -157,7 +174,9 @@ async function ciclo() {
 document.getElementById('abrir-glossario').addEventListener('click', (evento) => abrirTermo(null, evento.currentTarget));
 document.getElementById('fechar-termo').addEventListener('click', fecharTermo);
 document.addEventListener('keydown', (evento) => {
-  if (evento.key === 'Escape' && !document.getElementById('painel-termo').hidden) fecharTermo();
+  if (evento.key !== 'Escape') return;
+  fecharExplicacao();
+  if (!document.getElementById('painel-termo').hidden) fecharTermo();
 });
 
 window.addEventListener('hashchange', rotear);
