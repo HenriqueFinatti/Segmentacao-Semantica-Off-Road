@@ -9,7 +9,7 @@
 \usepackage{helvet}
 \usepackage{multicol}
 \usepackage{titlesec}     % Para personalizar \section
-\usepackage[style=ieee, sorting=nty, language=portuguese]{biblatex}
+\usepackage[style=ieee, sorting=none, language=portuguese]{biblatex}
 \definecolor{grayFEI}{HTML}{7F7F7F}
 \usepackage{paracol} % no preâmbulo
 \usepackage{indentfirst}  % Indenta o primeiro parágrafo
@@ -19,6 +19,7 @@
 \usepackage{array}
 \usepackage[table]{xcolor}
 \usepackage{placeins}
+\usepackage{amsmath}
 
 
 %-------------------------- ESTILOS NÃO ALTERAR ------------------------------------------------%
@@ -238,12 +239,12 @@ via \textit{Transfer Learning} \cite{s19112577, Sgibnev2020}. No Capítulo 4, ap
 desenvolvimento experimental e a análise de desempenho do
 modelo DeepLab\cite{BEYCIMEN2026113680, Maturana2017}.
 
-\begin{figure*}[t]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=\textwidth]{imagens/Imagem-introducao.png}
+    \includegraphics[width=\linewidth]{imagens/Imagem-introducao.png}
     \caption{Fluxo principal da segmentação semântica com DeepLabv3+.}
     \label{fig:introducao-image.png}
-\end{figure*}
+\end{figure}
 
 \FloatBarrier
 
@@ -649,7 +650,7 @@ tempo de inferência e a acurácia, visto que modelos FCN tendem a ser mais ráp
 comparados ao DeepLabv3+ \cite{Maturana2017, Long_2015_CVPR}. Essa análise comparativa permitirá justificar a escolha do modelo mais adequado para o equilíbrio entre 
 segurança e velocidade de processamento \cite{DBLP:journals/corr/Garcia-GarciaOO17, BEYCIMEN2026113680}.
 
-A análise quantitativa dos resultados será pautada na métrica de mIoU e em matrizes de confusão. 
+A análise quantitativa dos resultados será pautada na métrica de mIoU. 
 A acurácia da segmentação é definida pela razão entre a área corretamente segmentada e a verdade fundamental, 
 sendo o mIoU o padrão ouro para avaliar a correção espacial \cite{LATEEF2019321, 9288755}. Além disso, calcularemos o Recall e o F1-score para cada classe, 
 garantindo que o modelo não negligencie categorias minoritárias, mas críticas \cite{10742323}. Esta abordagem 
@@ -668,17 +669,17 @@ Adotando como cenário o Mapa 2 (\textit{Mountain 2}) do \textit{benchmark} de g
 complexidade topográfica, caracterizando-se por estradas florestais não pavimentadas, 
 aclives e declives acentuados, curvas fechadas e ausência total de sinalização \cite{Han2021}. O experimento roda em modo síncrono a $10\text{ Hz}$ com um veículo 
 Nissan Patrol equipado com câmera frontal RGB ($800 \times 600$ pixels, FOV $90^\circ$, montada a $1,7\text{ m}$ de altura) \cite{Han2021}. A máscara binária predita 
-passa por filtragem morfométrica (descarte de regiões $&lt; 200\text{ px}$) e é projetada no plano do solo para determinar o centro da trilha 
+passa por filtragem morfométrica (descarte de regiões $< 200\text{ px}$) e é projetada no plano do solo para determinar o centro da trilha 
 nas linhas de referência da imagem $v$ correspondentes a distâncias de $5\text{ m}, 7\text{ m}$ e $9\text{ m}$ à frente. 
 O algoritmo \textbf{Pure Pursuit} calcula a curvatura $\kappa = \frac{2y}{x^2+y^2}$ e o comando de esterço $\delta = \frac{\kappa}{0,267}$, enquanto a velocidade 
 é regulada entre $1,0$ e $2,0\text{ m/s}$ com frenagem automática em curvas acentuadas.
 
-\begin{figure*}[t]
+\begin{figure}[t]
     \centering
-    \includegraphics[width=\textwidth]{imagens/Metodologia_fluxograma.png}
+    \includegraphics[width=\linewidth]{imagens/Metodologia_fluxograma.png}
     \caption{Fluxograma para ilustração da nossa metodologia.}
     \label{fig:metodologia_fluxograma.png}
-\end{figure*}
+\end{figure}
 
 Por fim, a metodologia contempla a avaliação da viabilidade de processamento em tempo real. 
 A implementação de modelos de segmentação em cenários reais exige que o tempo de inferência por frame seja baixo o suficiente para 
@@ -692,55 +693,259 @@ assegura que o sistema não apenas "enxergue" o caminho, mas o faça com a agili
 
 \section{Resultados}
 
-A arquitetura DeepLabv3+ apresentou elevada eficiência e rápida convergência na tarefa de 
-segmentação semântica para identificação de trilhas \textit{off-road}. Evidências do treinamento 
-demonstram que a função de perda sofreu uma redução drástica, declinando de 
-aproximadamente 0,167 na primeira época para 0,037 ao final do processo, enquanto a acurácia de pixels atingiu 
-a marca de 98,57\%, como vistos na figura 8. Esse comportamento indica que o modelo foi capaz de aprender progressivamente as 
-hierarquias de características espaciais necessárias para distinguir solo navegável de 
-obstáculos naturais, superando desafios comuns de texturas irregulares presentes em biomas 
-como o \textit{Freiburg Forest} \cite{KABIR2025102644, s19112577}. Portanto, a estabilização das métricas 
-nas últimas épocas confirma que o modelo atingiu um estado de convergência robusto, minimizando 
-erros de classificação em cenários de alta variabilidade visual.
-
-Além da acurácia global, a métrica mIoU confirmou a precisão espacial das segmentações, evoluindo 
-de 80\% para 92,58\%. Como a mIoU é o padrão ouro para medir a sobreposição entre as predições e a 
-verdade fundamental, este resultado de 92,58\% posiciona o modelo acima de diversos \textit{baselines} da literatura \cite{LATEEF2019321, GARCIAGARCIA201841, Sgibnev2020}. Os 
-resultados do DeepLabv3+ neste aspecto decorre ao uso do módulo ASPP, que permite capturar o contexto de 
-trilhas que se estendem até o horizonte enquanto preserva a delimitação exata de bordas próximas \cite{LATEEF2019321, Sgibnev2020, KABIR2025102644}. Dessa forma, 
-os resultados demonstram que o sistema não apenas classifica os pixels corretamente, mas 
-produz mapas de trafegabilidade espacialmente coerentes para o planejamento de rotas.
-
-\begin{figure*}[t]
-    \centering
-    \includegraphics[width=\textwidth]{../metrics/training_metrics.png}
-    \caption{Métricas do modelo DeepLabv3+.}
-    \label{fig:deep-lab-metrics.png}
-\end{figure*}
-
-Os desempenhos computacionais medidos, apresentados na figura 9, indicam que a arquitetura possui viabilidade real para integração 
-em hardware embarcado e sistemas de robótica móvel. O treinamento completo de apenas 4 épocas foi finalizado em 
-apenas 1 minuto e 47 segundos, com um tempo médio de inferência de aproximadamente 12,85 ms por 
-quadro \cite{10742323, BEYCIMEN2026113680}. Tal agilidade é um requisito crítico para a navegação em alta velocidade, garantindo que o veículo autônomo possa reagir 
-em tempo real a obstáculos súbitos identificados no fluxo de vídeo \cite{KABIR2025102644}. Consequentemente, os 
-baixos tempos de latência aliados à alta precisão reforçam o potencial do DeepLabv3+ para aplicações práticas em 
-plataformas robóticas operando em terrenos desafiadores.
-
-O treinamento foi realizado no computador, cujo as especificações de hardware são: Intel-Core I9 de 12° geração, 32GB de RAM e uma placa de
-vídeo dedicada NVIDIA RTX 3080.
-
-Em suma, os resultados parciais fundamentam a robustez da metodologia proposta, alcançando elevados índices 
-de acurácia e mIoU com reduzido custo computacional. Esses dados 
-fornecem uma base sólida para as próximas etapas do trabalho, que incluirão a 
-validação em malha fechada no simulador CARLA e o teste de generalização 
-no \textit{dataset} YCOR.
+A análise do processo de convergência do modelo DeepLabv3+ demonstra a eficácia do treinamento 
+e a rápida estabilização dos parâmetros da rede para a identificação de trilhas \textit{off-road}. 
+Evidências do gráfico de convergência indicam que a função de perda (\textit{loss}) 
+apresentou uma trajetória decrescente contínua, atingindo seu valor mínimo na $16^{\text{a}}$ 
+época, momento em que o mecanismo de \textit{early stopping} interrompeu a otimização após um 
+tempo total de $57\text{ minutos e } 13\text{ segundos}$. Concomitantemente, 
+a acurácia de validação alcançou o pico de $99,08\%$ ($0,9908$), 
+enquanto o índice \textbf{mIoU} atingiu a marca de $97,16\%$ ($0,9716$), 
+apresentando comportamento equivalente entre os conjuntos de treinamento e validação. 
+A estreita proximidade entre as curvas de aprendizado reflete uma 
+sólida capacidade de generalização espacial, demonstrando que o módulo 
+ASPP foi capaz de capturar as bordas da trilha sem incorrer em 
+sobreajuste (\textit{overfitting}) \cite{LATEEF2019321, Sgibnev2020}. Portanto, a 
+estabilização rápida e os elevados índices de $mIoU$ confirmam que a 
+arquitetura atingiu um estado de aprendizado robusto e espacialmente 
+preciso para a classificação densa de pixels em terrenos não 
+estruturados \cite{BEYCIMEN2026113680, s19112577}. 
 
 \begin{figure}[t]
     \centering
-    \includegraphics[width=\linewidth]{../metrics/performance_summary.png}
-    \caption{Permformance do modelo DeepLab.}
-    \label{fig:sumary-performance.png}
+    \includegraphics[width=\linewidth]{../results/deeplabv3+/images/04_convergence.png}
+    \caption{Métricas do modelo DeepLabv3+.}
+    \label{fig:deep-lab-metrics.png}
 \end{figure}
+
+Além da acurácia geométrica na delimitação das vias, a 
+viabilidade operacional da arquitetura é corroborada pelos 
+reduzidos tempos de inferência aferidos por quadro. Nos testes 
+executados em fluxo contínuo de vídeo, o modelo registrou tempo médio de
+processamento de $12,78\text{ ms}$ por quadro, com percentil 95 (P95) fixado 
+em $13,43\text{ ms}$; já na avaliação sobre o conjunto de teste estático,
+a latência média foi de $13,59\text{ ms}$ (P95 de $13,62\text{ ms}$). Essa faixa de 
+latência equivale a uma taxa de inferência entre $73\text{ e } 78\text{ FPS}$ (quadros por segundo), 
+posicionando a rede amplamente dentro dos requisitos de tempo real 
+para direção autônoma (tipicamente estabelecidos abaixo de 
+latência $< 33,3\text{ ms}$) \cite{10742323, BEYCIMEN2026113680}. As distribuições 
+de tempo revelam baixa variância na maior parte das execuções, 
+com oscilações no processamento de vídeo decorrentes do carregamento 
+dinâmico de quadros na memória \cite{10742323}. Consequentemente, o perfil 
+computacional observado valida que o DeepLabv3+ 
+concilia a riqueza contextual da segmentação densa com a 
+agilidade perceptiva exigida por atuadores 
+veiculares em tempo real \cite{Maturana2017, 10.1145/3729420}.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{../results/deeplabv3+/images/09_tempo_inferencia_teste.png}
+    \caption{Tempo de inferência do teste do modelo DeepLabv3+.}
+    \label{fig:metrics.png}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{../results/deeplabv3+/images/09_tempo_inferencia_video.png}
+    \caption{Tempo de inferência do vídeo do modelo DeepLabv3+.}
+    \label{fig:metrics2.png}
+\end{figure}
+
+A arquitetura FCN demonstrou elevada estabilidade de aprendizado e convergência eficaz durante a tarefa 
+de segmentação semântica para identificação de trilhas \textit{off-road}. 
+Evidências extraídas do gráfico de convergência indicam que a função \textit{loss} apresentou um 
+declínio contínuo e progressivo, enquanto a acurácia de validação atingiu o valor 
+máximo de $98,51\%$ ($0,9851$) e o índice \textbf{mIoU} alcançou o 
+pico de $95,48\%$ ($0,9548$) na $19^{\text{a}}$ época, momento em que o 
+treinamento foi concluído após $1\text{ hora}, 10\text{ minutos e } 29\text{ segundos}$. A estreita 
+aderência entre as curvas de aprendizado dos conjuntos de treinamento e 
+validação confirma a consistência do desempenho sem a ocorrência de 
+sobreajuste (\textit{overfitting}), demonstrando que o processo de 
+convolucionalização e a arquitetura de salto extraíram 
+características espaciais com alta fidelidade \cite{Long2015, GARCIAGARCIA201841}. Portanto, 
+os elevados índices quantitativos obtidos ratificam a capacidade 
+da FCN de realizar a classificação densa de pixels com acurácia 
+espacial, consolidando o modelo como uma \textit{baseline} sólida para a percepção de 
+terrenos não estruturados \cite{Long2015, Maturana2017, Sgibnev2020}. 
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{../results/fcn/images/04_convergence.png}
+    \caption{Métricas do modelo FCN.}
+    \label{fig:fcn-metrics.png}
+\end{figure}
+
+
+Sob a perspectiva da eficiência computacional, o modelo FCN destacou-se por apresentar 
+reduzidos tempos de inferência por quadro, superando amplamente as exigências de tempo real. Na 
+avaliação sobre o conjunto de teste estático, a latência média de 
+inferência registrada foi de $11,25\text{ ms}$ por 
+quadro, com percentil 95 (P95) fixado em $11,28\text{ ms}$; já nos testes executados 
+sobre o fluxo contínuo de vídeo, o tempo médio manteve-se em $11,47\text{ ms}$ por quadro, 
+com P95 de $12,26\text{ ms}$. Por prescindir de módulos de
+amostragem multi-escala de alta densidade computacional, 
+a estrutura puramente convolucional da FCN proporciona um 
+fluxo de dados direto, garantindo baixa variação na latência 
+e mantendo a taxa de processamento bem acima do patamar mínimo de latência $< 33,3\text{ ms}$ 
+exigido em sistemas embarcados automotivos \cite{Long2015, BEYCIMEN2026113680}. Consequentemente, 
+o perfil computacional observado ratifica a prontidão operacional da FCN para
+alimentar atuadores robóticos com mínima defasagem perceptiva durante o deslocamento 
+veicular \cite{Maturana2017, 10.1145/3729420}. 
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{../results/fcn/images/09_tempo_inferencia_teste.png}
+    \caption{Tempo de inferência do teste do modelo FCN.}
+    \label{fig:fcn-metrics2.png}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{../results/fcn/images/09_tempo_inferencia_video.png}
+    \caption{Tempo de inferência do vídeo do modelo FCN.}
+    \label{fcn-metrics3.png}
+\end{figure}
+
+
+Em síntese, a combinação de elevada acurácia geométrica com notável velocidade de 
+processamento consolida a FCN como uma solução altamente competitiva para a
+segmentação de trilhas em sequências de vídeo. A obtenção de um $mIoU$ máximo de $95,48\%$ 
+aliada a taxas de inferência superiores a $87\text{ FPS}$ em vídeo garante 
+a preservação da consistência temporal inter-quadros, minimizando oscilações 
+indesejadas na predição das bordas da via \cite{Long2015, s26061944, Sehar2022}. Essa 
+agilidade no processamento reduz ruídos decorrentes da trepidação da câmera em 
+superfícies irregulares, provendo ao planejador de rotas um mapa de trafegabilidade 
+estável e atualizado em alta frequência \cite{s26061944, 9551643}. Dessa forma, 
+os resultados experimentais comprovam que a FCN equilibra de maneira eficiente a 
+acurácia de classificação densa e a velocidade de execução, apresentando grande 
+potencial para aplicação em tempo real em plataformas robóticas operando em
+ambientes \textit{off-road} \cite{KABIR2025102644, BEYCIMEN2026113680, 10742323}.
+
+\subsection{Comparação dos Resultados}
+
+A análise comparativa executada no conjunto de teste revelou a clara 
+superioridade da arquitetura DeepLabv3+ sobre o modelo FCN em todas as métricas de 
+segmentação semântica avaliadas. Evidências quantitativas demonstram que o 
+DeepLabv3+ alcançou uma acurácia global de $98,3\%$ ($0,983$) e um mIoU de $93,3\%$ ($0,933$), 
+superando os $97,4\%$ de acurácia e $90,2\%$ de mIoU obtidos pela FCN. Na métrica crítica 
+de IoU específica da classe \textit{Trilha}, o DeepLabv3+ atingiu $88,6\%$, estabelecendo 
+uma vantagem de $5,2$ pontos percentuais em relação aos $83,4\%$ registrados pela FCN. As 
+demais métricas seguiram a mesma tendência favorável ao DeepLabv3+, incluindo Precisão ($94,8\%$ vs. $92,3\%$), 
+\textit{Recall} ($93,2\%$ vs. $89,6\%$) e F1-score ($94,0\%$ vs. $90,9\%$). Dessa 
+forma, a avaliação no conjunto de teste confirma que o refinamento do decodificador do DeepLabv3+ 
+provê maior fidelidade geométrica na delimitação de vias não pavimentadas.
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{../results/comparacao/avaliacao_teste.png}
+    \caption{Comparação da métricas dos modelos FCN e DeepLabv3+.}
+    \label{fig:comparacao-metricas.png}
+\end{figure}
+
+Sob a perspectiva da eficiência computacional em inferência, a FCN registrou latências por quadro 
+ligeiramente menores, contudo ambas as redes demonstraram taxas de processamento 
+amplamente compatíveis com os requisitos de operação em tempo real. Nos testes 
+realizados em fluxo contínuo de vídeo, a FCN obteve um tempo médio de inferência de $11,47\text{ ms}$ 
+por quadro, enquanto o DeepLabv3+ registrou $12,78\text{ ms}$. Na avaliação sobre o conjunto de 
+teste estático, a FCN apresentou latência média de $11,25\text{ ms}$frente a $13,59\text{ ms}$ 
+do DeepLabv3+. Embora a estrutura puramente convolucional da FCN proporcione um fluxo 
+de dados marginalmente mais veloz, o DeepLabv3+ manteve uma taxa de 
+inferência sustentada em ambos os cenários, valor que supera em mais de 
+duas vezes o patamar mínimo estipulado para sistemas embarcados automotivos 
+de latência $< 33,3\text{ ms}$) \cite{BEYCIMEN2026113680, 10.1145/3729420}. Consequentemente, a 
+penalidade computacional associada às amostragem paralelas 
+do ASPP mostra-se desprezível na prática, assegurando que o
+ganho em precisão semântica não comprometa a agilidade 
+perceptiva do veículo autônomo \cite{Maturana2017, BEYCIMEN2026113680}. 
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{../results/comparacao/tempo_inferencia_teste.png}
+    \caption{Comparação dos tempos de inferência no teste dos modelos.}
+    \label{fig:comparacao2.png}
+\end{figure}
+
+\begin{figure}[t]
+    \centering
+    \includegraphics[width=\linewidth]{../results/comparacao/tempo_inferencia_video.png}
+    \caption{Comparação dos tempos de inferência no vídeo dos modelos.}
+    \label{fig:comparacao3.png}
+\end{figure}
+
+Com base no balanço integrado entre qualidade geométrica de segmentação e 
+viabilidade computacional, a arquitetura DeepLabv3+ foi selecionada como o modelo 
+definitivo para compor o sistema de percepção do projeto. A tomada de 
+decisão fundamenta-se precipuamente no ganho expressivo de $5,2$ pontos percentuais na 
+IoU da classe \textit{Trilha} ($88,6\%$ no DeepLabv3+ contra $83,4\%$ na FCN), associado a 
+um mIoU global de $93,3\%$ \cite{Sgibnev2020, BEYCIMEN2026113680, 10742323}. 
+Dado que o objetivo primordial da navegação autônoma em biomas não estruturados é a 
+delimitação exata do solo navegável frente à vegetação circundante e aos obstáculos
+laterais, a maior fidelidade de borda fornecida pelo DeepLabv3+ traduz-se diretamente em 
+maior segurança para o módulo de controle de direção \cite{s26061944, 9551643, KABIR2025102644}. 
+Portanto, a convergência entre reduzido erro de classificação e alta frequência de 
+inferência consolida o DeepLabv3+ como a solução ideal para atender a todos os 
+requisitos de percepção em tempo real exigidos por plataformas robóticas \cite{BEYCIMEN2026113680, 10.1145/3729420}.
+
+\subsection{Integração do Modelo DeepLabv3+ ao Simulador CARLA}
+
+A integração da arquitetura DeepLabv3+ ao simulador CARLA (versão 0.9.6) consolidou a 
+transição da avaliação estática para a validação em malha fechada em ambiente 
+virtual dinâmico e altamente realista. Evidências 
+experimentais demonstram que o modelo foi 
+acoplado ao ciclo de execução do simulador no cenário \textit{Mountain 2}, processando em tempo 
+real o fluxo de quadros capturados. Essa infraestrutura permitiu submeter o 
+sistema perceptivo a variações contínuas de perspectiva e 
+inclinação causadas pela topografia acentuada do ambiente 
+florestal, testando a resiliência das convoluções dilatadas do 
+módulo ASPP sob movimentação veicular real \cite{LATEEF2019321, Sgibnev2020}. Dessa 
+forma, a acoplagem da rede ao simulador garantiu que o fluxo perceptual 
+operasse continuamente, convertendo dados visuais brutos em representações semânticas 
+acionáveis para a tomada de decisão no controle de navegação \cite{Maturana2017, BEYCIMEN2026113680}. 
+
+O arranjo da interface visual e a extração morfométrica da trilha 
+estabeleceram a conexão direta entre o mapa denso de pixels e o 
+algoritmo de controle cinemático do veículo. Conforme apresentado na 
+Figura, a exibição do sistema foi estruturada 
+em três visualizações síncronas: a cena RGB original 
+capturada pelo simulador, a sobreposição semântica e a máscara binária predita 
+pela rede (após a filtragem de ruídos isolados $< 200\text{ pixels}$) \cite{s26061944, Maturana2017}. 
+A partir da projeção da região conectada da trilha em três linhas de referência ($5\text{ m}, 7\text{ m}$ 
+e $9\text{ m}$ à frente do veículo), determinou-se o 
+deslocamento lateral $y$ em relação ao 
+centro da pista, alimentando o algoritmo \textbf{Pure Pursuit} para o 
+cálculo contínuo da curvatura $\kappa$ e do comando de esterço $\delta = \frac{\kappa}{0,267}$, 
+mantendo a velocidade entre $1,0\text{ e } 2,0\text{ m/s}$ 
+\cite{Han2021, Maturana2017}. Consequentemente, 
+a pipeline demonstrou que as máscaras geradas 
+pelo DeepLabv3+ fornecem precisão espacial suficiente 
+para estabilizar o vetor de esterço e prevenir saídas de 
+pista em curvas acentuadas e aclives acentuados \cite{10742323, BEYCIMEN2026113680}. 
+
+\begin{figure}[t]
+    \includegraphics[width=\linewidth]{imagens/implementacao-seg-tempo-real.png} 
+    \caption{Visualização da integração do DeepLabv3+ no CARLA: (a) Imagem RGB da câmera frontal, (b) Sobreposição semântica e (c) Máscara binária inferida em tempo real.} 
+    \label{fig:carla_simulation} 
+\end{figure} 
+
+A execução bem-sucedida das rotas no ambiente \textit{Mountain 2} validou a 
+viabilidade prática da arquitetura DeepLabv3+ como motor perceptual primário para a 
+condução \textit{off-road}. Durante os ensaios dinâmicos, a 
+inferência por quadro sustentou uma latência média de $12,78\text{ ms}$ 
+(aproximadamente $78,3\text{ FPS}$), permitindo que o ciclo de 
+controle recebesse atualizações semânticas sem atrasos perceptíveis no acionamento dos atuadores 
+veiculares. A preservação da consistência temporal 
+inter-quadros reduziu oscilações bruscas no volante 
+virtual e suavizou a trajetória da plataforma robótica, 
+mesmo em trechos caracterizados por sombras densas e 
+vegetação rasteira adjacente \cite{s26061944, Sehar2022}. Dessa maneira, 
+a validação em malha fechada confirma que a segmentação de alta 
+fidelidade promovida pelo DeepLabv3+ constitui um elemento 
+fundamental, robusto e eficiente para guiar a trajetória de 
+veículos autônomos em biomas naturais não estruturados \cite{KABIR2025102644, 10.1145/3729420}.
+
+Todo o treinamento e integração com o CARLA foram realizados no computador, cujo as especificações de hardware são: Intel-Core I9 de 12° geração, 32GB de RAM e uma placa de
+vídeo dedicada NVIDIA RTX 3080. 
+%e está disponobilizado publicamente no github: *Link* .
 
 \section{Referências}
 \printbibliography[heading=none]
