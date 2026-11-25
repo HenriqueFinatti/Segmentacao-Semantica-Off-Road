@@ -99,7 +99,7 @@
 \fancyhead{} % limpa cabeçalho
 \renewcommand{\headrulewidth}{0.3pt} % ← ATIVA a linha (espessura ajustável)
 \setlength\headheight{1.2cm}
-\lhead{\includegraphics[width=4.97cm, height=1cm]{logoinova.png}}
+\lhead{\includegraphics[width=4.97cm, height=1cm]{imagens/logoinova.png}}
 \rhead{\helvet{1º semestre/2025}}
 
 \fancyfoot{} % limpa rodapé
@@ -123,7 +123,7 @@
 
 \raggedright{
 
-\inovatitle{Estudo e Implementação de um Sistema de Segmentação Semântica para Ambientes Off-Road}
+\inovatitle{Segmentação Semântica e Navegação Autônoma Aplicadas a Veículos Off-Road}
 
 \autores{Henrique Finatti$^1$, Mateus Marana Assuena$^1$, Tiago Fagundes$^1$}
 
@@ -141,16 +141,16 @@
   O campo da segmentação semântica tem crescido significativamente com os avanços da visão computacional, sua aplicação em ambientes 
   \textit{off-road} é um dos grandes desafios da área devido a dificuldade de identificar caminhos
   e diferenciar diferentes obstáculos presentes nas trilhas.
-  Diante desse cenário esse trabalho apresenta um modelo de segmentação semântica
-  desenvolvido com a arquitetura DeepLabV3+, proposta pela Google, utilizando a ResNet152 como backbone. O modelo será
+  Diante desse cenário esse trabalho apresenta uma comparação entre os modelos de segmentação semântica
+  desenvolvidos com as arquitetura DeepLabV3+, proposta pela Google, e FCN. Ambas utilizando a ResNet152 como backbone. O modelo será
   treinado com diversos \textit{datasets} encontrados em artigos recentes na área da segmentação semântica aplicada em ambientes \textit{off-road}.
-  O objetivo deste trabalho é desenvolver, treinar e comparar os modelos para obter bons resultados no \textit{dataset} YAMAHA, conhecido como
-  um dos \textit{datasets} mais desafiadores para segmentação. Utilizaremos o CARLA, um simulador gráfico de direção,
-  para testar o desempenho dos modelos desenvolvidos. Além disso, pretendemos aplicar o modelo na segmentação de imagens
-  e vídeos de competições Baja realizadas pela equipe da FEI.
+  O objetivo deste trabalho é desenvolver, treinar, comparar os modelos e utilizar o CARLA, um simulador gráfico de direção,
+  para testar o desempenho dos modelos desenvolvidos. Pretendemos aplicar o modelo na segmentação de imagens
+  e vídeos de competições Baja realizadas pela equipe da FEI. Com o resultado da comparação, escolheremos o modelo com melhor desempenho e o aplicaremos para conduzir
+  um veículo de maneira autônoma no CARLA.  
 }
 
-\keyword{Segmentação Semântica, Off-Road, DeepLabV3+,FCN, CARLA}
+\keyword{Segmentação Semântica, Navegação Autônoma, Off-Road, DeepLabV3+, FCN, CARLA}
 }
 
 \end{@twocolumnfalse}
@@ -211,9 +211,7 @@ semântica robusto voltado especificamente para a identificação de caminhos tr
 em ambientes \textit{off-road} \cite{10742323, Maturana2017}. Para alcançar essa meta, 
 o trabalho propõe-se a treinar o modelo DeepLabv3+ utilizando o \textit{dataset} Freiburg 
 Forest e integrar dados sintéticos para aumentar a diversidade estatística da rede \cite{Sgibnev2020, s19112577}. 
-Adicionalmente, buscaremos comparar quantitativamente o desempenho do DeepLab com o modelo FCN, 
-utilizando o \textit{dataset} YAMAHA (YCOR) como validador definitivo da capacidade de 
-generalização em hardware robótico \cite{Maturana2017, LATEEF2019321}. Linkando esses 
+Adicionalmente, buscaremos comparar quantitativamente o desempenho do DeepLab com o modelo FCN e linkando esses 
 objetivos à aplicação prática, visamos garantir que a saída da segmentação possa ser 
 integrada a um loop de controle em malha fechada, permitindo a navegação autônoma realística \cite{10.1145/3729420, BEYCIMEN2026113680}.
 Podemos analisar na Figura 1, o fluxo principal do treinamento utilizando o DeepLabv3+.
@@ -610,53 +608,38 @@ generalização necessária para operar com segurança em caminhos não estrutur
 
 \section{Metodologia}
 
-A etapa inicial da nossa pesquisa concentra-se na utilização do \textit{dataset} \textit{Freiburg Forest} para o treinamento base em ambientes de 
-vegetação densa. Evidências na literatura apontam que este conjunto de dados é fundamental por deslocar o foco de ambientes urbanos 
-estruturados para a complexidade de terrenos naturais não estruturados, contendo aproximadamente 200 imagens 
-multiespectrais \cite{s26061944}. A riqueza deste \textit{dataset} reside na sua constituição em ambientes de floresta sob diferentes condições de iluminação, 
-sombras e ângulos solares, o que desafia a robustez de qualquer modelo de visão \cite{LATEEF2019321}. Ao processar 
-essas imagens, o sistema adquire a 
-capacidade de reconhecer padrões de solo e obstáculos naturais que são comuns em trilhas 
-rurais \cite{s19112577}. Portanto, o \textit{Freiburg Forest} atua como 
-o alicerce experimental necessário para que o modelo aprenda a segmentar classes críticas como trilhas e vegetação em cenários de alta 
-variabilidade \cite{s19112577, s26061944}.
+A etapa inicial da nossa pesquisa fundamenta-se na formulação da percepção de terreno como uma tarefa de \textbf{segmentação semântica binária}, 
+utilizando a combinação estratégica dos \textit{datasets} \textit{Freiburg Forest}, \textit{Synthetic Offroad} e \textit{CaSSeD} para o treinamento em ambientes de vegetação 
+densa e terrenos \textit{off-road} \cite{s19112577, s26061944, KABIR2025102644}. Evidências na literatura apontam que essa abordagem é fundamental por 
+deslocar o foco de vias urbanas padronizadas para a complexidade de terrenos naturais, onde a imagem de entrada ($512 \times 512$ pixels) é mapeada para 
+uma máscara binária contendo apenas as classes fundo ($0$) e trilha ($255$) \cite{LATEEF2019321, s19112577}. Essa combinação 
+reside na exposição do modelo a variações extremas de iluminação, sombras sob copas de árvores e texturas rústicas de lama e cascalho, desafiando a invariância de qualquer 
+rede convolucional \cite{LATEEF2019321, BEYCIMEN2016113680}. A escassez de dados anotados pixel a pixel em vias não pavimentadas é mitigada pela fusão de fontes reais e sintéticas, 
+garantindo que o sistema aprenda os padrões visuais de solo navegável sem sofrer sobreajuste a uma única localização geográfica \cite{s19112577, s26061944}. 
+Consequentemente, essa diversificação de dados estabelece o alicerce metodológico necessário para que as redes desenvolvam alta capacidade de generalização em biomas e 
+ecossistemas diversos \cite{s26061944, KABIR2025102644}. 
 
-Para a execução da tarefa de segmentação, adotaremos a arquitetura DeepLabv3+, reconhecida por sua alta precisão em limites de 
-objetos. Este modelo permite expandir o campo receptivo dos filtros sem perda de resolução espacial \cite{LATEEF2019321, DBLP:journals/corr/Garcia-GarciaOO17}. Estudos comparativos indicam que a 
-família DeepLab é uma das mais sólidas, superando outros métodos em quase todos os \textit{datasets} de imagens 
-RGB por margens significativas \cite{GARCIAGARCIA201841, DBLP:journals/corr/Garcia-GarciaOO17}. A 
-utilização do DeepLabv3+ é estratégica para o nosso objetivo, pois sua capacidade de capturar contextos em múltiplas escalas é 
-indispensável para distinguir trilhas estreitas de áreas de grama visualmente similares \cite{LATEEF2019321, Sgibnev2020}. Dessa maneira, a escolha desta rede 
-garante que a segmentação pixel a pixel possua a granularidade exigida para a segurança de um veículo \textit{off-road}.
+Um pilar central da metodologia é a análise comparativa entre as arquiteturas \textbf{FCN} e \textbf{DeepLabv3+}, ambas construídas sobre a mesma \textit{backbone} 
+ResNet-152 para garantir uma avaliação isenta \cite{Long2015, LATEEF2019321, Sgibnev2020}. 
+Na FCN ($67,6$ milhões de parâmetros), a projeção espacial é realizada por uma camada convolucional $3 \times 3$ com $512$ filtros 
+(seguida de BatchNorm, ReLU e Dropout $0,1$) e uma convolução $1 \times 1$ final para gerar os $2$ logits de classe, estendidos por interpolação bilinear 
+direta até a resolução original \cite{Long2015}. Em contrapartida, o DeepLabv3+ ($75,0$ milhões de parâmetros) supera as limitações contextuais da FCN ao integrar o módulo 
+ASPP com cinco ramos paralelos de $256$ filtros (convolução $1 \times 1$, três convoluções dilatadas $3 \times 3$ com taxas $6, 12$ e $18$, e 
+\textit{Global Average Pooling}), combinado à fusão de características de baixo nível ($48$ canais extraídos a $1/4$ da resolução) \cite{LATEEF2019321, Sgibnev2020}. 
+Embora a FCN apresente um tempo de processamento ligeiramente menor, o mecanismo de amostragem multi-escala do DeepLabv3+ é indispensável para distinguir trilhas 
+estreitas ao horizonte de áreas de grama visualmente similares em primeiro plano \cite{LATEEF2019321, BEYCIMEN2016113680}. 
+Portanto, essa comparação quantitativa permitirá fundamentar cientificamente o equilíbrio ideal entre velocidade de inferência e acurácia de borda para a 
+condução autônoma \cite{GARCIAGARCIA201841, BEYCIMEN2016113680}. 
 
-A fim de aumentar a generalização do modelo, a metodologia prevê a integração de um segundo \textit{dataset} ao 
-fluxo de treinamento, criando uma 
-base de dados híbrida e mais robusta \cite{s26061944}. A combinação de diferentes fontes 
-permite que a rede neural seja exposta a uma variedade maior 
-de classes que podem ser escassas em \textit{datasets} isolados \cite{BEYCIMEN2026113680}. Ao treinar o modelo com este conjunto expandido, reduzimos o viés em direção a 
-um único tipo de terreno, preparando o sistema para condições operacionais reais mais severas \cite{s26061944}. Consequentemente, essa diversificação 
-de dados é o passo metodológico que assegura a adaptabilidade do DeepLabv3+ a diferentes biomas e ecossistemas \cite{s26061944}. 
-
-A escassez de dados anotados pixel a pixel em ambientes \textit{off-road} é mitigada pelo uso estratégico de \textit{Transfer Learning} e 
-\textit{datasets} de referência \cite{s19112577, 10742323}. O \textit{Freiburg Forest} é 
-amplamente utilizado como alicerce por conter milhares de imagens multiespectrais que capturam 
-variações extremas de iluminação e vegetação densa, enquanto o \textit{dataset} YAMAHA fornece uma validação 
-crítica em trilhas reais acidentadas \cite{Maturana2017, s19112577}. Evidências 
-demonstram que inicializar modelos com pesos pré-treinados em ImageNet e realizar o ajuste fino nestas 
+Para contornar a limitação de amostras anotadas e acelerar a convergência do aprendizado, adotamos a técnica de Transfer Learning utilizando como extrator 
+de características a arquitetura ResNet-152 pré-treinada na base ImageNet (\textit{IMAGENET1K\\\_V1}) \cite{He2016, Sgibnev2020}. Do ponto de vista técnico, 
+removemos a camada final de classificação (\textit{avgpool} e \textit{fully connected}), permitindo que o modelo forneça um mapa denso 
+de $2048$ canais a $1/32$ da resolução original ($16 \times 16$ pixels) \cite{He2016, LATEEF2019321}. Evidências 
+demonstram que inicializar modelos com pesos pré-treinados e realizar o ajuste fino nestas 
 bases específicas permite que o DeepLabv3+ e a FCN aprendam a distinguir solo navegável de obstáculos 
 naturais com alta precisão estatística \cite{10742323, s26061944}. Dessa forma, a combinação dessas bases 
 de dados garante que a rede neural desenvolva a generalização necessária para operar sob copas de árvores 
-e em trilhas rurais com características visuais distintas.
-A integração de dados sintéticos, como o \textit{dataset} Synthetic Offroad, surge como uma solução 
-metodológica para preencher lacunas de informação e lidar com "casos de borda" \cite{s26061944, s19112577}. 
-
-O desempenho final do código será validado através de testes rigorosos no \textit{dataset} da YAMAHA, que simula condições reais de 
-operação de ATVs. O \textit{dataset} YCOR é uma referência na área, composto por imagens coletadas em diferentes 
-locais e estações, oferecendo classes específicas como trilhas suaves, solo acidentado e grama trafegável \cite{Maturana2017, s26061944}. Utilizaremos esta base para 
-verificar se a rede treinada consegue transferir o conhecimento aprendido para um novo domínio com características topográficas 
-distintas \cite{10742323}. A precisão obtida no YAMAHA servirá como o indicador definitivo de sucesso para a nossa lógica de detecção de caminho 
-navegável \cite{10742323}. Assim, o teste neste \textit{dataset} específico fecha o ciclo de validação, conectando o treinamento acadêmico à aplicação 
-física em veículos utilitários de exploração \cite{Maturana2017}.
+e em trilhas rurais com características visuais distintas. \cite{s26061944, s19112577}.
 
 Um ponto crucial da nossa metodologia é a comparação de desempenho entre o DeepLabv3+ e o modelo FCN. 
 Enquanto o FCN é considerado o precursor da segmentação moderna por converter redes de classificação em predição densa pixel a pixel, 
@@ -669,17 +652,26 @@ segurança e velocidade de processamento \cite{DBLP:journals/corr/Garcia-GarciaO
 A análise quantitativa dos resultados será pautada na métrica de mIoU e em matrizes de confusão. 
 A acurácia da segmentação é definida pela razão entre a área corretamente segmentada e a verdade fundamental, 
 sendo o mIoU o padrão ouro para avaliar a correção espacial \cite{LATEEF2019321, 9288755}. Além disso, calcularemos o Recall e o F1-score para cada classe, 
-garantindo que o modelo não negligencie categorias minoritárias, mas críticas, como obstáculos pequenos ou poças \cite{10742323}. Esta abordagem 
+garantindo que o modelo não negligencie categorias minoritárias, mas críticas \cite{10742323}. Esta abordagem 
 rigorosa de métricas permite identificar onde o modelo apresenta confusão sistemática entre classes visualmente ambíguas \cite{s26061944}. 
 Portanto, a avaliação detalhada fornecerá os dados necessários para refinamentos futuros na arquitetura ou no processo de 
 aumento de dados \cite{10742323, s26061944}.
 
-A integração do simulador CARLA em nossa metodologia de testes é fundamental para validar a robustez do 
+A validação em ambiente simulado e em malha fechada é executada no simulador CARLA (versão 0.9.6), fundamental para validar a robustez do 
 modelo de segmentação em um ambiente virtual controlado e altamente realista. Evidências na literatura destacam que o CARLA 
 é uma das plataformas de código aberto mais eficazes para o treinamento e validação de sistemas de direção autônoma, 
 permitindo a execução de testes rigorosos que seriam perigosos ou dispendiosos no mundo real \cite{10.1145/3729420, 9288755}. Portanto, o CARLA atua como uma 
-etapa de validação intermediária crucial, garantindo que o sistema de percepção opere de forma confiável antes de qualquer 
+etapa de validação crucial, garantindo que o sistema de percepção opere de forma confiável antes de qualquer 
 implementação em veículos físicos. Podemos observar na imagem 7 o fluxograma de ilustração do passo a passo da nossa metodologia.
+
+Adotando como cenário o Mapa 2 (\textit{Mountain 2}) do \textit{benchmark} de generalização \textit{off-road} proposto por Han et al., o ambiente apresenta extrema 
+complexidade topográfica, caracterizando-se por estradas florestais não pavimentadas, 
+aclives e declives acentuados, curvas fechadas e ausência total de sinalização \cite{Han2021}. O experimento roda em modo síncrono a $10\text{ Hz}$ com um veículo 
+Nissan Patrol equipado com câmera frontal RGB ($800 \times 600$ pixels, FOV $90^\circ$, montada a $1,7\text{ m}$ de altura) \cite{Han2021}. A máscara binária predita 
+passa por filtragem morfométrica (descarte de regiões $&lt; 200\text{ px}$) e é projetada no plano do solo para determinar o centro da trilha 
+nas linhas de referência da imagem $v$ correspondentes a distâncias de $5\text{ m}, 7\text{ m}$ e $9\text{ m}$ à frente. 
+O algoritmo \textbf{Pure Pursuit} calcula a curvatura $\kappa = \frac{2y}{x^2+y^2}$ e o comando de esterço $\delta = \frac{\kappa}{0,267}$, enquanto a velocidade 
+é regulada entre $1,0$ e $2,0\text{ m/s}$ com frenagem automática em curvas acentuadas.
 
 \begin{figure*}[t]
     \centering
@@ -696,18 +688,9 @@ computacional em prol da segurança \cite{10742323, Maturana2017}. Monitoraremos
 do ambiente ocorra em uma frequência compatível com os loops de controle de direção \cite{BEYCIMEN2026113680, Maturana2017}. Dessa forma, a metodologia 
 assegura que o sistema não apenas "enxergue" o caminho, mas o faça com a agilidade necessária para evitar acidentes em trilhas \textit{off-road} \cite{10742323, s26061944}.
 
-A segmentação semântica aplicada a sequências de vídeo expande a capacidade de percepção ao introduzir a análise da 
-continuidade temporal e consistência de movimento \cite{LATEEF2019321, s26061944}. Em vez de processar cada quadro como uma 
-imagem isolada, técnicas avançadas de Aprendizado Profundo exploram as correlações temporais entre frames sucessivos para 
-garantir que o caminho identificado não oscile visualmente durante o deslocamento rápido do veículo \cite{GARCIAGARCIA201841, Sehar2022}. Isso é vital em contextos 
-\textit{off-road}, onde a trepidação da câmera e mudanças súbitas de perspectiva podem gerar ruído na segmentação, exigindo que o 
-modelo mantenha um fluxo estável de mapas de trafegabilidade para o controle de direção \cite{10742323, s26061944}. Linkando 
-essa abordagem ao nosso objetivo, a segmentação de vídeo em tempo real fornece a segurança operacional necessária para que 
-o veículo autônomo tome decisões preditivas e fluidas em alta velocidade.
-
 \FloatBarrier
 
-\section{Resultados Parciais}
+\section{Resultados}
 
 A arquitetura DeepLabv3+ apresentou elevada eficiência e rápida convergência na tarefa de 
 segmentação semântica para identificação de trilhas \textit{off-road}. Evidências do treinamento 
@@ -758,89 +741,6 @@ no \textit{dataset} YCOR.
     \caption{Permformance do modelo DeepLab.}
     \label{fig:sumary-performance.png}
 \end{figure}
-
-\FloatBarrier
-
-\section{Cronograma}
-
-\begin{table*}[t]
-\centering
-\scriptsize
-\renewcommand{\arraystretch}{1}
-\setlength{\tabcolsep}{4pt}
-
-\begin{tabular}{|p{4cm}|c|c|c|c|c|c|c|c|c|c|c|c|}
-\hline
-\textbf{Atividade} &
-\textbf{1} & \textbf{2} & \textbf{3} & \textbf{4} &
-\textbf{5} & \textbf{6} & \textbf{7} & \textbf{8} &
-\textbf{9} & \textbf{10} & \textbf{11} & \textbf{12} \\ \hline
-
-Revisão da literatura apresentada
-& \cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& & & & & & & & & & \\ \hline
-
-Pesquisa de datasets off-roads
-& \cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& & & & & & & & & \\ \hline
-
-Busca de modelos de Deep Learning para segmentação semântica
-& &
-& \cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& & & & & & & \\ \hline
-
-Treinamento do modelo DeepLabv3+
-& & &
-& &
-\cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& & & & & \\ \hline
-
-Treinamento do modelo FCN
-& & & & & &
-\cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& & & & \\ \hline
-
-Comparação e avaliação dos modelos
-& & & & & & &
-\cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& & & \\ \hline
-
-Teste dos modelos no simulador CARLA
-& & & & & & & & &
-\cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& \\ \hline
-
-Desenvolvimento da segmentação semântica em vídeo com o modelo selecionado
-& & & & & & & & & &
-\cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7} \\ \hline
-
-Análise dos resultados e redação do relatório/artigo
-& & & & & & & & & &
-& \cellcolor[gray]{0.7}
-& \cellcolor[gray]{0.7} \\ \hline
-
-\end{tabular}
-
-\caption{Cronograma de atividades para 12 meses.}
-\label{tab:cronograma}
-\end{table*}
-
-\FloatBarrier
 
 \section{Referências}
 \printbibliography[heading=none]
