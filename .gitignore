@@ -14,8 +14,6 @@ __pycache__/
 video
 *.pth
 raw/
-frames/
-validacao_imagens.txt
 
 ##############################
 # Latex
@@ -39,3 +37,4 @@ validacao_imagens.txt
 # Interface
 ##############################
 sessoes/
+results/
