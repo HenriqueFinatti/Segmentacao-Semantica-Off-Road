@@ -2,7 +2,7 @@
 // Na comparação (O05.2) todos os visualizadores usam a mesma Regiao: ampliar um amplia todos.
 import { h } from './ui.js';
 
-const TRILHA = [255, 176, 0];          // --trilha
+const TRILHA = [255, 0, 0];            // --trilha, o mesmo vermelho dos downloads
 const FORA_DA_TRILHA = [43, 58, 85];   // --fora-da-trilha
 const CONTORNO = [255, 255, 255];
 const ZOOM_MAXIMO = 12;
@@ -168,8 +168,8 @@ export class Visualizador {
     const partes = [titulo];
     if (modo === 'original') partes.push('imagem original');
     else if (this.semMascara) partes.push('imagem original; não há máscara para esta imagem');
-    else if (modo === 'mascara') partes.push('máscara: Trilha em amarelo, Fora da trilha em azul escuro');
-    else partes.push(`sobreposição com transparência de ${transparencia}%: Trilha pintada de amarelo com contorno branco`);
+    else if (modo === 'mascara') partes.push('máscara: Trilha em vermelho, Fora da trilha em azul escuro');
+    else partes.push(`sobreposição com transparência de ${transparencia}%: Trilha pintada de vermelho com contorno branco`);
     if (this.camadas && modo !== 'original') partes.push(`cerca de ${Math.round(this.camadas.fracaoTrilha * 100)}% da imagem marcada como Trilha`);
     partes.push(this.regiao.texto);
     return partes.filter(Boolean).join('. ');
@@ -281,14 +281,4 @@ export class Visualizador {
     this.cancelar();
     this.observador?.disconnect();
   }
-}
-
-// Botões de ampliar/reduzir para quem não usa a roda do mouse
-export function controlesDeRegiao(regiao) {
-  return h('div', { class: 'linha', role: 'group', 'aria-label': 'Região ampliada' },
-    h('span', { class: 'rotulo' }, 'Região ampliada:'),
-    h('button', { type: 'button', class: 'botao botao-secundario botao-pequeno', onclick: () => regiao.ampliar(1.5) }, 'Ampliar'),
-    h('button', { type: 'button', class: 'botao botao-secundario botao-pequeno', onclick: () => regiao.ampliar(1 / 1.5) }, 'Reduzir'),
-    h('button', { type: 'button', class: 'botao botao-secundario botao-pequeno', onclick: () => regiao.inteira() }, 'Imagem inteira'),
-    h('span', { class: 'suave pequeno' }, 'Também: roda do mouse, arrastar, ou + − 0 e setas com a imagem em foco.'));
 }

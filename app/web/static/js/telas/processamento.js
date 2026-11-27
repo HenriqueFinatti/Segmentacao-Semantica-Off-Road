@@ -4,9 +4,8 @@ import { api, enc } from '../api.js';
 import { h, limpar, cabecalho, mensagem, estado, progresso, falhaDaApi, anunciar } from '../ui.js';
 import { tarefaDe, rotuloImagem } from './comum.js';
 
-export async function render(main, { id }, consulta, contexto) {
+export async function render(main, { id }, _consulta, contexto) {
   let sessao = await api.get(`/api/sessoes/${enc(id)}`);
-  const depois = consulta.get('depois');
   const corpo = h('div', {});
   let anunciado = false;
 
@@ -89,14 +88,12 @@ export async function render(main, { id }, consulta, contexto) {
       || sessao.videos.some((v) => v.estado === 'falhou');
     const tratadas = !emAndamento && !pendentes && execucoes.length > 0;
 
-    const comparar = depois === 'comparar' || (depois !== 'avaliar' && (sessao.comparacao?.configuracoes || []).length > 1);
-    const destino = comparar ? `#/sessao/${enc(id)}/comparar` : `#/sessao/${enc(id)}/imagem`;
     const total = new Set(execucoes.flatMap(([, e]) => e.concluidas || [])).size;
 
     limpar(corpo,
       tratadas ? mensagem('ok',
         h('p', {}, h('strong', {}, 'Concluído: '), `as ${total} imagens foram segmentadas. Os resultados estão reunidos nesta `, h('strong', {}, 'sessão'), '.'),
-        h('a', { class: 'botao', href: destino, id: 'ver-resultado' }, comparar ? 'Comparar na mesma imagem e região' : 'Avaliar as imagens')) : null,
+        h('a', { class: 'botao', href: `#/sessao/${enc(id)}/imagem`, id: 'ver-resultado' }, 'Ver os resultados')) : null,
       !execucoes.length ? mensagem('neutra', h('p', {}, 'Nenhuma configuração foi executada nesta sessão.')) : null,
       h('ul', { style: 'list-style:none;padding:0;margin:0', 'aria-live': 'polite' },
         sessao.videos.map(linhaVideo),

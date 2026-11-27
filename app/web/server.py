@@ -149,7 +149,7 @@ def create_app():
     @app.post('/api/sessoes/{session_id}/executar')
     async def execute(session_id: str, request: Request):
         body = await request.json()
-        return sistema.execute(session_id, body.get('configuracoes'), body.get('imagens'), bool(body.get('comparacao')))
+        return sistema.execute(session_id, body.get('configuracoes'), body.get('imagens'))
 
     @app.post('/api/sessoes/{session_id}/falhas')
     async def image_failure(session_id: str, request: Request):
@@ -162,11 +162,6 @@ def create_app():
             return sistema.retry_video(session_id, body['video'])
         return sistema.handle_execution_failure(session_id, body.get('configuracao'), body.get('acao'))
 
-    @app.put('/api/sessoes/{session_id}/avaliacoes/{image}')
-    async def evaluate_image(session_id: str, image: str, request: Request):
-        body = await request.json()
-        return sistema.evaluate_image(session_id, image, body.get('avaliacao'), body.get('origem_problema'), body.get('configuracao'))
-
     def send_file(path, media_type=None, download_name=None):
         if not path or not os.path.isfile(path):
             return not_found('Arquivo não encontrado.')
@@ -178,15 +173,25 @@ def create_app():
         return send_file(sistema.session_file(session_id, 'imagem', image))
 
     @app.get('/api/sessoes/{session_id}/mascaras/{configuration_id}/{image}')
-    def mask_file(session_id: str, configuration_id: str, image: str):
-        return send_file(sistema.session_file(session_id, 'mascara', image, configuration_id), 'image/png')
+    def mask_file(session_id: str, configuration_id: str, image: str, baixar: bool = False):
+        name = sistema.download_name(configuration_id, image, 'mascara') if baixar else None
+        return send_file(sistema.session_file(session_id, 'mascara', image, configuration_id), 'image/png', name)
+
+    @app.get('/api/sessoes/{session_id}/sobreposicoes/{configuration_id}/{image}')
+    def overlay_file(session_id: str, configuration_id: str, image: str):
+        png = sistema.overlay_image(session_id, configuration_id, image)
+        if png is None:
+            return not_found('Esta imagem não tem máscara desta configuração.')
+        name = sistema.download_name(configuration_id, image, 'sobreposicao')
+        return Response(png, media_type='image/png',
+                        headers={'Content-Disposition': f'attachment; filename="{name}"', 'Cache-Control': 'no-cache'})
 
     @app.get('/api/sessoes/{session_id}/videos/{configuration_id}/{video}')
     def video_file(session_id: str, configuration_id: str, video: str):
         path = sistema.session_file(session_id, 'video', video, configuration_id)
         return send_file(path, 'video/mp4', os.path.basename(path) if path else None)
 
-    # Ciclos, desempenho e conclusões
+    # Ciclos e desempenho
 
     @app.get('/api/ciclos')
     def cycles():
@@ -196,31 +201,6 @@ def create_app():
     async def performance(request: Request):
         body = await request.json()
         return sistema.performance(body.get('configuracoes'), body.get('ciclo') or None, bool(body.get('comparar_mesmo_assim')))
-
-    @app.post('/api/conclusoes')
-    async def register_conclusion(request: Request):
-        body = await request.json()
-        return sistema.register_conclusion(body, bool(body.get('concluir_assim_mesmo')))
-
-    @app.put('/api/conclusoes/{conclusion_id}')
-    async def correct_conclusion(conclusion_id: str, request: Request):
-        body = await request.json()
-        return sistema.register_conclusion(body, bool(body.get('concluir_assim_mesmo')), conclusion_id)
-
-    @app.get('/api/conclusoes/{conclusion_id}')
-    def conclusion(conclusion_id: str):
-        found = sistema.get_conclusion(conclusion_id)
-        return found if found else not_found('Conclusão não encontrada.')
-
-    @app.get('/api/recomendacoes')
-    def recommendation(ciclo: str):
-        found = sistema.recommendation_for(ciclo)
-        return found if found else not_found('Ainda não há recomendação registrada para este ciclo de testes.')
-
-    @app.post('/api/conclusoes/{conclusion_id}/decisao')
-    async def decision(conclusion_id: str, request: Request):
-        body = await request.json()
-        return sistema.register_decision(conclusion_id, body.get('decisao'), body.get('condicao'))
 
     # Datasets
 

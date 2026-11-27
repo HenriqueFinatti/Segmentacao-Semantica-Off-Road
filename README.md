@@ -13,7 +13,7 @@ O treino e a segmentação rodam enquanto o programa estiver aberto; fechar o te
 Onde a interface guarda os dados:
 - `raw/`: datasets brutos (nunca são apagados; "Remontar o dataset" copia daqui para `dataset/`).
 - `results/configuracoes/<id>/`: pesos, estatísticas e gráficos de cada configuração treinada pela interface.
-- `results/registro.json`: configurações, avaliações das imagens, conclusões e decisões.
+- `results/registro.json`: configurações e sessões de segmentação.
 - `sessoes/<id>/`: imagens e vídeos enviados, quadros extraídos e máscaras de cada configuração.
 - `results/interface.log`: detalhes técnicos de falhas (a interface mostra só a causa em linguagem de usuário).
 

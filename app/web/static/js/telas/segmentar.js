@@ -139,7 +139,7 @@ export async function render(main, _parametros, consulta, contexto) {
       }
 
       const sessao = await api.post(`/api/sessoes/${encodeURIComponent(resposta.sessao.id)}/executar`, { configuracoes: escolhidas });
-      contexto.navegar(`#/sessao/${encodeURIComponent(sessao.id)}/processamento?depois=${escolhidas.length > 1 ? 'comparar' : 'avaliar'}`);
+      contexto.navegar(`#/sessao/${encodeURIComponent(sessao.id)}/processamento`);
     } catch (erro) {
       if (erro instanceof ErroApi && erro.tipo === 'PA') erroCampo(formulario, erro);
       else await falhaDaApi(erro, 'Não foi possível executar');

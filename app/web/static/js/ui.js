@@ -30,7 +30,7 @@ export function limpar(elemento, ...filhos) {
   return elemento;
 }
 
-// Ícones simples (decorativos: o texto ao lado sempre diz o mesmo)
+// Ícones simples (decorativos: o texto ao lado, ou o aria-label do botão, sempre diz o mesmo)
 const ICONES = {
   ok: '<path d="M4 10.5l4 4 8-9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
   falha: '<path d="M10 2.5l8.5 15h-17z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M10 8v4.5M10 15v.2" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>',
@@ -39,6 +39,7 @@ const ICONES = {
   andamento: '<path d="M10 2.5a7.5 7.5 0 1 1-7.5 7.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>',
   fila: '<circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 5.5V10l3 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   sem: '<circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="3 3"/>',
+  baixar: '<path d="M10 3v9.5M6 9l4 4 4-4M3.5 16.5h13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
 };
 
 export function icone(nome) {
@@ -64,7 +65,7 @@ export function estado(valor, texto) {
 }
 
 export function situacao(valor) {
-  const classe = valor === 'em uso' ? 'situacao-em-uso' : valor === 'candidata' ? 'situacao-candidata' : '';
+  const classe = valor === 'em uso' ? 'situacao-em-uso' : '';
   return h('span', { class: `situacao ${classe}` }, valor);
 }
 

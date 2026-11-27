@@ -1,7 +1,6 @@
 """Persistência local da interface em um único JSON (results/registro.json).
 
-Guarda o que não sai do código de treino: configurações nomeadas, sessões de segmentação, avaliações
-das imagens, conclusões (validação, experimento e recomendação) e a decisão da coordenação.
+Guarda o que não sai do código de treino: configurações nomeadas e sessões de segmentação.
 Os arquivos grandes (pesos, imagens, máscaras) ficam nas pastas de cada configuração e de cada sessão."""
 import os
 import json
@@ -28,7 +27,6 @@ def empty_registry():
         'versao': VERSION,
         'configuracoes': {},
         'sessoes': {},
-        'conclusoes': {},
         # A configuração em uso é a última executada (decisão da equipe para o protótipo)
         'configuracao_em_uso': None,
         'ultima_sessao': None,

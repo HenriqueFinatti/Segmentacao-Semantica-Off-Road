@@ -1,7 +1,7 @@
 // O06 Comparar o desempenho consolidado no conjunto de teste (M02 e M03):
 // O06.1 Escolher as configurações · O06.2 Conferir se a comparação é válida · O06.3 Ler o desempenho ·
 // O06.4 Consultar a matriz de confusão · O07.2 Julgar a diferença entre configurações (reusada na apresentação).
-import { api, enc, ErroApi } from '../api.js';
+import { api, ErroApi } from '../api.js';
 import { h, limpar, cabecalho, mensagem, termo, rotuloComTermo, dialogo, falhaDaApi, formato, situacao, conjuntoTexto, exigir } from '../ui.js';
 import { graficoDeBarras, CORES_SERIES } from '../graficos.js';
 
@@ -118,7 +118,6 @@ export async function render(main, _p, consulta, contexto) {
   const [configuracoes, ciclos] = await Promise.all([api.get('/api/configuracoes'), api.get('/api/ciclos')]);
   const disponiveis = configuracoes.filter((c) => c.disponivel);
   const pedidas = (consulta.get('configuracoes') || '').split(',').filter(Boolean);
-  const sessaoOrigem = consulta.get('sessao');
   const estado = {
     ciclo: consulta.has('ciclo') ? consulta.get('ciclo') : (ciclos[0]?.ciclo || ''),
     selecionadas: pedidas,
@@ -131,8 +130,7 @@ export async function render(main, _p, consulta, contexto) {
   const escolha = h('div', {});
   const resultado = h('div', { id: 'resultado-desempenho' });
   limpar(main, cabecalho('Comparar o desempenho',
-    'Compare as métricas das configurações no conjunto de teste e registre a recomendação ou a conclusão do experimento.',
-    sessaoOrigem ? h('a', { href: `#/sessao/${enc(sessaoOrigem)}/comparar` }, '← Comparar na mesma imagem e região') : null),
+    'Compare as métricas das configurações no conjunto de teste.'),
   escolha, resultado);
 
   if (!disponiveis.length) {
@@ -218,16 +216,11 @@ export async function render(main, _p, consulta, contexto) {
           corpo: h('div', {},
             h('p', {}, 'As configurações escolhidas foram avaliadas em conjuntos de teste diferentes. Comparar resultados de conjuntos diferentes pode levar a uma conclusão errada.'),
             h('ul', {}, erro.dados.conjuntos.map((item) => h('li', {}, `${item.configuracao}: ${conjuntoTexto(item.conjunto)}`)))),
-          // Vindo da comparação na mesma imagem (O05.2), a volta é aos quadros; vindo da O06.1, a outras configurações
-          acoes: sessaoOrigem
-            ? [{ rotulo: 'Voltar aos quadros', valor: 'quadros', primaria: true }, { rotulo: 'Comparar mesmo assim', valor: 'mesmo assim' }]
-            : [{ rotulo: 'Escolher outras configurações', valor: 'outras', primaria: true }, { rotulo: 'Comparar mesmo assim', valor: 'mesmo assim' }],
+          acoes: [{ rotulo: 'Escolher outras configurações', valor: 'outras', primaria: true }, { rotulo: 'Comparar mesmo assim', valor: 'mesmo assim' }],
         });
         if (escolhaAlerta === 'mesmo assim') {
           estado.compararMesmoAssim = true;
           await comparar();
-        } else if (escolhaAlerta === 'quadros') {
-          contexto.navegar(`#/sessao/${enc(sessaoOrigem)}/comparar`);
         } else {
           escolha.querySelector('input[type="checkbox"]')?.focus();
         }
@@ -254,10 +247,6 @@ export async function render(main, _p, consulta, contexto) {
       })),
     }) : null;
 
-    const parametrosConclusao = `configuracoes=${enc(analise.configuracoes.map((c) => c.id).join(','))}`
-      + `&ciclo=${enc(analise.ciclo || '')}&comparar_mesmo_assim=${estado.compararMesmoAssim ? '1' : ''}`
-      + (sessaoOrigem ? `&sessao=${enc(sessaoOrigem)}` : '');
-
     limpar(resultado,
       h('div', { class: 'cartao' },
         h('h2', { tabindex: '-1' }, 'Desempenho de cada configuração'),
@@ -279,13 +268,7 @@ export async function render(main, _p, consulta, contexto) {
       estado.painel === 'matriz' ? h('div', { class: 'cartao', id: 'painel-matriz', tabindex: '-1' },
         h('h2', {}, termo('Matriz de confusão', 'matriz_confusao'), ' no conjunto de teste'),
         h('div', { class: 'grade-2' }, analise.configuracoes.map((c) => h('div', {}, h('h3', {}, c.nome), tabelaMatriz(c.matriz, c.nome)))),
-        h('button', { type: 'button', class: 'botao botao-secundario', onclick: voltar }, 'Voltar à análise')) : null,
-      h('div', { class: 'cartao' },
-        h('h2', {}, 'Registrar a conclusão'),
-        h('p', { class: 'pequeno suave' }, 'A conclusão é sua: o sistema registra o que você decidir junto desta comparação.'),
-        h('div', { class: 'linha' },
-          h('a', { class: 'botao', href: `#/conclusao/nova?tipo=${enc('recomendação')}&${parametrosConclusao}` }, 'Registrar a recomendação'),
-          h('a', { class: 'botao botao-secundario', href: `#/conclusao/nova?tipo=experimento&${parametrosConclusao}` }, 'Registrar a conclusão do experimento'))));
+        h('button', { type: 'button', class: 'botao botao-secundario', onclick: voltar }, 'Voltar à análise')) : null);
   }
 
   desenharEscolha();

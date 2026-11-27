@@ -7,11 +7,8 @@ import { abrirTermo, fecharTermo, fecharExplicacao } from './glossario.js';
 import * as segmentar from './telas/segmentar.js';
 import * as processamento from './telas/processamento.js';
 import * as sessao from './telas/sessao.js';
-import * as comparacao from './telas/comparacao.js';
 import * as treino from './telas/treino.js';
 import * as desempenho from './telas/desempenho.js';
-import * as conclusao from './telas/conclusao.js';
-import * as apresentacao from './telas/apresentacao.js';
 import * as datasets from './telas/datasets.js';
 
 const ROTAS = [
@@ -19,15 +16,9 @@ const ROTAS = [
   ['sessao', sessao.renderAtual, 'sessao'],
   ['sessao/:id/processamento', processamento.render, 'sessao'],
   ['sessao/:id/imagem', sessao.render, 'sessao'],
-  ['sessao/:id/escolher-comparacao', comparacao.renderEscolher, 'sessao'],
-  ['sessao/:id/comparar', comparacao.renderComparar, 'sessao'],
   ['treino/novo', treino.renderNovo, 'treino'],
   ['treino/:id', treino.renderAcompanhar, 'treino'],
   ['desempenho', desempenho.render, 'desempenho'],
-  ['conclusao/nova', conclusao.renderNova, null],
-  ['conclusao/:id/corrigir', conclusao.renderCorrigir, null],
-  ['conclusao/:id', conclusao.renderConferir, null],
-  ['apresentar', apresentacao.render, 'apresentar'],
   ['datasets', datasets.render, 'datasets'],
 ];
 

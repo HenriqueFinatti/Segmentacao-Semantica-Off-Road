@@ -192,6 +192,29 @@ def extract_frames(video_path, output_dir, prefix, on_frame=None):
     return names, fps
 
 
+def paint_trail(frame, mask):
+    """Pinta a trilha prevista (pixels > 0 da máscara) sobre a imagem BGR, na mesma cor do overlay do CARLA."""
+    height, width = frame.shape[:2]
+    if mask.shape != (height, width):
+        mask = cv2.resize(mask, (width, height), interpolation=cv2.INTER_NEAREST)
+    trail = mask > 0
+    frame[trail] = ((1 - TRAIL_ALPHA) * frame[trail] + TRAIL_ALPHA * TRAIL_COLOR).astype(np.uint8)
+    return frame
+
+
+def build_overlay_image(image_path, mask_path):
+    """PNG (bytes) da imagem com a trilha prevista pintada por cima, para baixar."""
+    frame = cv2.imread(image_path)
+    mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+    if frame is None or mask is None:
+        raise RuntimeError(f"Não foi possível ler a imagem ou a máscara de {os.path.basename(image_path)}")
+
+    ok, png = cv2.imencode('.png', paint_trail(frame, mask))
+    if not ok:
+        raise RuntimeError(f"Não foi possível gerar a sobreposição de {os.path.basename(image_path)}")
+    return png.tobytes()
+
+
 def build_overlay_video(frames_dir, masks_dir, frame_names, output_path, fps, label=None):
     """Monta um MP4 com a trilha prevista pintada sobre cada quadro (para baixar). Quadros sem máscara ficam sem pintura."""
     if not frame_names:
@@ -212,10 +235,7 @@ def build_overlay_video(frames_dir, masks_dir, frame_names, output_path, fps, la
             mask = cv2.imread(os.path.join(masks_dir, os.path.splitext(name)[0] + '.png'), cv2.IMREAD_GRAYSCALE)
 
             if mask is not None:
-                if mask.shape != (height, width):
-                    mask = cv2.resize(mask, (width, height), interpolation=cv2.INTER_NEAREST)
-                trail = mask > 0
-                frame[trail] = ((1 - TRAIL_ALPHA) * frame[trail] + TRAIL_ALPHA * TRAIL_COLOR).astype(np.uint8)
+                paint_trail(frame, mask)
 
             if label:
                 # Fontes do OpenCV não suportam acentos

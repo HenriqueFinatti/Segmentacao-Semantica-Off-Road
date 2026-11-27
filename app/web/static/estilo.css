@@ -25,7 +25,9 @@
   --fila-fundo: #eceef2;
 
   /* Classes da segmentação (iguais às do canvas em visualizador.js) */
-  --trilha: #ffb000;
+  /* Mesmo vermelho dos downloads (TRAIL_COLOR em processing/video.py) */
+  --trilha: #ff0000;
+  --destaque-menu: #ffb000;
   --fora-da-trilha: #2b3a55;
 
   --raio: 8px;
@@ -134,7 +136,7 @@ a { color: var(--primaria); }
 .navegacao a[aria-current="page"] {
   color: #fff;
   font-weight: 600;
-  border-bottom-color: var(--trilha);
+  border-bottom-color: var(--destaque-menu);
 }
 
 main {
@@ -225,6 +227,7 @@ main:focus { outline: none; }
 .topo .botao-secundario:hover { background: rgba(255, 255, 255, .1); }
 .botao-perigo { background: var(--falha); border-color: var(--falha); }
 .botao-pequeno { min-height: 36px; padding: .25rem .7rem; font-size: .9rem; }
+.botao-icone { min-width: 36px; padding: .25rem; }
 .botao-link {
   background: none;
   border: none;
@@ -347,7 +350,6 @@ input[type="number"] { width: 9rem; }
   margin-left: .35rem;
 }
 .situacao-em-uso { color: var(--ok); border-color: var(--ok); background: var(--ok-fundo); }
-.situacao-candidata { color: var(--alerta); border-color: var(--alerta); background: var(--alerta-fundo); }
 
 /* Mensagens dentro da tela */
 
@@ -508,7 +510,6 @@ input[type="range"] { accent-color: var(--primaria); min-height: 32px; }
   font-weight: 600;
 }
 .marcador-correta { color: var(--ok); }
-.marcador-duvidosa { color: var(--alerta); }
 .marcador-sem { color: var(--texto-suave); }
 .marcador svg { width: 13px; height: 13px; }
 

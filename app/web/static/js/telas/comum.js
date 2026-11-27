@@ -1,5 +1,5 @@
-// Peças repetidas entre telas: escolha de configurações, métricas resumidas e avaliações.
-import { h, formato, situacao, icone, conjuntoTexto } from '../ui.js';
+// Peças repetidas entre telas: escolha de configurações, métricas resumidas e endereços dos arquivos da sessão.
+import { h, formato, situacao, conjuntoTexto } from '../ui.js';
 
 export function metricasCurtas(teste) {
   if (!teste) return h('span', { class: 'suave' }, 'Sem métricas no conjunto de teste.');
@@ -9,8 +9,8 @@ export function metricasCurtas(teste) {
 }
 
 /**
- * Lista de configurações para escolher (O03.1, O05.1 e O06.1).
- * extras(config) devolve texto adicional por configuração (ex.: "já executada nestas imagens").
+ * Lista de configurações para escolher (O03.1 e O06.1).
+ * extras(config) devolve texto adicional por configuração.
  */
 export function seletorDeConfiguracoes(configuracoes, { nome, multiplo = true, selecionadas = [], extras, rotulo } = {}) {
   const grupo = h('div', { class: 'lista-configuracoes', role: multiplo ? 'group' : 'radiogroup', 'aria-label': rotulo || 'Configurações' });
@@ -37,20 +37,6 @@ export function seletorDeConfiguracoes(configuracoes, { nome, multiplo = true, s
   };
 }
 
-export function marcadorAvaliacao(avaliacao) {
-  if (!avaliacao) return h('span', { class: 'marcador marcador-sem' }, icone('sem'), 'sem avaliação');
-  if (avaliacao.avaliacao === 'correta') return h('span', { class: 'marcador marcador-correta' }, icone('ok'), 'correta');
-  return h('span', { class: 'marcador marcador-duvidosa' }, icone('alerta'),
-    `duvidosa${avaliacao.origem_problema ? ` · ${avaliacao.origem_problema === 'modelo' ? 'problema no modelo' : 'problema na imagem (captura)'}` : ''}`);
-}
-
-export function textoAvaliacao(avaliacao) {
-  if (!avaliacao) return 'sem avaliação';
-  if (avaliacao.avaliacao === 'correta') return 'correta';
-  if (!avaliacao.origem_problema) return 'duvidosa';
-  return `duvidosa, ${avaliacao.origem_problema === 'modelo' ? 'problema no modelo' : 'problema na imagem (captura)'}`;
-}
-
 export function rotuloImagem(imagem) {
   if (imagem.origem === 'quadro') return `Quadro ${imagem.quadro} do vídeo ${imagem.video}`;
   return imagem.nome_original || imagem.nome;
@@ -68,6 +54,10 @@ export function urlMascara(sessaoId, configuracaoId, nome) {
   return `/api/sessoes/${encodeURIComponent(sessaoId)}/mascaras/${encodeURIComponent(configuracaoId)}/${encodeURIComponent(nome)}`;
 }
 
+export function urlSobreposicao(sessaoId, configuracaoId, nome) {
+  return `/api/sessoes/${encodeURIComponent(sessaoId)}/sobreposicoes/${encodeURIComponent(configuracaoId)}/${encodeURIComponent(nome)}`;
+}
+
 // Execuções concluídas da sessão (com resultado para mostrar)
 export function configuracoesExecutadas(sessao) {
   return Object.entries(sessao.execucoes)
@@ -79,7 +69,7 @@ export function temMascara(sessao, configuracaoId, nome) {
   return (sessao.execucoes[configuracaoId]?.concluidas || []).includes(nome);
 }
 
-// Imagens com resultado em pelo menos uma configuração (as deixadas de fora não entram na avaliação)
+// Imagens com resultado em pelo menos uma configuração (as deixadas de fora não aparecem nos resultados)
 export function imagensComResultado(sessao) {
   const execucoes = Object.values(sessao.execucoes);
   return sessao.imagens.filter((imagem) => execucoes.some((e) => (e.concluidas || []).includes(imagem.nome)));

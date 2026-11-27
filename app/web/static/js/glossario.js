@@ -94,19 +94,9 @@ export const TERMOS = {
     indica: 'O nome e a cor de cada classe: Trilha e Fora da trilha. As cores são as mesmas em todas as telas.',
     nao: 'A classe descreve a classificação do modelo; não indica se o trecho é seguro.',
   },
-  avaliacao_imagem: {
-    titulo: 'Avaliação da imagem',
-    indica: 'O seu julgamento sobre a segmentação de uma imagem: correta ou duvidosa. Uma imagem que continua duvidosa depois da comparação é chamada de imagem inconclusiva.',
-    nao: 'Não muda a máscara nem as métricas.',
-  },
-  origem_problema: {
-    titulo: 'Origem do problema',
-    indica: 'Para imagens duvidosas: se o problema parece estar na imagem (captura, como câmera contra o sol) ou no modelo.',
-    nao: 'É o seu julgamento; o sistema não verifica a origem.',
-  },
   ciclo_de_testes: {
     titulo: 'Ciclo de testes',
-    indica: 'O nome ou a data do teste de campo. Reúne as execuções e a recomendação da configuração para esse teste.',
+    indica: 'O nome ou a data do teste de campo. Reúne as execuções das configurações nesse teste.',
     nao: 'Não é um conjunto de imagens anotadas e não tem métricas próprias.',
   },
   sessao: {

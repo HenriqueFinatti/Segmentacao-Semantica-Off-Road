@@ -1,5 +1,5 @@
 """Regras da interface sobre o código do TCC: configurações, treino, sessões de segmentação,
-desempenho no conjunto de teste, conclusões e decisão da coordenação.
+e desempenho no conjunto de teste.
 
 Os nomes das falas e dos campos seguem o esquema de signos da Entrega 9 (seção 4) do projeto de IHC."""
 import os
@@ -27,9 +27,6 @@ ACCEPTED_FORMATS_TEXT = 'imagens em JPG ou PNG e vídeos em MP4'
 METRICS = ['miou', 'iou_trilha', 'iou_fundo', 'acuracia', 'tempo_inferencia_ms']
 # Métricas em que o maior valor é destacado; o tempo depende do computador e não entra no destaque
 HIGHLIGHTED_METRICS = ['miou', 'iou_trilha', 'iou_fundo', 'acuracia']
-
-DECISIONS = {'aceita', 'aceita com condição', 'adiada'}
-CONCLUSION_TYPES = {'validação', 'experimento', 'recomendação'}
 
 
 class Recusa(Exception):
@@ -149,7 +146,6 @@ class Sistema:
                     'pasta': folder,
                     'origem': 'existente',
                     'criada_em': datetime.fromtimestamp(os.path.getmtime(paths.model_path(model))).isoformat(timespec='seconds'),
-                    'candidata': False,
                     'treino': {'estado': 'concluído', 'historico': [], 'motivo_termino': None,
                                'epoca_final': None, 'melhor_epoca': None, 'antes_da_interface': True},
                     'teste': self.read_legacy_test(model),
@@ -284,8 +280,6 @@ class Sistema:
             return 'em treino'
         if data.get('configuracao_em_uso') == configuration['id']:
             return 'em uso'
-        if configuration.get('candidata'):
-            return 'candidata'
         return 'disponível'
 
 
@@ -447,7 +441,6 @@ class Sistema:
                 'pasta': paths.relative(paths.configuration_dir(configuration_id)),
                 'origem': 'interface',
                 'criada_em': now(),
-                'candidata': False,
                 'treino': {'estado': 'na fila'},
                 'teste': None,
             }
@@ -744,8 +737,6 @@ class Sistema:
             'imagens': images,
             'videos': videos,
             'execucoes': {},
-            'avaliacoes': {},
-            'comparacao': None,
         }
 
         with self.registro.transaction() as data:
@@ -787,7 +778,7 @@ class Sistema:
         return self.registro.read(lambda data: data.get('ultima_sessao'))
 
 
-    def execute(self, session_id, configuration_ids, images=None, comparison=False):
+    def execute(self, session_id, configuration_ids, images=None):
         configuration_ids = list(dict.fromkeys(configuration_ids or []))
         if not configuration_ids:
             raise Recusa('PA', 'Escolha pelo menos uma configuração.', 'configuracoes')
@@ -810,16 +801,6 @@ class Sistema:
 
             session['rascunho'] = False
             data['ultima_sessao'] = session_id
-
-            if comparison or len(configuration_ids) > 1:
-                # Comparar com outra configuração inclui as que já foram executadas nestas imagens
-                previous = session.get('comparacao') or {}
-                executed = [cid for cid, e in session['execucoes'].items() if e.get('estado') == 'concluído']
-                base = (previous.get('configuracoes') or executed) if comparison else []
-                session['comparacao'] = {
-                    'configuracoes': list(dict.fromkeys(base + configuration_ids)),
-                    'imagens': images,
-                }
 
             for configuration_id in configuration_ids:
                 execution = session['execucoes'].setdefault(configuration_id, {
@@ -1027,8 +1008,6 @@ class Sistema:
 
             if action == 'deixar de fora':
                 del session['execucoes'][configuration_id]
-                if session.get('comparacao'):
-                    session['comparacao']['configuracoes'] = [c for c in session['comparacao']['configuracoes'] if c != configuration_id]
                 return self.get_session(session_id)
 
             execution.update({'estado': 'na fila', 'causa': None, 'sugestao': None})
@@ -1066,27 +1045,6 @@ class Sistema:
         return self.get_session(session_id)
 
 
-    def evaluate_image(self, session_id, image, evaluation, problem_origin=None, configuration_id=None):
-        if evaluation not in ('correta', 'duvidosa'):
-            raise Recusa('PA', 'Marque a imagem como correta ou duvidosa.', 'avaliacao')
-        if evaluation == 'correta':
-            problem_origin = None
-        elif problem_origin not in (None, 'imagem (captura)', 'modelo'):
-            raise Recusa('PA', 'A origem do problema é imagem (captura) ou modelo.', 'origem_problema')
-
-        with self.registro.transaction() as data:
-            session = data['sessoes'].get(session_id)
-            if not session or image not in {i['nome'] for i in session['imagens']}:
-                raise Recusa('CE', 'Imagem não encontrada nesta sessão.')
-            session['avaliacoes'][image] = {
-                'avaliacao': evaluation,
-                'origem_problema': problem_origin,
-                'configuracao': configuration_id,
-                'registrada_em': now(),
-            }
-            return dict(session['avaliacoes'][image])
-
-
     def session_file(self, session_id, kind, name, configuration_id=None):
         session = self.registro.session(session_id)
         if session is None:
@@ -1111,6 +1069,24 @@ class Sistema:
         return None
 
 
+    def download_name(self, configuration_id, image, suffix):
+        """Nome do arquivo baixado: imagem, configuração e o tipo, para não confundir downloads de configurações diferentes."""
+        configuration = self.registro.configuration(configuration_id) or {}
+        stem, _ = safe_filename(f"{os.path.splitext(image)[0]}_{configuration.get('nome', configuration_id)}_{suffix}.png")
+        return f"{stem}.png"
+
+
+    def overlay_image(self, session_id, configuration_id, image):
+        """PNG com a sobreposição da máscara sobre a imagem original, gerado na hora para o download."""
+        from processing.video import build_overlay_image
+
+        image_path = self.session_file(session_id, 'imagem', image)
+        mask_path = self.session_file(session_id, 'mascara', image, configuration_id)
+        if not image_path or not mask_path or not os.path.isfile(image_path) or not os.path.isfile(mask_path):
+            return None
+        return build_overlay_image(image_path, mask_path)
+
+
     # ------------------------------------------------------------------ ciclos e desempenho
 
     def cycles(self):
@@ -1125,10 +1101,6 @@ class Sistema:
                 for cid, execution in session['execucoes'].items():
                     if execution.get('estado') == 'concluído' and cid not in item['configuracoes']:
                         item['configuracoes'].append(cid)
-
-            for conclusion in data['conclusoes'].values():
-                if conclusion['tipo'] == 'recomendação' and conclusion.get('ciclo') in cycles:
-                    cycles[conclusion['ciclo']]['recomendacao'] = conclusion['id']
 
             return sorted(cycles.values(), key=lambda c: c['ultima'], reverse=True)
         return self.registro.read(build)
@@ -1218,139 +1190,6 @@ class Sistema:
 
         with self.registro.lock:
             return self.registro.read(build)
-
-
-    # ------------------------------------------------------------------ conclusões e decisão
-
-    def register_conclusion(self, form, conclude_anyway=False, conclusion_id=None):
-        kind = form.get('tipo')
-        if kind not in CONCLUSION_TYPES:
-            raise Recusa('PA', 'Tipo de conclusão desconhecido.', 'tipo')
-
-        fields = {}
-        with self.registro.transaction() as data:
-            configurations = data['configuracoes']
-
-            def configuration_or_none(value, label, required=False):
-                if value in (None, '', 'nenhuma'):
-                    if required:
-                        raise Recusa('PA', f'Escolha a {label}.', 'configuracao')
-                    return None
-                if value not in configurations:
-                    raise Recusa('PA', f'Escolha a {label} entre as configurações da análise.', 'configuracao')
-                return value
-
-            session_id = form.get('sessao')
-            cycle = (form.get('ciclo') or '').strip() or None
-
-            if kind == 'validação':
-                session = data['sessoes'].get(session_id)
-                if session is None:
-                    raise Recusa('CE', 'A validação precisa partir de uma sessão de segmentação.')
-                cycle = session['ciclo']
-                names = {image['nome'] for image in session['imagens']}
-                fields = {
-                    'configuracao_indicada': configuration_or_none(form.get('configuracao_indicada'), 'configuração mais adequada'),
-                    'imagens_inconclusivas': [n for n in form.get('imagens_inconclusivas') or [] if n in names],
-                    'imagens_problema_captura': [n for n in form.get('imagens_problema_captura') or [] if n in names],
-                    'ressalva': (form.get('ressalva') or '').strip(),
-                }
-                segmented = set()
-                for execution in session['execucoes'].values():
-                    segmented |= set(execution.get('concluidas', []))
-                without = [n for n in sorted(segmented) if n not in session['avaliacoes']]
-                if without and not conclude_anyway:
-                    raise Recusa('AL', '', dados={'ruptura': 'imagens_sem_avaliacao', 'quantidade': len(without), 'primeira': without[0]})
-
-            elif kind == 'experimento':
-                text = (form.get('conclusao') or '').strip()
-                if not text:
-                    raise Recusa('PA', 'Escreva a conclusão do experimento.', 'conclusao')
-                fields = {
-                    'conclusao': text,
-                    'configuracao_candidata': configuration_or_none(form.get('configuracao_candidata'), 'configuração candidata'),
-                    'ressalva': (form.get('ressalva') or '').strip(),
-                    'proximo_experimento': (form.get('proximo_experimento') or '').strip(),
-                }
-
-            else:
-                if not cycle:
-                    raise Recusa('PA', 'Informe o ciclo de testes da recomendação.', 'ciclo')
-                fields = {
-                    'configuracao_indicada': configuration_or_none(form.get('configuracao_indicada'), 'configuração indicada', required=True),
-                    'ressalva': (form.get('ressalva') or '').strip(),
-                }
-
-            existing = data['conclusoes'].get(conclusion_id) if conclusion_id else None
-            if conclusion_id and existing is None:
-                raise Recusa('CE', 'Conclusão não encontrada.')
-
-            conclusion = existing or {'id': new_id('k-'), 'criada_em': now(), 'decisao': None}
-            conclusion.update({
-                'tipo': kind,
-                'sessao': session_id if session_id in data['sessoes'] else None,
-                'ciclo': cycle,
-                'campos': fields,
-                'analise': form.get('analise') if form.get('analise') is not None else conclusion.get('analise'),
-                'atualizada_em': now(),
-            })
-            data['conclusoes'][conclusion['id']] = conclusion
-
-            if kind == 'experimento':
-                self.refresh_candidates(data)
-
-            return self.conclusion_view(conclusion, data)
-
-
-    def refresh_candidates(self, data):
-        candidates = {c['campos'].get('configuracao_candidata') for c in data['conclusoes'].values() if c['tipo'] == 'experimento'}
-        for configuration in data['configuracoes'].values():
-            configuration['candidata'] = configuration['id'] in candidates
-
-
-    def conclusion_view(self, conclusion, data):
-        view = json_copy(conclusion)
-        names = {cid: c['nome'] for cid, c in data['configuracoes'].items()}
-        for key in ('configuracao_indicada', 'configuracao_candidata'):
-            if key in view['campos']:
-                view['campos'][key + '_nome'] = names.get(view['campos'][key]) if view['campos'][key] else 'nenhuma'
-        return view
-
-
-    def get_conclusion(self, conclusion_id):
-        def build(data):
-            conclusion = data['conclusoes'].get(conclusion_id)
-            return self.conclusion_view(conclusion, data) if conclusion else None
-        return self.registro.read(build)
-
-
-    def recommendation_for(self, cycle):
-        def build(data):
-            items = [c for c in data['conclusoes'].values() if c['tipo'] == 'recomendação' and c.get('ciclo') == cycle]
-            if not items:
-                return None
-            latest = max(items, key=lambda c: c['atualizada_em'])
-            return self.conclusion_view(latest, data)
-        return self.registro.read(build)
-
-
-    def register_decision(self, conclusion_id, decision, condition):
-        condition = (condition or '').strip()
-        if decision not in DECISIONS:
-            raise Recusa('PA', 'Escolha a decisão: aceita, aceita com condição ou adiada.', 'decisao')
-        if decision == 'aceita com condição' and not condition:
-            raise Recusa('PA', 'Informe a condição para a decisão valer.', 'condicao')
-
-        with self.registro.transaction() as data:
-            conclusion = data['conclusoes'].get(conclusion_id)
-            if conclusion is None or conclusion['tipo'] != 'recomendação':
-                raise Recusa('CE', 'Recomendação não encontrada.')
-            conclusion['decisao'] = {
-                'decisao': decision,
-                'condicao': condition if decision == 'aceita com condição' else '',
-                'registrada_em': now(),
-            }
-            return self.conclusion_view(conclusion, data)
 
 
     # ------------------------------------------------------------------ datasets
@@ -1451,7 +1290,3 @@ class Sistema:
         view['tarefas_recentes'] = tasks[-20:]
         return view
 
-
-def json_copy(value):
-    import json
-    return json.loads(json.dumps(value))
