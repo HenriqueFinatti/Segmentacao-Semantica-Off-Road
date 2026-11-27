@@ -129,6 +129,11 @@ export const TERMOS = {
     indica: 'Número de épocas sem melhora na validação até o early stopping encerrar o treino.',
     nao: 'Só vale com o early stopping ligado.',
   },
+  execucao_de_teste: {
+    titulo: 'Execução de teste',
+    indica: 'Treino leve, com poucas imagens e poucas épocas, para conferir que o fluxo funciona num computador modesto.',
+    nao: 'O modelo resultante não serve para comparar com as configurações do TCC.',
+  },
   batch_size: {
     titulo: 'Batch size',
     indica: 'Quantas imagens o treino processa por vez. Valores maiores usam mais memória do computador.',

@@ -51,10 +51,11 @@ class OffRoadDataset(Dataset):
     def get_images(self):
         temp_images = sorted(os.listdir(self.rgb_dir))
 
+        images = self.filter_enabled_datasets(temp_images)
+
+        # Execução de teste: só as primeiras imagens dos datasets escolhidos, para o treino caber num computador modesto
         if self.settings.is_test_execution_on():
-            images = temp_images[:self.settings.get_test_execution_images()]
-        else:
-            images = self.filter_enabled_datasets(temp_images)
+            images = images[:self.settings.get_test_execution_images()]
 
         # Sem imagens o treino quebraria depois com divisão por zero ao calcular as médias da época
         if not images:

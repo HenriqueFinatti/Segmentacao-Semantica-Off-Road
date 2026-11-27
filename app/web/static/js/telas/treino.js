@@ -54,13 +54,14 @@ export async function renderNovo(main, _p, _consulta, contexto) {
           h('input', { type: 'radio', name: 'modelo', value: m.id, checked: valores.modelo === m.id }), m.nome))),
       h('div', { class: 'grade-2' },
         h('div', {},
-          numero('epocas', 'Épocas', 'epocas', 'Número máximo de épocas. Padrão do TCC: 200.'),
+          numero('epocas', 'Épocas', 'epocas', 'Número máximo de épocas. Padrão do TCC: 200.', { disabled: valores.execucao_teste }),
           h('div', { class: 'linha' },
-            h('label', { class: 'opcao' }, h('input', { type: 'checkbox', name: 'early_stopping', id: 'early_stopping', checked: valores.early_stopping }),
-              'Early stopping'),
+            h('label', { class: 'opcao' }, h('input', {
+              type: 'checkbox', name: 'early_stopping', id: 'early_stopping', checked: valores.early_stopping, disabled: valores.execucao_teste,
+            }), 'Early stopping'),
             botaoTermo('Early stopping', 'early_stopping')),
           numero('paciencia', 'Paciência', 'paciencia', 'Épocas sem melhora na validação até encerrar. Só vale com o early stopping ligado.',
-            { disabled: !valores.early_stopping }),
+            { disabled: valores.execucao_teste || !valores.early_stopping }),
           numero('batch_size', 'Batch size', 'batch_size', 'Valores maiores exigem mais memória do computador.')),
         h('div', {},
           h('fieldset', { 'data-campo': 'datasets' },
@@ -76,23 +77,52 @@ export async function renderNovo(main, _p, _consulta, contexto) {
             })),
           h('div', { class: 'linha' },
             h('label', { class: 'opcao' }, h('input', { type: 'checkbox', name: 'graficos', checked: valores.graficos }), 'Geração de gráficos'),
-            botaoTermo('Geração de gráficos', 'geracao_de_graficos')))),
+            botaoTermo('Geração de gráficos', 'geracao_de_graficos')),
+          h('div', { class: 'linha' },
+            h('label', { class: 'opcao' }, h('input', { type: 'checkbox', name: 'execucao_teste', id: 'execucao_teste', checked: valores.execucao_teste }),
+              'Execução de teste'),
+            botaoTermo('Execução de teste', 'execucao_de_teste')),
+          numero('execucao_teste_imagens', 'Imagens da execução de teste', 'execucao_de_teste',
+            'Quantas imagens o treino usa (mínimo 3: 2 de treino e 1 de validação).',
+            { disabled: !valores.execucao_teste, min: '3' }),
+          numero('execucao_teste_epocas', 'Épocas da execução de teste', 'execucao_de_teste',
+            'Épocas do treino de teste. Com a execução de teste ligada, Épocas, Early stopping e Paciência ficam desligados.',
+            { disabled: !valores.execucao_teste }))),
       h('p', { class: 'pequeno suave' }, 'Os parâmetros internos do treino (taxa de aprendizado, tamanho da imagem e outros) são fixos do TCC.'),
       h('div', { class: 'linha' }, botao));
 
     const caixaEarly = formulario.querySelector('#early_stopping');
-    caixaEarly.addEventListener('change', () => { formulario.querySelector('#paciencia').disabled = !caixaEarly.checked; });
+    const caixaTeste = formulario.querySelector('#execucao_teste');
+    // Execução de teste ligada: as épocas vêm dela e não há early stopping; os valores digitados ficam guardados para quando ela for desligada
+    const habilitarCampos = () => {
+      const teste = caixaTeste.checked;
+      formulario.querySelector('#epocas').disabled = teste;
+      caixaEarly.disabled = teste;
+      formulario.querySelector('#paciencia').disabled = teste || !caixaEarly.checked;
+      formulario.querySelector('#execucao_teste_imagens').disabled = !teste;
+      formulario.querySelector('#execucao_teste_epocas').disabled = !teste;
+    };
+    caixaEarly.addEventListener('change', habilitarCampos);
+    caixaTeste.addEventListener('change', habilitarCampos);
 
     const regras = exigir(formulario, botao, [
       { campo: 'epocas', valido: () => inteiroPositivo(formulario, 'epocas'), mensagem: 'informe as épocas (número inteiro, pelo menos 1).' },
       { campo: 'paciencia', valido: () => inteiroPositivo(formulario, 'paciencia'), mensagem: 'informe a paciência (número inteiro, pelo menos 1).' },
       { campo: 'batch_size', valido: () => inteiroPositivo(formulario, 'batch_size'), mensagem: 'informe o batch size (número inteiro, pelo menos 1).' },
       {
+        campo: 'execucao_teste_imagens',
+        valido: () => inteiroPositivo(formulario, 'execucao_teste_imagens')
+          && (formulario.querySelector('#execucao_teste_imagens').disabled || Number(formulario.querySelector('#execucao_teste_imagens').value) >= 3),
+        mensagem: 'informe as imagens da execução de teste (número inteiro, pelo menos 3).',
+      },
+      { campo: 'execucao_teste_epocas', valido: () => inteiroPositivo(formulario, 'execucao_teste_epocas'), mensagem: 'informe as épocas da execução de teste (número inteiro, pelo menos 1).' },
+      {
         campo: 'datasets', valido: () => formulario.querySelectorAll('input[name="datasets"]:checked').length > 0,
         mensagem: montados.size ? 'escolha pelo menos um dataset de treino.' : 'nenhum dataset está montado; monte o dataset na tela Datasets.',
       },
     ]);
     caixaEarly.addEventListener('change', regras.atualizar);
+    caixaTeste.addEventListener('change', regras.atualizar);
 
     formulario.addEventListener('submit', async (evento) => {
       evento.preventDefault();
@@ -100,7 +130,8 @@ export async function renderNovo(main, _p, _consulta, contexto) {
       lerPasso1(formulario);
       try {
         await api.post('/api/treino/validar', valores);
-        const sugestao = await api.get(`/api/treino/nome-sugerido?modelo=${enc(valores.modelo)}&epocas=${enc(valores.epocas)}`);
+        const epocas = valores.execucao_teste ? valores.execucao_teste_epocas : valores.epocas;
+        const sugestao = await api.get(`/api/treino/nome-sugerido?modelo=${enc(valores.modelo)}&epocas=${enc(epocas)}`);
         valores.nome = sugestao.nome;
         valores.nomeSugerido = sugestao.nome;
         passo = 2;
@@ -117,11 +148,15 @@ export async function renderNovo(main, _p, _consulta, contexto) {
     const dados = new FormData(formulario);
     valores.modelo = dados.get('modelo');
     valores.epocas = formulario.querySelector('#epocas').value;
-    valores.early_stopping = dados.get('early_stopping') !== null;
+    // Lido da caixa (não do FormData), que omite campos desabilitados e perderia a escolha durante a execução de teste
+    valores.early_stopping = formulario.querySelector('#early_stopping').checked;
     valores.paciencia = formulario.querySelector('#paciencia').value;
     valores.batch_size = formulario.querySelector('#batch_size').value;
     valores.datasets = dados.getAll('datasets');
     valores.graficos = dados.get('graficos') !== null;
+    valores.execucao_teste = dados.get('execucao_teste') !== null;
+    valores.execucao_teste_imagens = formulario.querySelector('#execucao_teste_imagens').value;
+    valores.execucao_teste_epocas = formulario.querySelector('#execucao_teste_epocas').value;
   }
 
   function desenharPasso2() {
@@ -133,11 +168,14 @@ export async function renderNovo(main, _p, _consulta, contexto) {
     const formulario = h('form', { class: 'cartao', novalidate: true },
       h('dl', { class: 'resumo' },
         h('dt', {}, 'Modelo'), h('dd', {}, nomeModelo),
-        h('dt', {}, 'Épocas'), h('dd', {}, valores.epocas),
-        h('dt', {}, 'Early stopping'), h('dd', {}, valores.early_stopping ? `sim, paciência ${valores.paciencia}` : 'não'),
+        h('dt', {}, 'Épocas'), h('dd', {}, valores.execucao_teste ? valores.execucao_teste_epocas : valores.epocas),
+        h('dt', {}, 'Early stopping'), h('dd', {}, valores.execucao_teste ? 'não (desligado na execução de teste)'
+          : (valores.early_stopping ? `sim, paciência ${valores.paciencia}` : 'não')),
         h('dt', {}, 'Batch size'), h('dd', {}, valores.batch_size),
         h('dt', {}, 'Datasets de treino'), h('dd', {}, datasets),
-        h('dt', {}, 'Geração de gráficos'), h('dd', {}, valores.graficos ? 'sim' : 'não')),
+        h('dt', {}, 'Geração de gráficos'), h('dd', {}, valores.graficos ? 'sim' : 'não'),
+        h('dt', {}, 'Execução de teste'), h('dd', {}, valores.execucao_teste
+          ? `sim, com ${valores.execucao_teste_imagens} imagens` : 'não')),
       h('div', { class: 'campo', 'data-campo': 'nome', style: 'margin-top:1rem' },
         rotuloComTermo('nome', 'Nome da configuração', 'configuracao'),
         h('span', { class: 'ajuda', id: 'ajuda-nome' },
@@ -183,7 +221,7 @@ export async function renderNovo(main, _p, _consulta, contexto) {
 const MOTIVOS = {
   epocas: (p) => `o treino chegou ao número de épocas pedido (${p.epocas}).`,
   early_stopping: (p) => `o early stopping encerrou o treino porque o desempenho na validação não melhorou nas últimas ${p.paciencia} épocas.`,
-  execucao_de_teste: () => 'a execução de teste está ligada no settings.json, que limita o número de épocas.',
+  execucao_de_teste: (p) => `a execução de teste estava ligada e o treino chegou às ${p.execucao_teste_epocas ?? p.epocas} épocas dela.`,
 };
 
 export async function renderAcompanhar(main, { id }, consulta, contexto) {

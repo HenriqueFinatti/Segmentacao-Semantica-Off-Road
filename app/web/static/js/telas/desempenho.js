@@ -48,7 +48,7 @@ export function tabelaDesempenho(analise) {
     configuracoes.map((c) => {
       const maior = (analise.maior_valor?.[linha.chave] || []).includes(c.id);
       return h('td', { class: `numero ${maior ? 'maior-valor' : ''}` }, valorTexto(linha, c.metricas[linha.chave]),
-        maior ? h('span', { class: 'marca-maior' }, '▲ maior valor · não é recomendação') : null);
+        maior ? h('span', { class: 'marca-maior' }, '▲ maior valor') : null);
     }),
     h('td', { class: 'numero' }, referencia ? valorTexto(linha, referencia.metricas[linha.chave]) : '—')));
 

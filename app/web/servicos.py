@@ -158,7 +158,7 @@ class Sistema:
 
 
     def read_legacy_parameters(self, model):
-        defaults = self.default_parameters()
+        defaults = {**self.default_parameters(), 'execucao_teste': False}
         stats = os.path.join(paths.statistics_dir(model), 'stats.md')
         if not os.path.isfile(stats):
             return defaults
@@ -182,6 +182,12 @@ class Sistema:
         patience = re.search(r'paciência (\d+)', early)
         if patience:
             parameters['paciencia'] = int(patience.group(1))
+
+        test_execution = re.match(r'Sim \((\d+) imagens, (\d+) épocas\)', table.get('Execução de Teste', ''))
+        if test_execution:
+            parameters['execucao_teste'] = True
+            parameters['execucao_teste_imagens'] = int(test_execution.group(1))
+            parameters['execucao_teste_epocas'] = int(test_execution.group(2))
 
         if 'Datasets' in table:
             labels = [label.strip() for label in table['Datasets'].split(',')]
@@ -255,6 +261,9 @@ class Sistema:
             'datasets': datasets,
             'batch_size': settings.get_batch_size(),
             'graficos': settings.is_charts_on(),
+            'execucao_teste': settings.is_test_execution_on(),
+            'execucao_teste_imagens': settings.get_test_execution_images(),
+            'execucao_teste_epocas': settings.get_test_execution_epochs(),
         }
 
 
@@ -284,8 +293,11 @@ class Sistema:
         p = configuration['parametros']
         early = f"early stopping com paciência {p['paciencia']}" if p['early_stopping'] else 'sem early stopping'
         datasets = ', '.join(DATASET_NAMES.get(d, d) for d in p['datasets'])
-        return (f"{MODEL_NAMES[configuration['modelo']]}, até {format_epochs(p['epocas'])}, {early}, "
-                f"batch size {p['batch_size']}, datasets de treino: {datasets}")
+        description = (f"{MODEL_NAMES[configuration['modelo']]}, até {format_epochs(p['epocas'])}, {early}, "
+                       f"batch size {p['batch_size']}, datasets de treino: {datasets}")
+        if p.get('execucao_teste'):
+            description += f", execução de teste com {p['execucao_teste_imagens']} imagens"
+        return description
 
 
     def configuration_view(self, configuration, data, detailed=False):
@@ -366,10 +378,26 @@ class Sistema:
                 raise Recusa('PA', f'{label[0].upper() + label[1:]} precisa ser pelo menos 1.', field)
             return value
 
-        epochs = positive_int('epocas', 'o número de épocas')
         batch_size = positive_int('batch_size', 'o batch size')
-        early_stopping = bool(form.get('early_stopping'))
-        patience = positive_int('paciencia', 'a paciência') if early_stopping else self.settings.get_patience()
+
+        # Execução de teste: treino leve (poucas imagens e épocas) para conferir o fluxo num computador modesto.
+        # Ligada, ela define as épocas e desliga o early stopping; os campos Épocas e Paciência são ignorados.
+        test_execution = bool(form.get('execucao_teste'))
+        if test_execution:
+            test_images = positive_int('execucao_teste_imagens', 'o número de imagens da execução de teste')
+            if test_images < 3:
+                raise Recusa('PA', 'A execução de teste precisa de pelo menos 3 imagens (2 de treino e 1 de validação).',
+                             'execucao_teste_imagens')
+            test_epochs = positive_int('execucao_teste_epocas', 'o número de épocas da execução de teste')
+            epochs = test_epochs
+            early_stopping = False
+            patience = self.settings.get_patience()
+        else:
+            test_images = self.settings.get_test_execution_images()
+            test_epochs = self.settings.get_test_execution_epochs()
+            epochs = positive_int('epocas', 'o número de épocas')
+            early_stopping = bool(form.get('early_stopping'))
+            patience = positive_int('paciencia', 'a paciência') if early_stopping else self.settings.get_patience()
 
         datasets = [d for d in form.get('datasets') or [] if d in DATASET_NAMES]
         if not datasets:
@@ -390,6 +418,9 @@ class Sistema:
                 'datasets': datasets,
                 'batch_size': batch_size,
                 'graficos': bool(form.get('graficos')),
+                'execucao_teste': test_execution,
+                'execucao_teste_imagens': test_images,
+                'execucao_teste_epocas': test_epochs,
             },
         }
 
@@ -479,6 +510,10 @@ class Sistema:
             'Patience': p['paciencia'],
             'BATCH_SIZE': p['batch_size'],
             'Charts': p['graficos'],
+            # Configurações antigas não têm estes campos: a execução de teste fica desligada
+            'Test_Execution': p.get('execucao_teste', False),
+            'Test_Execution_Images': p.get('execucao_teste_imagens', self.settings.get_test_execution_images()),
+            'Test_Execution_Epochs': p.get('execucao_teste_epocas', self.settings.get_test_execution_epochs()),
             **{name: name in p['datasets'] for name in DATASET_NAMES},
         }
         settings = Settings().with_overrides(overrides)
