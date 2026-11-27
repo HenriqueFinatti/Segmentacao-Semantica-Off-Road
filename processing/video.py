@@ -9,6 +9,13 @@ from modules.models.registry import MODELS
 TRAIL_COLOR = np.array([0, 0, 255], dtype=np.uint8)
 TRAIL_ALPHA = 0.45
 
+# Quadros extraídos em JPG: gravar é ~10x mais rápido que PNG e ocupa bem menos disco.
+# A perda da qualidade 95 é irrelevante, porque o vídeo de origem já vem comprimido.
+# As máscaras continuam em PNG: JPG criaria valores intermediários nas bordas.
+FRAME_EXTENSION = '.jpg'
+FRAME_JPEG_QUALITY = 95
+FRAME_WRITE_PARAMS = [cv2.IMWRITE_JPEG_QUALITY, FRAME_JPEG_QUALITY]
+
 class Video:
 
     def __init__(self, video_path=paths.VIDEO_PATH, output_dir=paths.VIDEO_OUTPUT_DIR,
@@ -54,8 +61,8 @@ class Video:
                 if not success:
                     break 
 
-                frame_path = os.path.join(self.images_dir, f"frame_{frame_id:06d}.png")
-                cv2.imwrite(str(frame_path), frame)
+                frame_path = os.path.join(self.images_dir, f"frame_{frame_id:06d}{FRAME_EXTENSION}")
+                cv2.imwrite(str(frame_path), frame, FRAME_WRITE_PARAMS)
 
                 frame_count += 1
                 frame_id += 1
@@ -88,6 +95,12 @@ class Video:
 
         return writer
 
+    def _frame_path(self, mask_filename):
+        # A máscara é sempre PNG; o quadro original é JPG (ou PNG, se extraído por uma versão antiga)
+        stem = os.path.splitext(mask_filename)[0]
+        frame_path = os.path.join(self.images_dir, stem + FRAME_EXTENSION)
+        return frame_path if os.path.exists(frame_path) else os.path.join(self.images_dir, stem + '.png')
+
     def _build_video(self, model, inference_times=None):
         masks_path = os.path.join(self.segmented_images_dir, model)
         frames = sorted(
@@ -97,7 +110,7 @@ class Video:
         if not frames:
             raise FileNotFoundError(f"Nenhuma imagem encontrada em {paths.relative(masks_path)}")
 
-        first_frame = cv2.imread(os.path.join(self.images_dir, frames[0]))
+        first_frame = cv2.imread(self._frame_path(frames[0]))
 
         if first_frame is None:
             raise RuntimeError(f"Não foi possível ler o frame original {frames[0]} em {paths.relative(self.images_dir)}")
@@ -108,7 +121,7 @@ class Video:
 
         try:
             for filename in frames:
-                frame_path = os.path.join(self.images_dir, filename)
+                frame_path = self._frame_path(filename)
                 mask_path = os.path.join(masks_path, filename)
                 frame = cv2.imread(frame_path)
                 mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
@@ -163,7 +176,7 @@ def read_video_info(video_path):
 
 
 def extract_frames(video_path, output_dir, prefix, on_frame=None):
-    """Salva cada quadro do vídeo como <prefix>_quadro_000000.png em output_dir. Retorna a lista de nomes e o FPS."""
+    """Salva cada quadro do vídeo como <prefix>_quadro_000000.jpg em output_dir. Retorna a lista de nomes e o FPS."""
     video = cv2.VideoCapture(video_path)
 
     if not video.isOpened():
@@ -180,8 +193,9 @@ def extract_frames(video_path, output_dir, prefix, on_frame=None):
             if not success:
                 break
 
-            name = f"{prefix}_quadro_{len(names):06d}.png"
-            cv2.imwrite(os.path.join(output_dir, name), frame)
+            name = f"{prefix}_quadro_{len(names):06d}{FRAME_EXTENSION}"
+            if not cv2.imwrite(os.path.join(output_dir, name), frame, FRAME_WRITE_PARAMS):
+                raise RuntimeError(f"Não foi possível gravar o quadro {name}")
             names.append(name)
 
             if on_frame:
