@@ -4,6 +4,7 @@ e desempenho no conjunto de teste.
 Os nomes das falas e dos campos seguem o esquema de signos da Entrega 9 (seção 4) do projeto de IHC."""
 import os
 import re
+import json
 import csv
 import shutil
 import unicodedata
@@ -364,9 +365,10 @@ class Sistema:
 
 
     def validate_training(self, form):
-        model = form.get('modelo')
-        if model not in MODELS:
-            raise Recusa('PA', 'Escolha o modelo: FCN ou DeepLabV3+.', 'modelo')
+        # Um ou os dois modelos: cada um vira uma configuração com os mesmos parâmetros, treinadas uma depois da outra
+        models = [m for m in MODELS if m in (form.get('modelos') or [])]
+        if not models:
+            raise Recusa('PA', 'Escolha pelo menos um modelo: FCN, DeepLabV3+ ou os dois.', 'modelos')
 
         def positive_int(field, label):
             try:
@@ -410,7 +412,7 @@ class Sistema:
                                f"Datasets ou escolha outro dataset de treino.", 'datasets')
 
         return {
-            'modelo': model,
+            'modelos': models,
             'parametros': {
                 'epocas': epochs,
                 'early_stopping': early_stopping,
@@ -427,33 +429,44 @@ class Sistema:
 
 
     def start_training(self, form):
+        """Cria uma configuração por modelo escolhido e põe os treinos na fila (rodam um de cada vez, na ordem)."""
         validated = self.validate_training(form)
-        name = (form.get('nome') or '').strip()
-
-        if not name:
-            raise Recusa('PA', 'Informe o nome da configuração.', 'nome')
+        names = form.get('nomes') or {}
+        chosen = {}
+        for model in validated['modelos']:
+            name = str(names.get(model) or '').strip()
+            if not name:
+                raise Recusa('PA', f'Informe o nome da configuração do {MODEL_NAMES[model]}.', f'nome-{model}')
+            if any(name.casefold() == other.casefold() for other in chosen.values()):
+                raise Recusa('PA', 'As duas configurações precisam de nomes diferentes.', f'nome-{model}')
+            chosen[model] = name
 
         with self.registro.transaction() as data:
-            if any(c['nome'].casefold() == name.casefold() for c in data['configuracoes'].values()):
-                raise Recusa('RA', 'Já existe uma configuração com este nome. Escolha outro.', 'nome',
-                             {'sugestao': self.unique_name(name, data)})
+            for model, name in chosen.items():
+                if any(c['nome'].casefold() == name.casefold() for c in data['configuracoes'].values()):
+                    raise Recusa('RA', 'Já existe uma configuração com este nome. Escolha outro.', f'nome-{model}',
+                                 {'sugestao': self.unique_name(name, data)})
 
-            configuration_id = new_id('c-')
-            data['configuracoes'][configuration_id] = {
-                'id': configuration_id,
-                'nome': name,
-                'modelo': validated['modelo'],
-                'parametros': validated['parametros'],
-                'tamanho_imagem': self.settings.get_image_size(),
-                'pasta': paths.relative(paths.configuration_dir(configuration_id)),
-                'origem': 'interface',
-                'criada_em': now(),
-                'treino': {'estado': 'na fila'},
-                'teste': None,
-            }
+            configuration_ids = []
+            for model, name in chosen.items():
+                configuration_id = new_id('c-')
+                data['configuracoes'][configuration_id] = {
+                    'id': configuration_id,
+                    'nome': name,
+                    'modelo': model,
+                    'parametros': json.loads(json.dumps(validated['parametros'])),
+                    'tamanho_imagem': self.settings.get_image_size(),
+                    'pasta': paths.relative(paths.configuration_dir(configuration_id)),
+                    'origem': 'interface',
+                    'criada_em': now(),
+                    'treino': {'estado': 'na fila'},
+                    'teste': None,
+                }
+                configuration_ids.append(configuration_id)
 
-        self.enqueue_training(configuration_id)
-        return self.get_configuration(configuration_id)
+        for configuration_id in configuration_ids:
+            self.enqueue_training(configuration_id)
+        return {'configuracoes': [self.get_configuration(cid) for cid in configuration_ids]}
 
 
     def restart_training(self, configuration_id, batch_size=None):

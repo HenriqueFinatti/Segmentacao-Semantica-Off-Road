@@ -11,7 +11,6 @@
   --primaria: #1d4ed8;
   --primaria-escura: #1e3a8a;
   --primaria-clara: #dbe5ff;
-  --foco: #b45309;
 
   --ok: #166534;
   --ok-fundo: #e3f4e8;
@@ -59,10 +58,8 @@ p { margin: 0 0 .6rem; }
 
 a { color: var(--primaria); }
 
-:focus-visible {
-  outline: 3px solid var(--foco);
-  outline-offset: 2px;
-}
+/* Sem destaque de foco em nenhum elemento (pedido da equipe) */
+:focus, :focus-visible { outline: none; }
 
 .pular {
   position: absolute;
@@ -146,9 +143,6 @@ main {
   margin: 0 auto;
   padding: 1.1rem 1.25rem 2rem;
 }
-main:focus { outline: none; }
-/* Títulos e painéis recebem o foco ao abrir a tela (leitor de tela), mas sem o retângulo de destaque */
-[tabindex="-1"]:focus { outline: none; }
 
 .rodape {
   font-size: .85rem;
@@ -269,6 +263,15 @@ input[type="text"], input[type="number"], select, textarea {
 textarea { min-height: 80px; resize: vertical; }
 input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--falha); border-width: 2px; }
 input[type="number"] { width: 9rem; }
+/* Campo desabilitado: fundo cinza, texto apagado e cursor de bloqueio; o rótulo do campo também fica apagado */
+input[type="text"]:disabled, input[type="number"]:disabled, select:disabled, textarea:disabled {
+  background: var(--superficie-2);
+  color: var(--texto-suave);
+  border-style: dashed;
+  opacity: .65;
+  cursor: not-allowed;
+}
+.campo:has(> input:disabled) > label { color: var(--texto-suave); opacity: .75; }
 
 .opcao {
   display: flex;

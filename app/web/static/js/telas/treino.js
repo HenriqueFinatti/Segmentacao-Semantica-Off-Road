@@ -17,14 +17,15 @@ export async function renderNovo(main, _p, _consulta, contexto) {
   const montados = new Set(padroes.datasets.filter((d) => d.imagens_treino > 0).map((d) => d.id));
   // Só os datasets montados podem ser escolhidos (prevenção ativa)
   // Estado inicial da tela: early stopping ligado, execução de teste desligada
-  const valores = { ...padroes.padrao, modelo: 'deeplabv3+', nome: '', early_stopping: true, execucao_teste: false };
+  const valores = { ...padroes.padrao, modelos: ['deeplabv3+'], nomes: {}, early_stopping: true, execucao_teste: false };
   valores.datasets = valores.datasets.filter((d) => montados.has(d));
   // O campo Épocas é um só: mostra as épocas do treino normal ou as da execução de teste, e guarda cada valor
   const epocasPorModo = { normal: String(padroes.padrao.epocas), teste: String(padroes.padrao.execucao_teste_epocas) };
 
   const corpo = h('div', {});
   limpar(main, cabecalho('Treinar uma configuração',
-    'Defina o nome, o modelo e os parâmetros de treino. Os valores já preenchidos são os padrões do TCC.'), corpo);
+    'Escolha um ou os dois modelos e os parâmetros de treino. Com os dois, cada modelo vira uma configuração com os mesmos parâmetros, '
+    + 'e os treinos rodam um depois do outro.'), corpo);
 
   function numero(campo, rotulo, ajuda, extra = {}) {
     return h('div', { class: 'campo', 'data-campo': campo },
@@ -43,20 +44,22 @@ export async function renderNovo(main, _p, _consulta, contexto) {
 
   function desenharFormulario() {
     const botao = h('button', { type: 'submit', class: 'botao' }, 'Iniciar o treino');
-    const campoNome = h('input', { type: 'text', id: 'nome', name: 'nome', autocomplete: 'off', 'aria-describedby': 'ajuda-nome' });
+    // Um campo de nome por modelo; só aparecem os dos modelos marcados (ids pelo índice: "deeplabv3+" não serve em seletor #id)
+    const camposNome = Object.fromEntries(padroes.modelos.map((m, i) => [m.id,
+      h('input', { type: 'text', id: `nome-${i}`, autocomplete: 'off', 'aria-describedby': 'ajuda-nome' })]));
     // Esquerda: nome, modelo, as escolhas de early stopping e execução de teste e o batch size.
     // Direita: datasets e, abaixo deles, os campos que aparecem conforme essas escolhas.
     const formulario = h('form', { class: 'cartao', novalidate: true },
       h('div', { class: 'grade-2' },
         h('div', {},
-          h('div', { class: 'campo', 'data-campo': 'nome' },
-            h('label', { for: 'nome' }, 'Nome da configuração'),
-            h('span', { class: 'ajuda', id: 'ajuda-nome' },
-              'Sugerido a partir do modelo, da data e da hora, sem repetir um nome existente. Você pode trocar. O nome identifica a configuração para toda a equipe.'),
-            campoNome),
-          h('fieldset', { 'data-campo': 'modelo' }, h('legend', {}, 'Modelo'),
+          h('p', { class: 'ajuda pequeno suave', id: 'ajuda-nome', style: 'margin:0 0 .4rem' },
+            'Nome sugerido a partir do modelo, da data e da hora, sem repetir um nome existente. Você pode trocar.'),
+          padroes.modelos.map((m, i) => h('div', { class: 'campo', 'data-campo': `nome-${m.id}` },
+            h('label', { for: `nome-${i}` }, `Nome da configuração ${m.nome}`),
+            camposNome[m.id])),
+          h('fieldset', { 'data-campo': 'modelos' }, h('legend', {}, 'Modelos'),
             padroes.modelos.map((m) => h('label', { class: 'opcao' },
-              h('input', { type: 'radio', name: 'modelo', value: m.id, checked: valores.modelo === m.id }), m.nome))),
+              h('input', { type: 'checkbox', name: 'modelos', value: m.id, checked: valores.modelos.includes(m.id) }), m.nome))),
           h('div', { class: 'linha' },
             h('label', { class: 'opcao' }, h('input', { type: 'checkbox', name: 'early_stopping', id: 'early_stopping', checked: valores.early_stopping }),
               'Early stopping')),
@@ -64,7 +67,7 @@ export async function renderNovo(main, _p, _consulta, contexto) {
             h('label', { class: 'opcao' }, h('input', { type: 'checkbox', name: 'execucao_teste', id: 'execucao_teste', checked: valores.execucao_teste }),
               'Execução de teste')),
           numero('batch_size', 'Batch size', 'Valores maiores exigem mais memória do computador.')),
-        h('div', { class: 'coluna-dinamica' },
+        h('div', {},
           h('fieldset', { 'data-campo': 'datasets' },
             h('legend', {}, 'Datasets de treino'),
             h('p', { class: 'pequeno suave', style: 'margin:0 0 .3rem' }, 'Só os datasets montados podem ser escolhidos.'),
@@ -86,29 +89,41 @@ export async function renderNovo(main, _p, _consulta, contexto) {
     const caixaEarly = formulario.querySelector('#early_stopping');
     const caixaTeste = formulario.querySelector('#execucao_teste');
 
-    // Nome sugerido ("modelo - data hora"): acompanha o modelo até a pessoa editar o nome
-    let nomeEditado = false;
-    let pedidoSugestao = 0;
-    async function sugerirNome() {
-      if (nomeEditado) return;
-      lerFormulario(formulario);
-      const pedido = ++pedidoSugestao;
+    // Nome sugerido ("modelo - data hora") para cada modelo, até a pessoa editar aquele nome
+    const caixasModelo = [...formulario.querySelectorAll('input[name="modelos"]')];
+    const modelosMarcados = () => caixasModelo.filter((c) => c.checked).map((c) => c.value);
+    const nomeEditado = {};
+    async function sugerirNome(modelo) {
+      if (nomeEditado[modelo]) return;
       try {
-        const sugestao = await api.get(`/api/treino/nome-sugerido?modelo=${enc(valores.modelo)}`);
-        if (pedido !== pedidoSugestao || nomeEditado) return;
-        campoNome.value = sugestao.nome;
+        const sugestao = await api.get(`/api/treino/nome-sugerido?modelo=${enc(modelo)}`);
+        if (nomeEditado[modelo]) return;
+        camposNome[modelo].value = sugestao.nome;
         regras.atualizar();
       } catch {
         // Sem sugestão a pessoa digita o nome
       }
     }
-    campoNome.addEventListener('input', () => {
-      nomeEditado = campoNome.value.trim().length > 0;
-      erroCampo(formulario, null);
-    });
-    formulario.addEventListener('change', (evento) => {
-      if (evento.target.name === 'modelo') sugerirNome();
-    });
+    // Os dois nomes ficam sempre visíveis; só o do modelo marcado fica habilitado.
+    // Um nome que volta a ser habilitado ganha sugestão com a hora atual (se a pessoa não o editou).
+    const habilitarNomes = () => {
+      const marcados = modelosMarcados();
+      for (const [modelo, campo] of Object.entries(camposNome)) {
+        const habilitado = marcados.includes(modelo);
+        const estava = !campo.disabled;
+        campo.disabled = !habilitado;
+        if (habilitado && !estava) sugerirNome(modelo);
+      }
+    };
+    for (const [modelo, campo] of Object.entries(camposNome)) {
+      campo.disabled = true;
+      sugerirNome(modelo);
+      campo.addEventListener('input', () => {
+        nomeEditado[modelo] = campo.value.trim().length > 0;
+        erroCampo(formulario, null);
+      });
+    }
+    caixasModelo.forEach((caixa) => caixa.addEventListener('change', habilitarNomes));
     // O que aparece na tela:
     // - early stopping ligado: Paciência; sem Épocas (o treino continua até o early stopping parar)
     // - early stopping desligado: Épocas no lugar da Paciência
@@ -150,7 +165,8 @@ export async function renderNovo(main, _p, _consulta, contexto) {
     mostrarCampos();
 
     const regras = exigir(formulario, botao, [
-      { campo: 'nome', valido: () => campoNome.value.trim().length > 0 },
+      { campo: 'modelos', valido: () => modelosMarcados().length > 0 },
+      { campo: 'nomes', valido: () => modelosMarcados().every((m) => camposNome[m].value.trim().length > 0) },
       { campo: 'epocas', valido: () => inteiroPositivo(formulario, 'epocas') },
       { campo: 'paciencia', valido: () => inteiroPositivo(formulario, 'paciencia') },
       { campo: 'batch_size', valido: () => inteiroPositivo(formulario, 'batch_size') },
@@ -170,13 +186,16 @@ export async function renderNovo(main, _p, _consulta, contexto) {
       evento.preventDefault();
       if (!regras.atualizar()) return;
       lerFormulario(formulario);
-      valores.nome = campoNome.value.trim();
+      valores.nomes = Object.fromEntries(valores.modelos.map((m) => [m, camposNome[m].value.trim()]));
       botao.disabled = true;
       try {
-        const configuracao = await api.post('/api/treino', valores);
-        anunciar(configuracao.treino?.estado === 'na fila' ? `Treino na fila: ${configuracao.nome}.` : `Treino iniciado com a ${configuracao.nome}.`);
+        const { configuracoes } = await api.post('/api/treino', valores);
+        anunciar(configuracoes.length > 1
+          ? `Treinos na fila: ${configuracoes.map((c) => c.nome).join(' e ')}. Eles rodam um depois do outro.`
+          : `Treino iniciado com a ${configuracoes[0].nome}.`);
         await contexto.atualizarEstado();
-        contexto.navegar(`#/treino/${enc(configuracao.id)}`);
+        // Abre o acompanhamento do primeiro; o segundo começa quando o primeiro terminar
+        contexto.navegar(`#/treino/${enc(configuracoes[0].id)}`);
       } catch (erro) {
         regras.atualizar();
         // Parâmetro recusado ou nome que repete um existente: o aviso aparece junto do campo
@@ -185,13 +204,13 @@ export async function renderNovo(main, _p, _consulta, contexto) {
       }
     });
 
-    sugerirNome();
+    habilitarNomes();
     return formulario;
   }
 
   function lerFormulario(formulario) {
     const dados = new FormData(formulario);
-    valores.modelo = dados.get('modelo');
+    valores.modelos = dados.getAll('modelos');
     // Épocas do modo atual: do treino normal ou da execução de teste (o servidor sabe qual pela execucao_teste)
     valores.epocas = formulario.querySelector('#epocas').value;
     valores.early_stopping = formulario.querySelector('#early_stopping').checked;
@@ -203,22 +222,22 @@ export async function renderNovo(main, _p, _consulta, contexto) {
   }
 
   limpar(corpo, desenharFormulario());
-  corpo.querySelector('#nome')?.focus();
+  corpo.querySelector('input[name="modelos"]')?.focus();
 
-  // A coluna da direita reserva a altura do modo mais alto (a execução de teste), para a seção não mudar
-  // de tamanho e o botão "Iniciar o treino" não mudar de lugar ao marcar e desmarcar as opções
-  const coluna = corpo.querySelector('.coluna-dinamica');
+  // A seção reserva a altura do caso mais alto (a execução de teste), para não mudar de tamanho
+  // e o botão "Iniciar o treino" não mudar de lugar ao marcar e desmarcar as opções
+  const grade = corpo.querySelector('.grade-2');
   function reservarAltura() {
-    const campos = ['paciencia', 'epocas', 'execucao_teste_imagens'].map((c) => coluna.querySelector(`[data-campo="${c}"]`));
+    const campos = ['paciencia', 'epocas', 'execucao_teste_imagens'].map((c) => grade.querySelector(`[data-campo="${c}"]`));
     const antes = campos.map((c) => c.hidden);
-    coluna.style.minHeight = '';
+    grade.style.minHeight = '';
     // Campos visíveis em cada modo: early stopping, treino sem early stopping e execução de teste
     const alturas = [[true, false, false], [false, true, false], [false, true, true]].map((visiveis) => {
       campos.forEach((c, i) => { c.hidden = !visiveis[i]; });
-      return coluna.offsetHeight;
+      return grade.offsetHeight;
     });
     campos.forEach((c, i) => { c.hidden = antes[i]; });
-    coluna.style.minHeight = `${Math.max(...alturas)}px`;
+    grade.style.minHeight = `${Math.max(...alturas)}px`;
   }
   reservarAltura();
   // Em tela estreita as colunas empilham e a altura muda: mede de novo
