@@ -1,7 +1,7 @@
 // O03.1 Enviar as entradas e escolher as configurações (M01 e M03).
 // Ruptura: arquivos em formato não aceito → alerta com "trocar os arquivos" ou "seguir sem eles" (os aceitos entram na fila).
 import { api, ErroApi } from '../api.js';
-import { h, limpar, cabecalho, mensagem, termo, rotuloComTermo, dialogo, falhaDaApi, erroCampo, exigir, anunciar } from '../ui.js';
+import { h, limpar, cabecalho, mensagem, dialogo, falhaDaApi, erroCampo, exigir, anunciar } from '../ui.js';
 import { seletorDeConfiguracoes } from './comum.js';
 
 const ACEITOS = ['.jpg', '.jpeg', '.png', '.mp4'];
@@ -30,7 +30,7 @@ export async function render(main, _parametros, consulta, contexto) {
 
   const campoCiclo = h('input', {
     type: 'text', id: 'ciclo', list: 'ciclos-existentes', autocomplete: 'off', required: true,
-    value: ciclos[0]?.ciclo || '', placeholder: 'ex.: Teste de 15/11/2026',
+    value: '', placeholder: 'ex.: Teste de 15/11/2026',
   });
   const listaArquivos = h('ul', { class: 'lista-arquivos', 'aria-live': 'polite' });
   const entradaArquivos = h('input', { type: 'file', id: 'arquivos', multiple: true, accept: ACEITOS.join(','), class: 'oculto-visual' });
@@ -77,14 +77,14 @@ export async function render(main, _parametros, consulta, contexto) {
         h('div', { class: 'cartao' },
           h('h2', {}, '1. Imagens'),
           h('div', { class: 'campo', 'data-campo': 'ciclo' },
-            rotuloComTermo('ciclo', 'Ciclo de testes', 'ciclo_de_testes'),
+            h('label', { for: 'ciclo' }, 'Ciclo de testes'),
             h('span', { class: 'ajuda', id: 'ajuda-ciclo' }, 'O nome ou a data do teste de campo destas imagens.'),
             campoCiclo,
             h('datalist', { id: 'ciclos-existentes' }, ciclos.map((c) => h('option', { value: c.ciclo })))),
           h('div', { class: 'campo', 'data-campo': 'arquivos' }, h('span', { class: 'rotulo' }, 'Imagens ou vídeos'), zona, contador, listaArquivos))),
       h('div', {},
         h('div', { class: 'cartao' },
-          h('h2', {}, '2. ', termo('Configurações', 'configuracao')),
+          h('h2', {}, '2. ', 'Configurações'),
           h('p', { class: 'pequeno suave' }, 'Escolha uma ou mais. Com mais de uma, os resultados abrem lado a lado na mesma imagem.'),
           h('div', { 'data-campo': 'configuracoes' }, seletor.elemento)))),
     h('div', { class: 'linha' }, botaoExecutar));

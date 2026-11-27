@@ -4,7 +4,7 @@
 // raw/ nunca é apagado: remontar não exige baixar de novo.
 import { api, enc } from '../api.js';
 import {
-  h, limpar, cabecalho, mensagem, estado, progresso, dialogo, falhaDaApi, anunciar, formato, conjuntoTexto, termo, botaoTermo, exigir,
+  h, limpar, cabecalho, mensagem, estado, progresso, dialogo, falhaDaApi, anunciar, formato, conjuntoTexto, exigir,
 } from '../ui.js';
 
 export async function render(main, _p, _c, contexto) {
@@ -67,9 +67,9 @@ export async function render(main, _p, _c, contexto) {
         h('thead', {}, h('tr', {}, h('th', {}, 'Dataset'), h('th', {}, 'Arquivos brutos (raw/)'),
           h('th', { class: 'numero' }, 'Imagens de treino'), h('th', { class: 'numero' }, 'Imagens de teste'), h('th', {}, 'Ação'))),
         h('tbody', {}, linhas))),
-      h('p', { style: 'margin-top:.75rem' }, h('strong', {}, termo('Conjunto de teste', 'conjunto_de_teste'), ' atual: '),
+      h('p', { style: 'margin-top:.75rem' }, h('strong', {}, 'Conjunto de teste', ' atual: '),
         dados.conjunto_de_teste ? conjuntoTexto(dados.conjunto_de_teste) : 'nenhum (monte o dataset).'),
-      h('p', {}, h('strong', {}, termo('Sem avaliação no conjunto de teste', 'avaliacao_no_conjunto_de_teste'), ': '),
+      h('p', {}, h('strong', {}, 'Sem avaliação no conjunto de teste', ': '),
         semAvaliacao.length ? semAvaliacao.map((c) => `${c.nome} (${c.motivo})`).join('; ') : 'nenhuma configuração.'));
   }
 
@@ -79,7 +79,7 @@ export async function render(main, _p, _c, contexto) {
     const ultima = dados.ultima_montagem;
     const brutos = dados.datasets.filter((d) => d.bruto_disponivel);
     const partes = [
-      h('h2', { id: 'titulo-montar' }, 'Montar o dataset ', botaoTermo('Dataset montado', 'dataset_montado')),
+      h('h2', { id: 'titulo-montar' }, 'Montar o dataset'),
       dados.montagem ? h('p', {}, `Última montagem: ${formato.data(dados.montagem.data)}${dados.montagem.datasets?.length ? `, com ${dados.montagem.datasets.join(', ')}` : ''}.`)
         : h('p', {}, 'O dataset ainda não foi montado pela interface.'),
     ];
@@ -119,7 +119,7 @@ export async function render(main, _p, _c, contexto) {
   // O11.3 Avaliar as configurações no conjunto de teste
   function avaliar() {
     const lista = dados.avaliacoes.filter((a) => pedidas.has(a.id) || ['na fila', 'processando', 'falhou'].includes(a.estado));
-    const partes = [h('h2', { id: 'titulo-avaliar' }, 'Avaliar as configurações no ', termo('conjunto de teste', 'conjunto_de_teste'))];
+    const partes = [h('h2', { id: 'titulo-avaliar' }, 'Avaliar as configurações no ', 'conjunto de teste')];
 
     if (dados.configuracoes_a_avaliar.length) {
       const botao = h('button', { type: 'submit', class: 'botao' }, 'Avaliar as selecionadas');

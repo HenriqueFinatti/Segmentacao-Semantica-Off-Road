@@ -102,13 +102,8 @@ def create_app():
         return sistema.training_defaults()
 
     @app.get('/api/treino/nome-sugerido')
-    def suggested_name(modelo: str, epocas: int = 1):
-        return {'nome': sistema.suggest_name(modelo, epocas)}
-
-    @app.post('/api/treino/validar')
-    async def validate_training(request: Request):
-        sistema.validate_training(await request.json())
-        return {'ok': True}
+    def suggested_name(modelo: str):
+        return {'nome': sistema.suggest_name(modelo)}
 
     @app.post('/api/treino')
     async def start_training(request: Request):

@@ -1,7 +1,7 @@
 // O04 Avaliar a segmentação de uma imagem (M01):
 // O04.1 Ver o resultado sobre a imagem · baixar a imagem (no modo escolhido) ou o vídeo segmentado.
 import { api, enc, ErroApi } from '../api.js';
-import { h, limpar, cabecalho, mensagem, legenda, termo, icone } from '../ui.js';
+import { h, limpar, cabecalho, mensagem, legenda, icone } from '../ui.js';
 import { Regiao, Visualizador } from '../visualizador.js';
 import {
   configuracoesExecutadas, imagensComResultado, rotuloImagem, temMascara, urlImagem, urlMascara, urlSobreposicao,
@@ -206,7 +206,7 @@ export async function render(main, { id }, consulta) {
         seletorConfiguracao,
         h('span', { class: 'linha' }, alternancia, botaoBaixar),
         estado.modo === 'sobreposicao' ? h('span', { class: 'linha' },
-          h('label', { for: 'transparencia', class: 'rotulo' }, termo('Transparência', 'transparencia')), barraTransparencia, saidaTransparencia) : null),
+          h('label', { for: 'transparencia', class: 'rotulo' }, 'Transparência'), barraTransparencia, saidaTransparencia) : null),
       legenda(estado.modo === 'sobreposicao' ? 'sobreposicao' : 'mascara'),
       navegacaoDeQuadros(imagem),
       container);

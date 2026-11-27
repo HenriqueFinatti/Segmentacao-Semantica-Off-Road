@@ -147,6 +147,8 @@ main {
   padding: 1.1rem 1.25rem 2rem;
 }
 main:focus { outline: none; }
+/* Títulos e painéis recebem o foco ao abrir a tela (leitor de tela), mas sem o retângulo de destaque */
+[tabindex="-1"]:focus { outline: none; }
 
 .rodape {
   font-size: .85rem;
@@ -238,22 +240,6 @@ main:focus { outline: none; }
   min-height: 36px;
   cursor: pointer;
 }
-
-.termo { display: inline-flex; align-items: center; gap: .25rem; }
-.termo-ajuda {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 1px solid var(--borda-forte);
-  background: var(--superficie);
-  color: var(--primaria-escura);
-  font-weight: 700;
-  font-size: .85rem;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-}
-.termo-ajuda:hover { background: var(--primaria-clara); }
 
 /* Formulários */
 
@@ -513,26 +499,6 @@ input[type="range"] { accent-color: var(--primaria); min-height: 32px; }
 .marcador-sem { color: var(--texto-suave); }
 .marcador svg { width: 13px; height: 13px; }
 
-/* Painel de explicação dos termos (acesso ubíquo) */
-
-.painel-termo {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(420px, 100%);
-  background: var(--superficie);
-  border-left: 1px solid var(--borda-forte);
-  box-shadow: -4px 0 18px rgba(0, 0, 0, .15);
-  z-index: 50;
-  overflow: auto;
-}
-.painel-termo-conteudo { padding: 1.1rem 1.2rem; }
-.painel-termo dt { font-weight: 700; margin-top: .75rem; }
-.painel-termo dd { margin: .2rem 0 0; }
-.painel-termo .lista-termos { list-style: none; padding: 0; margin: .5rem 0 1rem; display: flex; flex-wrap: wrap; gap: .4rem; }
-.painel-termo .lista-termos button { min-height: 36px; }
-
 /* Diálogo de alerta (AL), recuperação (RA) e captura de erro (CE) */
 
 .dialogo {
@@ -565,9 +531,6 @@ input[type="range"] { accent-color: var(--primaria); min-height: 32px; }
 .matriz { max-width: 460px; }
 .matriz td, .matriz th { text-align: center; }
 
-.passos { display: flex; gap: .5rem; list-style: none; padding: 0; margin: 0 0 1rem; flex-wrap: wrap; font-size: .9rem; }
-.passos li { padding: .25rem .65rem; border-radius: 999px; background: var(--superficie-2); color: var(--texto-suave); border: 1px solid var(--borda); }
-.passos li[aria-current="step"] { background: var(--primaria); color: #fff; border-color: var(--primaria); font-weight: 600; }
 
 .resumo { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: .35rem 1rem; margin: 0; }
 .resumo dt { font-weight: 600; color: var(--texto-suave); }
@@ -578,23 +541,6 @@ input[type="range"] { accent-color: var(--primaria); min-height: 32px; }
 
 /* Um só visualizador: largura limitada para a imagem e a avaliação caberem em tela de notebook */
 .grade-visualizadores:not([class*="colunas-"]) .visualizador { max-width: min(100%, calc(62vh * 16 / 9)); }
-
-/* Explicação do termo no ponto de uso (O07.1) */
-.popover-termo {
-  position: absolute;
-  z-index: 60;
-  background: var(--superficie);
-  border: 1px solid var(--borda-forte);
-  border-radius: var(--raio);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, .2);
-  padding: .8rem .9rem;
-  font-size: .95rem;
-}
-.popover-termo h2 { font-size: 1.05rem; margin: 0 0 .3rem; }
-.popover-termo dl { margin: .3rem 0; }
-.popover-termo dt { font-weight: 700; }
-.popover-termo dd { margin: .1rem 0 .4rem; }
-.termo-ajuda[aria-expanded="true"] { background: var(--primaria); color: #fff; }
 
 .indicador-treino[aria-disabled="true"] { cursor: default; opacity: .9; }
 .indicador-treino[aria-disabled="true"]:hover { background: #3a4c6d; }

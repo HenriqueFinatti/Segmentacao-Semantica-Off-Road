@@ -1,8 +1,7 @@
 // Roteamento por hash, atualização periódica do estado e acessos ubíquos
-// ("Em que ponto está o treino?" e "O que é este termo?").
+// ("Em que ponto está o treino?").
 import { api } from './api.js';
 import { h, limpar, mensagem, icone } from './ui.js';
-import { abrirTermo, fecharTermo, fecharExplicacao } from './glossario.js';
 
 import * as segmentar from './telas/segmentar.js';
 import * as processamento from './telas/processamento.js';
@@ -53,13 +52,11 @@ async function rotear() {
   const minhaGeracao = ++geracao;
   telaAtual?.sair?.();
   telaAtual = null;
-  fecharTermo();
-  fecharExplicacao();
 
   const { caminho, consulta } = separar(location.hash);
   if (!caminho) {
-    await atualizarEstado();
-    contexto.navegar(contexto.estado?.ultima_sessao ? '#/sessao' : '#/segmentar');
+    // A interface sempre começa limpa, em Segmentar imagens (a última sessão continua em "Sessão atual")
+    contexto.navegar('#/segmentar');
     return;
   }
 
@@ -161,14 +158,6 @@ async function ciclo() {
     try { await telaAtual.atualizar(estado); } catch (erro) { console.error(erro); }
   }
 }
-
-document.getElementById('abrir-glossario').addEventListener('click', (evento) => abrirTermo(null, evento.currentTarget));
-document.getElementById('fechar-termo').addEventListener('click', fecharTermo);
-document.addEventListener('keydown', (evento) => {
-  if (evento.key !== 'Escape') return;
-  fecharExplicacao();
-  if (!document.getElementById('painel-termo').hidden) fecharTermo();
-});
 
 window.addEventListener('hashchange', rotear);
 atualizarEstado().then(rotear);

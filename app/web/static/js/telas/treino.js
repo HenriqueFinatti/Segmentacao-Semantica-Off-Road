@@ -1,10 +1,10 @@
 // M03, conversa 1 (treinar e avaliar uma nova configuração):
-// O01.1 Escolher o modelo e os parâmetros · O01.2 Nomear a configuração ·
+// O01.1 Escolher o modelo e os parâmetros e O01.2 Nomear a configuração (na mesma tela) ·
 // O02.1 Acompanhar o treino (estado do treino e da avaliação no conjunto de teste; ruptura "treino ou avaliação interrompidos") ·
 // O02.2 Conferir o resultado do treino (só depois da avaliação no conjunto de teste).
 import { api, enc, ErroApi } from '../api.js';
 import {
-  h, limpar, cabecalho, mensagem, estado, progresso, termo, rotuloComTermo, botaoTermo, erroCampo, falhaDaApi, anunciar, formato,
+  h, limpar, cabecalho, mensagem, estado, progresso, erroCampo, falhaDaApi, anunciar, formato,
   conjuntoTexto, exigir,
 } from '../ui.js';
 import { graficoDeLinhas } from '../graficos.js';
@@ -18,21 +18,14 @@ export async function renderNovo(main, _p, _consulta, contexto) {
   // Só os datasets montados podem ser escolhidos (prevenção ativa)
   const valores = { ...padroes.padrao, modelo: 'deeplabv3+', nome: '' };
   valores.datasets = valores.datasets.filter((d) => montados.has(d));
-  let passo = 1;
 
   const corpo = h('div', {});
   limpar(main, cabecalho('Treinar uma configuração',
-    'Defina o modelo e os parâmetros de treino. Os valores já preenchidos são os padrões do TCC.'), corpo);
+    'Defina o nome, o modelo e os parâmetros de treino. Os valores já preenchidos são os padrões do TCC.'), corpo);
 
-  function passos() {
-    return h('ol', { class: 'passos', 'aria-label': 'Etapas' },
-      h('li', { 'aria-current': passo === 1 ? 'step' : null }, '1. Escolher o modelo e os parâmetros'),
-      h('li', { 'aria-current': passo === 2 ? 'step' : null }, '2. Nomear a configuração'));
-  }
-
-  function numero(campo, rotulo, chaveTermo, ajuda, extra = {}) {
+  function numero(campo, rotulo, ajuda, extra = {}) {
     return h('div', { class: 'campo', 'data-campo': campo },
-      rotuloComTermo(campo, rotulo, chaveTermo),
+      h('label', { for: campo }, rotulo),
       ajuda ? h('span', { class: 'ajuda', id: `ajuda-${campo}` }, ajuda) : null,
       h('input', {
         type: 'number', id: campo, name: campo, min: '1', step: '1', value: String(valores[campo]), inputmode: 'numeric',
@@ -45,28 +38,32 @@ export async function renderNovo(main, _p, _consulta, contexto) {
     return campo.disabled || (/^\d+$/.test(campo.value.trim()) && Number(campo.value) >= 1);
   };
 
-  function desenharPasso1() {
-    const botao = h('button', { type: 'submit', class: 'botao' }, 'Continuar');
+  function desenharFormulario() {
+    const botao = h('button', { type: 'submit', class: 'botao' }, 'Iniciar o treino');
+    const campoNome = h('input', { type: 'text', id: 'nome', name: 'nome', autocomplete: 'off', 'aria-describedby': 'ajuda-nome' });
     const formulario = h('form', { class: 'cartao', novalidate: true },
+      h('div', { class: 'campo', 'data-campo': 'nome', style: 'max-width:520px' },
+        h('label', { for: 'nome' }, 'Nome da configuração'),
+        h('span', { class: 'ajuda', id: 'ajuda-nome' },
+          'Sugerido a partir do modelo, da data e da hora, sem repetir um nome existente. Você pode trocar. O nome identifica a configuração para toda a equipe.'),
+        campoNome),
       h('fieldset', { 'data-campo': 'modelo' }, h('legend', {}, 'Modelo'),
         padroes.modelos.map((m) => h('label', { class: 'opcao' },
           h('input', { type: 'radio', name: 'modelo', value: m.id, checked: valores.modelo === m.id }), m.nome))),
       h('div', { class: 'grade-2' },
         h('div', {},
-          numero('epocas', 'Épocas', 'epocas', 'Número máximo de épocas. Padrão do TCC: 200.', { disabled: valores.execucao_teste }),
+          numero('epocas', 'Épocas', 'Número máximo de épocas. Padrão do TCC: 200.', { disabled: valores.execucao_teste }),
           h('div', { class: 'linha' },
             h('label', { class: 'opcao' }, h('input', {
               type: 'checkbox', name: 'early_stopping', id: 'early_stopping', checked: valores.early_stopping, disabled: valores.execucao_teste,
-            }), 'Early stopping'),
-            botaoTermo('Early stopping', 'early_stopping')),
-          numero('paciencia', 'Paciência', 'paciencia', 'Épocas sem melhora na validação até encerrar. Só vale com o early stopping ligado.',
+            }), 'Early stopping')),
+          numero('paciencia', 'Paciência', 'Épocas sem melhora na validação até encerrar. Só vale com o early stopping ligado.',
             { disabled: valores.execucao_teste || !valores.early_stopping }),
-          numero('batch_size', 'Batch size', 'batch_size', 'Valores maiores exigem mais memória do computador.')),
+          numero('batch_size', 'Batch size', 'Valores maiores exigem mais memória do computador.')),
         h('div', {},
           h('fieldset', { 'data-campo': 'datasets' },
             h('legend', {}, 'Datasets de treino'),
-            h('p', { class: 'pequeno suave', style: 'margin:0 0 .3rem' }, 'Só os datasets montados podem ser escolhidos. ',
-              botaoTermo('Dataset montado', 'dataset_montado')),
+            h('p', { class: 'pequeno suave', style: 'margin:0 0 .3rem' }, 'Só os datasets montados podem ser escolhidos.'),
             padroes.datasets.map((d) => {
               const vazio = !montados.has(d.id);
               return h('label', { class: `opcao ${vazio ? 'desabilitada' : ''}` },
@@ -75,16 +72,14 @@ export async function renderNovo(main, _p, _consulta, contexto) {
                   vazio ? 'Não está no dataset montado (monte-o na tela Datasets).' : `${formato.inteiro(d.imagens_treino)} imagens de treino no dataset montado`)));
             })),
           h('div', { class: 'linha' },
-            h('label', { class: 'opcao' }, h('input', { type: 'checkbox', name: 'graficos', checked: valores.graficos }), 'Geração de gráficos'),
-            botaoTermo('Geração de gráficos', 'geracao_de_graficos')),
+            h('label', { class: 'opcao' }, h('input', { type: 'checkbox', name: 'graficos', checked: valores.graficos }), 'Geração de gráficos')),
           h('div', { class: 'linha' },
             h('label', { class: 'opcao' }, h('input', { type: 'checkbox', name: 'execucao_teste', id: 'execucao_teste', checked: valores.execucao_teste }),
-              'Execução de teste'),
-            botaoTermo('Execução de teste', 'execucao_de_teste')),
-          numero('execucao_teste_imagens', 'Imagens da execução de teste', 'execucao_de_teste',
+              'Execução de teste')),
+          numero('execucao_teste_imagens', 'Imagens da execução de teste',
             'Quantas imagens o treino usa (mínimo 3: 2 de treino e 1 de validação).',
             { disabled: !valores.execucao_teste, min: '3' }),
-          numero('execucao_teste_epocas', 'Épocas da execução de teste', 'execucao_de_teste',
+          numero('execucao_teste_epocas', 'Épocas da execução de teste',
             'Épocas do treino de teste. Com a execução de teste ligada, Épocas, Early stopping e Paciência ficam desligados.',
             { disabled: !valores.execucao_teste }))),
       h('p', { class: 'pequeno suave' }, 'Os parâmetros internos do treino (taxa de aprendizado, tamanho da imagem e outros) são fixos do TCC.'),
@@ -92,6 +87,30 @@ export async function renderNovo(main, _p, _consulta, contexto) {
 
     const caixaEarly = formulario.querySelector('#early_stopping');
     const caixaTeste = formulario.querySelector('#execucao_teste');
+
+    // Nome sugerido ("modelo - data hora"): acompanha o modelo até a pessoa editar o nome
+    let nomeEditado = false;
+    let pedidoSugestao = 0;
+    async function sugerirNome() {
+      if (nomeEditado) return;
+      lerFormulario(formulario);
+      const pedido = ++pedidoSugestao;
+      try {
+        const sugestao = await api.get(`/api/treino/nome-sugerido?modelo=${enc(valores.modelo)}`);
+        if (pedido !== pedidoSugestao || nomeEditado) return;
+        campoNome.value = sugestao.nome;
+        regras.atualizar();
+      } catch {
+        // Sem sugestão a pessoa digita o nome
+      }
+    }
+    campoNome.addEventListener('input', () => {
+      nomeEditado = campoNome.value.trim().length > 0;
+      erroCampo(formulario, null);
+    });
+    formulario.addEventListener('change', (evento) => {
+      if (evento.target.name === 'modelo') sugerirNome();
+    });
     // Execução de teste ligada: as épocas vêm dela e não há early stopping; os valores digitados ficam guardados para quando ela for desligada
     const habilitarCampos = () => {
       const teste = caixaTeste.checked;
@@ -105,6 +124,7 @@ export async function renderNovo(main, _p, _consulta, contexto) {
     caixaTeste.addEventListener('change', habilitarCampos);
 
     const regras = exigir(formulario, botao, [
+      { campo: 'nome', valido: () => campoNome.value.trim().length > 0 },
       { campo: 'epocas', valido: () => inteiroPositivo(formulario, 'epocas') },
       { campo: 'paciencia', valido: () => inteiroPositivo(formulario, 'paciencia') },
       { campo: 'batch_size', valido: () => inteiroPositivo(formulario, 'batch_size') },
@@ -124,24 +144,27 @@ export async function renderNovo(main, _p, _consulta, contexto) {
     formulario.addEventListener('submit', async (evento) => {
       evento.preventDefault();
       if (!regras.atualizar()) return;
-      lerPasso1(formulario);
+      lerFormulario(formulario);
+      valores.nome = campoNome.value.trim();
+      botao.disabled = true;
       try {
-        await api.post('/api/treino/validar', valores);
-        const epocas = valores.execucao_teste ? valores.execucao_teste_epocas : valores.epocas;
-        const sugestao = await api.get(`/api/treino/nome-sugerido?modelo=${enc(valores.modelo)}&epocas=${enc(epocas)}`);
-        valores.nome = sugestao.nome;
-        valores.nomeSugerido = sugestao.nome;
-        passo = 2;
-        desenhar();
+        const configuracao = await api.post('/api/treino', valores);
+        anunciar(configuracao.treino?.estado === 'na fila' ? `Treino na fila: ${configuracao.nome}.` : `Treino iniciado com a ${configuracao.nome}.`);
+        await contexto.atualizarEstado();
+        contexto.navegar(`#/treino/${enc(configuracao.id)}`);
       } catch (erro) {
-        if (erro instanceof ErroApi && erro.tipo === 'PA') erroCampo(formulario, erro);
-        else await falhaDaApi(erro);
+        regras.atualizar();
+        // Parâmetro recusado ou nome que repete um existente: o aviso aparece junto do campo
+        if (erro instanceof ErroApi && (erro.tipo === 'RA' || erro.tipo === 'PA')) erroCampo(formulario, erro);
+        else await falhaDaApi(erro, 'Não foi possível iniciar o treino');
       }
     });
+
+    sugerirNome();
     return formulario;
   }
 
-  function lerPasso1(formulario) {
+  function lerFormulario(formulario) {
     const dados = new FormData(formulario);
     valores.modelo = dados.get('modelo');
     valores.epocas = formulario.querySelector('#epocas').value;
@@ -156,63 +179,8 @@ export async function renderNovo(main, _p, _consulta, contexto) {
     valores.execucao_teste_epocas = formulario.querySelector('#execucao_teste_epocas').value;
   }
 
-  function desenharPasso2() {
-    const nomeModelo = padroes.modelos.find((m) => m.id === valores.modelo)?.nome;
-    const datasets = padroes.datasets.filter((d) => valores.datasets.includes(d.id)).map((d) => d.nome).join(', ');
-    const campoNome = h('input', { type: 'text', id: 'nome', value: valores.nome, autocomplete: 'off', 'aria-describedby': 'ajuda-nome' });
-    const botao = h('button', { type: 'submit', class: 'botao' }, 'Iniciar o treino');
-
-    const formulario = h('form', { class: 'cartao', novalidate: true },
-      h('dl', { class: 'resumo' },
-        h('dt', {}, 'Modelo'), h('dd', {}, nomeModelo),
-        h('dt', {}, 'Épocas'), h('dd', {}, valores.execucao_teste ? valores.execucao_teste_epocas : valores.epocas),
-        h('dt', {}, 'Early stopping'), h('dd', {}, valores.execucao_teste ? 'não (desligado na execução de teste)'
-          : (valores.early_stopping ? `sim, paciência ${valores.paciencia}` : 'não')),
-        h('dt', {}, 'Batch size'), h('dd', {}, valores.batch_size),
-        h('dt', {}, 'Datasets de treino'), h('dd', {}, datasets),
-        h('dt', {}, 'Geração de gráficos'), h('dd', {}, valores.graficos ? 'sim' : 'não'),
-        h('dt', {}, 'Execução de teste'), h('dd', {}, valores.execucao_teste
-          ? `sim, com ${valores.execucao_teste_imagens} imagens` : 'não')),
-      h('div', { class: 'campo', 'data-campo': 'nome', style: 'margin-top:1rem' },
-        rotuloComTermo('nome', 'Nome da configuração', 'configuracao'),
-        h('span', { class: 'ajuda', id: 'ajuda-nome' },
-          `Sugiro "${valores.nomeSugerido}", a partir do modelo e das épocas; a sugestão nunca repete um nome existente. O nome identifica a configuração para toda a equipe.`),
-        campoNome),
-      h('div', { class: 'linha' },
-        h('button', { type: 'button', class: 'botao botao-secundario', onclick: () => { valores.nome = campoNome.value; passo = 1; desenhar(); } }, 'Voltar aos parâmetros'),
-        botao));
-
-    const regras = exigir(formulario, botao, [
-      { campo: 'nome', valido: () => campoNome.value.trim().length > 0 },
-    ]);
-
-    formulario.addEventListener('submit', async (evento) => {
-      evento.preventDefault();
-      if (!regras.atualizar()) return;
-      valores.nome = campoNome.value.trim();
-      botao.disabled = true;
-      try {
-        const configuracao = await api.post('/api/treino', valores);
-        anunciar(configuracao.treino?.estado === 'na fila' ? `Treino na fila: ${configuracao.nome}.` : `Treino iniciado com a ${configuracao.nome}.`);
-        await contexto.atualizarEstado();
-        contexto.navegar(`#/treino/${enc(configuracao.id)}`);
-      } catch (erro) {
-        regras.atualizar();
-        // Recuperação apoiada: nome editado que repete um existente
-        if (erro instanceof ErroApi && (erro.tipo === 'RA' || erro.tipo === 'PA')) erroCampo(formulario, erro);
-        else await falhaDaApi(erro, 'Não foi possível iniciar o treino');
-      }
-    });
-    campoNome.addEventListener('input', () => erroCampo(formulario, null));
-    return formulario;
-  }
-
-  function desenhar() {
-    limpar(corpo, passos(), passo === 1 ? desenharPasso1() : desenharPasso2());
-    corpo.querySelector('input:not([disabled])')?.focus();
-  }
-
-  desenhar();
+  limpar(corpo, desenharFormulario());
+  corpo.querySelector('#nome')?.focus();
 }
 
 const MOTIVOS = {
@@ -251,7 +219,7 @@ export async function renderAcompanhar(main, { id }, _consulta, contexto) {
         h('td', { class: 'numero' }, formato.metrica(e.validacao?.acuracia)), h('td', { class: 'numero' }, formato.metrica(e.validacao?.miou)))))));
 
     return h('div', { class: 'cartao' },
-      h('h2', {}, termo('Gráficos de treino e validação', 'graficos_treino')),
+      h('h2', {}, 'Gráficos de treino e validação'),
       ligados ? h('div', { class: 'grade-2' },
         montar('Loss (quanto menor, melhor)', 'loss'),
         montar('Acurácia', 'acuracia'),
@@ -273,14 +241,14 @@ export async function renderAcompanhar(main, { id }, _consulta, contexto) {
         treino.melhor_epoca ? h('p', {}, `Os pesos guardados são os da época ${treino.melhor_epoca}, a de melhor IoU médio na validação.`) : null,
         h('p', {}, `A ${configuracao.nome} está entre as configurações disponíveis e foi avaliada no conjunto de teste.`)),
       h('div', { class: 'cartao' },
-        h('h2', {}, 'Resultado no ', termo('conjunto de teste', 'conjunto_de_teste')),
+        h('h2', {}, 'Resultado no ', 'conjunto de teste'),
         h('p', { class: 'pequeno suave' }, conjuntoTexto(teste.conjunto), '.'),
         h('table', { style: 'max-width:520px' }, h('tbody', {},
-          h('tr', {}, h('th', {}, termo('IoU da classe Trilha', 'iou_trilha')), h('td', { class: 'numero' }, formato.metrica(m.iou_trilha))),
-          h('tr', {}, h('th', {}, termo('IoU médio', 'iou_medio')), h('td', { class: 'numero' }, formato.metrica(m.miou))),
-          h('tr', {}, h('th', {}, termo('Acurácia', 'acuracia')), h('td', { class: 'numero' }, formato.metrica(m.acuracia))),
-          h('tr', {}, h('th', {}, termo('Tempo de inferência', 'tempo_inferencia')), h('td', { class: 'numero' }, formato.ms(m.tempo_inferencia_ms))))),
-        h('h3', { style: 'margin-top:1rem' }, termo('Matriz de confusão', 'matriz_confusao')),
+          h('tr', {}, h('th', {}, 'IoU da classe Trilha'), h('td', { class: 'numero' }, formato.metrica(m.iou_trilha))),
+          h('tr', {}, h('th', {}, 'IoU médio'), h('td', { class: 'numero' }, formato.metrica(m.miou))),
+          h('tr', {}, h('th', {}, 'Acurácia'), h('td', { class: 'numero' }, formato.metrica(m.acuracia))),
+          h('tr', {}, h('th', {}, 'Tempo de inferência'), h('td', { class: 'numero' }, formato.ms(m.tempo_inferencia_ms))))),
+        h('h3', { style: 'margin-top:1rem' }, 'Matriz de confusão'),
         tabelaMatriz(teste.matriz, configuracao.nome)),
       h('div', { class: 'linha' },
         h('a', { class: 'botao', href: `#/segmentar?configuracoes=${enc(configuracao.id)}` }, 'Comparar com outra configuração no vídeo'),
@@ -295,7 +263,7 @@ export async function renderAcompanhar(main, { id }, _consulta, contexto) {
     const valor = avaliacao.estado || (configuracao.teste ? 'concluída' : null);
 
     const linhas = [
-      h('div', { class: 'linha-entre' }, h('h2', {}, termo('Avaliação no conjunto de teste', 'avaliacao_no_conjunto_de_teste')),
+      h('div', { class: 'linha-entre' }, h('h2', {}, 'Avaliação no conjunto de teste'),
         valor ? estado(valor) : h('span', { class: 'estado estado-fila' }, 'Sem avaliação')),
     ];
     if (valor === 'na fila') linhas.push(h('p', {}, 'Aguardando a vez: os processamentos rodam um de cada vez.'));
@@ -353,7 +321,7 @@ export async function renderAcompanhar(main, { id }, _consulta, contexto) {
       falha.tipo_falha === 'CE' && /dataset/i.test(`${falha.causa} ${falha.sugestao || ''}`)
         ? h('p', {}, 'A solução está fora desta tela: ', h('a', { href: '#/datasets' }, 'abra a tela Datasets'), '.') : null,
       reiniciavel ? h('div', { class: 'linha', style: 'margin-top:.6rem' },
-        falhaTreino ? rotuloComTermo('novo-batch', 'Batch size', 'batch_size') : null, falhaTreino ? campo : null, botao) : null);
+        falhaTreino ? h('label', { for: 'novo-batch' }, 'Batch size') : null, falhaTreino ? campo : null, botao) : null);
   }
 
   function desenhar() {

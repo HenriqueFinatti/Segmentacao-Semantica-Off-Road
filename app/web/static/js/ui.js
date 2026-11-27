@@ -1,5 +1,4 @@
 // Componentes de interface usados por todas as telas.
-import { abrirExplicacao } from './glossario.js';
 
 export function h(tag, atributos = {}, ...filhos) {
   const elemento = document.createElement(tag);
@@ -81,31 +80,10 @@ export function anunciar(texto) {
   setTimeout(() => { regiao.textContent = texto; }, 50);
 }
 
-// Termo técnico com a explicação no ponto de uso (O07.1)
-export function botaoTermo(rotulo, chave) {
-  return h('button', {
-    type: 'button',
-    class: 'termo-ajuda',
-    'aria-label': `O que é ${rotulo}?`,
-    title: `O que é ${rotulo}?`,
-    'aria-expanded': 'false',
-    onclick: (evento) => abrirExplicacao(chave, evento.currentTarget),
-  }, '?');
-}
-
-export function termo(rotulo, chave) {
-  return h('span', { class: 'termo' }, rotulo, botaoTermo(rotulo, chave));
-}
-
-// Rótulo ligado ao campo, com o "?" fora do <label> (o nome do campo não inclui o botão)
-export function rotuloComTermo(paraId, rotulo, chave) {
-  return h('span', { class: 'termo' }, h('label', { for: paraId }, rotulo), botaoTermo(rotulo, chave));
-}
-
 // Legenda fixa das classes (RQ04): o nome acompanha sempre a cor
 export function legenda(modo = 'mascara') {
   return h('div', { class: 'legenda', role: 'group', 'aria-label': 'Legenda' },
-    h('strong', {}, termo('Legenda', 'legenda'), ':'),
+    h('strong', {}, 'Legenda', ':'),
     h('span', { class: 'legenda-item' }, h('span', { class: 'amostra amostra-trilha', 'aria-hidden': 'true' }),
       modo === 'sobreposicao' ? 'Trilha (pintada, com contorno branco)' : 'Trilha'),
     h('span', { class: 'legenda-item' },

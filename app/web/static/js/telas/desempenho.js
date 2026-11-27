@@ -2,15 +2,15 @@
 // O06.1 Escolher as configurações · O06.2 Conferir se a comparação é válida · O06.3 Ler o desempenho ·
 // O06.4 Consultar a matriz de confusão · O07.2 Julgar a diferença entre configurações (reusada na apresentação).
 import { api, ErroApi } from '../api.js';
-import { h, limpar, cabecalho, mensagem, termo, rotuloComTermo, dialogo, falhaDaApi, formato, situacao, conjuntoTexto, exigir } from '../ui.js';
+import { h, limpar, cabecalho, mensagem, dialogo, falhaDaApi, formato, situacao, conjuntoTexto, exigir } from '../ui.js';
 import { graficoDeBarras, CORES_SERIES } from '../graficos.js';
 
 export const LINHAS_METRICAS = [
-  { chave: 'miou', rotulo: 'IoU médio', termo: 'iou_medio' },
-  { chave: 'iou_trilha', rotulo: 'IoU da classe Trilha', termo: 'iou_trilha' },
-  { chave: 'iou_fundo', rotulo: 'IoU da classe Fora da trilha', termo: 'iou_fundo' },
-  { chave: 'acuracia', rotulo: 'Acurácia', termo: 'acuracia' },
-  { chave: 'tempo_inferencia_ms', rotulo: 'Tempo de inferência', termo: 'tempo_inferencia', tempo: true },
+  { chave: 'miou', rotulo: 'IoU médio' },
+  { chave: 'iou_trilha', rotulo: 'IoU da classe Trilha' },
+  { chave: 'iou_fundo', rotulo: 'IoU da classe Fora da trilha' },
+  { chave: 'acuracia', rotulo: 'Acurácia' },
+  { chave: 'tempo_inferencia_ms', rotulo: 'Tempo de inferência', tempo: true },
 ];
 
 const valorTexto = (linha, valor) => (linha.tempo ? formato.ms(valor) : formato.metrica(valor));
@@ -41,10 +41,10 @@ export function tabelaDesempenho(analise) {
 
   const cabecalhoTabela = h('tr', {}, h('th', {}, 'Métrica'),
     configuracoes.map((c) => h('th', { class: 'numero', scope: 'col' }, c.nome)),
-    h('th', { class: 'numero', scope: 'col' }, termo('Valor de referência', 'valor_de_referencia')));
+    h('th', { class: 'numero', scope: 'col' }, 'Valor de referência'));
 
   const linhas = LINHAS_METRICAS.map((linha) => h('tr', {},
-    h('th', { scope: 'row' }, termo(linha.rotulo, linha.termo)),
+    h('th', { scope: 'row' }, linha.rotulo),
     configuracoes.map((c) => {
       const maior = (analise.maior_valor?.[linha.chave] || []).includes(c.id);
       return h('td', { class: `numero ${maior ? 'maior-valor' : ''}` }, valorTexto(linha, c.metricas[linha.chave]),
@@ -59,7 +59,7 @@ export function tabelaDesempenho(analise) {
     h('p', { class: 'pequeno', style: 'margin-top:.5rem' },
       h('strong', {}, 'Origem da referência: '),
       referencia ? referencia.origem : 'ainda não há configuração em uso (nenhuma foi executada), por isso não há valor de referência', '.'),
-    h('p', { class: 'pequeno suave' }, termo('Maior valor', 'maior_valor'),
+    h('p', { class: 'pequeno suave' }, 'Maior valor',
       ': destaca a configuração com o maior valor em cada métrica para organizar a leitura; não é uma recomendação. '
       + 'O tempo de inferência não é destacado porque depende do computador.'));
 }
@@ -168,7 +168,7 @@ export async function render(main, _p, consulta, contexto) {
     const botaoComparar = h('button', { type: 'submit', class: 'botao' }, 'Comparar as selecionadas');
     limpar(escolha, h('form', { class: 'cartao', novalidate: true, onsubmit: (e) => { e.preventDefault(); estado.compararMesmoAssim = false; comparar(); } },
       h('h2', {}, 'Escolher as configurações'),
-      h('div', { class: 'campo' }, rotuloComTermo('ciclo-desempenho', 'Ciclo de testes', 'ciclo_de_testes'), seletorCiclo),
+      h('div', { class: 'campo' }, h('label', { for: 'ciclo-desempenho' }, 'Ciclo de testes'), seletorCiclo),
       h('div', { 'data-campo': 'configuracoes' }, lista),
       h('div', { class: 'linha', style: 'margin-top:.75rem' }, botaoComparar)));
     exigir(escolha.querySelector('form'), botaoComparar, [
@@ -252,7 +252,7 @@ export async function render(main, _p, consulta, contexto) {
         h('h2', { tabindex: '-1' }, 'Desempenho de cada configuração'),
         analise.conjuntos_iguais
           ? mensagem('ok', h('p', {}, varias ? `As ${analise.configuracoes.length} configurações foram avaliadas no mesmo ` : 'Avaliada no ',
-            termo('conjunto de teste', 'conjunto_de_teste'), varias ? '. A comparação é válida.' : '.'), h('p', { class: 'pequeno' }, conjuntoTexto(conjunto)))
+            'conjunto de teste', varias ? '. A comparação é válida.' : '.'), h('p', { class: 'pequeno' }, conjuntoTexto(conjunto)))
           : mensagem('alerta', h('p', {}, 'Estas configurações foram avaliadas em conjuntos de teste diferentes; a comparação pode levar a uma conclusão errada.')),
         tabelaDesempenho(analise),
         h('p', { class: 'pequeno suave' }, 'Imagens sem anotação de referência, como as dos testes de campo, não têm métricas e são avaliadas visualmente.'),
@@ -266,7 +266,7 @@ export async function render(main, _p, consulta, contexto) {
         grafico ? h('div', { style: 'margin-top:1rem' }, grafico) : null),
       estado.painel === 'diferenca' ? painelDiferenca(analise, { aoVoltar: voltar }) : null,
       estado.painel === 'matriz' ? h('div', { class: 'cartao', id: 'painel-matriz', tabindex: '-1' },
-        h('h2', {}, termo('Matriz de confusão', 'matriz_confusao'), ' no conjunto de teste'),
+        h('h2', {}, 'Matriz de confusão', ' no conjunto de teste'),
         h('div', { class: 'grade-2' }, analise.configuracoes.map((c) => h('div', {}, h('h3', {}, c.nome), tabelaMatriz(c.matriz, c.nome)))),
         h('button', { type: 'button', class: 'botao botao-secundario', onclick: voltar }, 'Voltar à análise')) : null);
   }

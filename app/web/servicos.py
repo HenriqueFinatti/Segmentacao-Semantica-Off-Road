@@ -340,9 +340,10 @@ class Sistema:
         return f"{base} ({index})"
 
 
-    def suggest_name(self, model, epochs):
+    def suggest_name(self, model):
+        # "modelo - data hora"; dois treinos no mesmo minuto recebem " (2)", " (3)"...
         model = model if model in MODELS else 'deeplabv3+'
-        base = f"{MODEL_NAMES[model]} – {format_epochs(max(1, int(epochs)))}"
+        base = f"{MODEL_NAMES[model]} - {datetime.now():%d/%m/%Y %H:%M}"
         return self.registro.read(lambda data: self.unique_name(base, data))
 
 
