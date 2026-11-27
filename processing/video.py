@@ -81,11 +81,8 @@ class Video:
         cv2.putText(frame, text, position, font, 0.6, (0, 255, 255), 1, cv2.LINE_AA)
 
     def _overlay_mask(self, frame, mask):
-        # Pinta a trilha prevista sobre o frame original, como no overlay do CARLA
-        overlay = frame.copy()
-        trail = mask > 0
-        overlay[trail] = ((1 - TRAIL_ALPHA) * frame[trail] + TRAIL_ALPHA * TRAIL_COLOR).astype(np.uint8)
-        return overlay
+        # Pinta a trilha prevista sobre uma cópia do frame original, como no overlay do CARLA
+        return paint_trail(frame.copy(), mask)
 
     def _open_writer(self, output_path, size):
         writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), self.video_fps, size)
@@ -211,8 +208,15 @@ def paint_trail(frame, mask):
     height, width = frame.shape[:2]
     if mask.shape != (height, width):
         mask = cv2.resize(mask, (width, height), interpolation=cv2.INTER_NEAREST)
-    trail = mask > 0
-    frame[trail] = ((1 - TRAIL_ALPHA) * frame[trail] + TRAIL_ALPHA * TRAIL_COLOR).astype(np.uint8)
+    if mask.dtype != np.uint8:
+        mask = (mask > 0).astype(np.uint8)
+
+    # Mistura o quadro inteiro com a cor da trilha e copia só os pixels de trilha (máscara != 0).
+    # ~10x mais rápido que indexar com a máscara booleana em numpy; difere no máximo 1 nível de cor (arredondamento)
+    tint = np.empty_like(frame)
+    tint[:] = TRAIL_COLOR
+    blended = cv2.addWeighted(frame, 1 - TRAIL_ALPHA, tint, TRAIL_ALPHA, 0)
+    cv2.copyTo(blended, mask, frame)
     return frame
 
 
