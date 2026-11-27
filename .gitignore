@@ -34,3 +34,8 @@ validacao_imagens.txt
 *.fdb_latexmk
 *.fls
 *.synctex(busy)
+
+##############################
+# Interface
+##############################
+sessoes/

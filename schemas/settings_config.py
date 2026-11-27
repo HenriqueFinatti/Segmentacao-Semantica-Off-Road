@@ -9,7 +9,6 @@ class SettingsConfig(TypedDict):
     Freiburg_Forest: bool
     Synthetic_Offroad: bool
     CaSSeD: bool
-    Charts: bool
     Epochs: int
     Patience: int
     BATCH_SIZE: int

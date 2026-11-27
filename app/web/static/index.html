@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Segmentação Off-Road</title>
+  <link rel="stylesheet" href="/static/estilo.css">
+</head>
+<body>
+  <a class="pular" href="#conteudo">Pular para o conteúdo</a>
+
+  <header class="topo">
+    <div class="topo-linha">
+      <div class="marca">
+        <span class="marca-titulo">Segmentação Off-Road</span>
+        <span class="marca-sub">Trilha × Fora da trilha · Baja FEI</span>
+      </div>
+      <div class="topo-acoes">
+        <button type="button" class="indicador-treino" id="indicador-treino" hidden></button>
+      </div>
+    </div>
+    <nav class="navegacao" aria-label="Principal">
+      <ul>
+        <li><a href="#/segmentar" data-rota="segmentar">Segmentar imagens</a></li>
+        <li><a href="#/sessoes" data-rota="sessao">Sessões</a></li>
+        <li><a href="#/treino/novo" data-rota="treino">Treinar uma configuração</a></li>
+        <li><a href="#/treinos" data-rota="treinos">Treinamentos</a></li>
+        <li><a href="#/desempenho" data-rota="desempenho">Comparar o desempenho</a></li>
+        <li><a href="#/datasets" data-rota="datasets">Datasets</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="conteudo" tabindex="-1"></main>
+
+  <dialog class="dialogo" id="dialogo" aria-labelledby="dialogo-titulo">
+    <div class="dialogo-cabeca">
+      <span class="dialogo-icone" id="dialogo-icone" aria-hidden="true"></span>
+      <h2 id="dialogo-titulo"></h2>
+    </div>
+    <div id="dialogo-corpo"></div>
+    <div class="dialogo-acoes" id="dialogo-acoes"></div>
+  </dialog>
+
+  <footer class="rodape">
+    O sistema separa <strong>Trilha</strong> de <strong>Fora da trilha</strong> nas imagens. Ele não avalia se o trajeto é seguro
+    ou transitável, e as métricas valem só para o conjunto de teste.
+    <span class="versao" id="versao"></span>
+  </footer>
+
+  <div class="aviso-vivo" id="aviso-vivo" role="status" aria-live="polite"></div>
+
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

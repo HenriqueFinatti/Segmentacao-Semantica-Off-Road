@@ -11,8 +11,10 @@ GREEN = "\033[92m"
 RESET = "\033[0m"
 
 class MetricsTracker:
-    def __init__(self, current_model):
+    def __init__(self, current_model, statistics_dir=None):
         self.current_model = current_model
+        # Sem pasta, usa a padrão do modelo (results/<modelo>/statistics)
+        self.statistics_dir = statistics_dir or paths.statistics_dir(current_model.lower())
 
         self.results_path = self.get_result_path()
         os.makedirs(os.path.dirname(self.results_path), exist_ok=True)
@@ -123,6 +125,13 @@ class MetricsTracker:
         self.write_message("")
         self.reset_values(avg_miou)
 
+        return {
+            'epoca': epoch,
+            'duracao_s': duration,
+            'treino': {'loss': avg_loss, 'acuracia': avg_acc, 'miou': float(avg_miou)},
+            'validacao': validation,
+        }
+
 
     def calculate_avg(self):
         avg_loss = self.total_loss / self.num_batches
@@ -163,7 +172,7 @@ class MetricsTracker:
 
     def end_epoch(self, epoch_num, validation=None):
         duration = time.time() - self.start_epoch_time
-        self.add_epoch(epoch_num, duration, validation)
+        return self.add_epoch(epoch_num, duration, validation)
 
 
     def start_training(self, configuration):
@@ -263,4 +272,4 @@ class MetricsTracker:
 
 
     def get_result_path(self):
-        return os.path.join(paths.statistics_dir(self.current_model.lower()), 'stats.md')
+        return os.path.join(self.statistics_dir, 'stats.md')

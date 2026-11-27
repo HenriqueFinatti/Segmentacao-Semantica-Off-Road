@@ -5,7 +5,6 @@ import numpy as np
 
 from PIL import Image
 from datetime import datetime
-from torch.utils.data import DataLoader
 
 from configs import paths
 from modules.metrics.chart import Charts
@@ -126,32 +125,64 @@ class SegmentationService():
 
     def run_inference(self, predictor, dataset, output_dir, model_name):
         # Batch 1 para medir o tempo real de cada frame, como em um vídeo
-        loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=0)
+        result = self.segment_files(predictor, dataset, output_dir)
+        return self.build_result(model_name, result)
+
+
+    def segment_files(self, predictor, dataset, output_dir, on_image=None, stop_on_error=True):
+        """Segmenta as imagens do dataset uma a uma. Com stop_on_error=False, a falha de uma imagem não
+        interrompe as outras: fica em 'failures' (nome do arquivo -> exceção) para a interface oferecer repetir."""
         predictor.warmup(dataset[0][0])
 
         inference_times = {}
         frame_times = {}
+        failures = {}
+        done = 0
 
         start_time = time.perf_counter()
         frame_start = start_time
 
         with torch.no_grad():
-            for images, filenames, original_sizes in loader:
-                images = images.to(self.device)
+            for index in range(len(dataset)):
+                filename = dataset.images[index]
+                base_name = os.path.splitext(filename)[0]
 
-                inference_start = self.synchronized_time()
-                preds = predictor.predict_tensor(images)
-                inference_end = self.synchronized_time()
+                try:
+                    image, _, original_size = dataset[index]
+                    images = image.unsqueeze(0).to(self.device)
 
-                base_name = os.path.splitext(filenames[0])[0]
-                self.save_prediction(preds[0].cpu().numpy(), filenames[0], output_dir, original_sizes[0].tolist())
+                    inference_start = self.synchronized_time()
+                    preds = predictor.predict_tensor(images)
+                    inference_end = self.synchronized_time()
 
-                frame_end = time.perf_counter()
-                inference_times[base_name] = (inference_end - inference_start) * 1000
-                frame_times[base_name] = (frame_end - frame_start) * 1000
-                frame_start = frame_end
+                    self.save_prediction(preds[0].cpu().numpy(), filename, output_dir, original_size.tolist())
+                except Exception as error:
+                    if stop_on_error:
+                        raise
+                    failures[filename] = error
+                    frame_start = time.perf_counter()
+                else:
+                    frame_end = time.perf_counter()
+                    inference_times[base_name] = (inference_end - inference_start) * 1000
+                    frame_times[base_name] = (frame_end - frame_start) * 1000
+                    frame_start = frame_end
 
-        total_time = time.perf_counter() - start_time
+                done += 1
+                if on_image:
+                    on_image(done, len(dataset), filename)
+
+        return {
+            'inference_times': inference_times,
+            'frame_times': frame_times,
+            'failures': failures,
+            'total_time': time.perf_counter() - start_time,
+        }
+
+
+    def build_result(self, model_name, segmented):
+        inference_times = segmented['inference_times']
+        frame_times = segmented['frame_times']
+        total_time = segmented['total_time']
         images_processed = len(inference_times)
 
         return {

@@ -20,27 +20,36 @@ class FreiburgDownloader():
         pass
 
 
-    def download_dataset(self):
+    def download_dataset(self, on_progress=None):
+        """on_progress(parte, total_de_partes, bytes_baixados, bytes_da_parte) acompanha o download."""
         os.makedirs(self.BASE_DIR, exist_ok=True)
 
-        for file_name in self.FILES:
+        for index, file_name in enumerate(self.FILES):
             url = self.BASE_URL + file_name
             dest_path = os.path.join(self.BASE_DIR, file_name)
 
-            self.download_file(url, dest_path)
+            part_progress = None
+            if on_progress:
+                part_progress = lambda done, total, index=index: on_progress(index + 1, len(self.FILES), done, total)
+
+            self.download_file(url, dest_path, part_progress)
         self.merge_files()
 
 
-    def download_file(self, url, dest_path):
-        headers = {}
-        mode = "wb"
+    def download_file(self, url, dest_path, on_progress=None):
+        response = requests.get(url, stream=True, timeout=60)
+        response.raise_for_status()
 
-        response = requests.get(url, headers=headers, stream=True)
+        total = int(response.headers.get('content-length', 0))
+        done = 0
 
-        with open(dest_path, mode) as f:
+        with open(dest_path, "wb") as f:
             for chunk in response.iter_content(chunk_size=1024 * 1024):
                 if chunk:
                     f.write(chunk)
+                    done += len(chunk)
+                    if on_progress:
+                        on_progress(done, total)
 
 
     def merge_files(self):

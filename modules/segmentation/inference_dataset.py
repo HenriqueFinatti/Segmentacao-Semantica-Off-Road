@@ -6,10 +6,14 @@ from torchvision import transforms
 from torch.utils.data import Dataset
 
 
+VALID_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
+
+
 class InferenceDataset(Dataset):
-    def __init__(self, root_dir, img_transform=None):
+    def __init__(self, root_dir, img_transform=None, images=None):
         self.rgb_dir = root_dir
-        self.images = self.get_images()
+        # images restringe a segmentação a alguns arquivos da pasta (ex.: repetir só as imagens que falharam)
+        self.images = list(images) if images is not None else self.get_images()
         self.img_transform = img_transform
 
     def __len__(self):
@@ -29,7 +33,7 @@ class InferenceDataset(Dataset):
         return image, img_name, original_size
 
     def get_images(self):
-        valid_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif'}
+        valid_extensions = VALID_EXTENSIONS
         images = []
 
         if not os.path.exists(self.rgb_dir):

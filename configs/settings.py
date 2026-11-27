@@ -1,3 +1,4 @@
+import copy
 import json
 import numpy as np
 
@@ -7,9 +8,19 @@ from schemas.settings_config import SettingsConfig
 
 class Settings():
 
-    def __init__(self):
+    def __init__(self, overrides=None):
         with open(paths.SETTINGS_FILE, 'r', encoding='utf-8') as settings:
             self.settings: SettingsConfig = json.load(settings)
+
+        # A interface treina cada configuração com os próprios parâmetros, sem alterar o settings.json
+        if overrides:
+            self.settings.update(overrides)
+
+
+    def with_overrides(self, overrides):
+        settings = copy.copy(self)
+        settings.settings = {**copy.deepcopy(self.settings), **overrides}
+        return settings
 
 
     def is_early_stopping_on(self) -> bool:
@@ -17,7 +28,8 @@ class Settings():
 
 
     def is_charts_on(self) -> bool:
-        return self.settings['Charts']
+        # Geração de gráficos é obrigatória: não há mais a chave Charts no settings.json
+        return True
 
 
     def is_test_execution_on(self) -> bool:
@@ -73,7 +85,8 @@ class Settings():
 
 
     def get_dataset_labels(self) -> dict[str, DatasetLabel]:
-        dataset_labels = self.settings['Datasets_Labels']
+        # Cópia: as cores viram numpy aqui, e o dicionário original precisa continuar serializável em JSON
+        dataset_labels = copy.deepcopy(self.settings['Datasets_Labels'])
 
         for dataset in dataset_labels.values():
             # (N, 3): cada linha é uma cor que conta como trilha

@@ -28,6 +28,12 @@ VIDEO_OUTPUT_DIR = os.path.join(ROOT, 'video', 'output')
 VIDEO_FRAMES_DIR = os.path.join(ROOT, 'video', 'frames')
 VIDEO_SEGMENTED_FRAMES_DIR = os.path.join(ROOT, 'video', 'segmented_frames')
 
+# Interface: cada configuração treinada tem a própria pasta; cada sessão de segmentação também
+CONFIGURATIONS_DIR = os.path.join(RESULTS_DIR, 'configuracoes')
+REGISTRY_FILE = os.path.join(RESULTS_DIR, 'registro.json')
+SYSTEM_LOG_FILE = os.path.join(RESULTS_DIR, 'logs_sistema.txt')
+SESSIONS_DIR = os.path.join(ROOT, 'sessoes')
+
 FREIBURG_RAW_DIR = os.path.join(RAW_DIR, 'freiburg_forest_annotated')
 SYNTHETIC_RAW_DIR = os.path.join(RAW_DIR, 'synthetic_offroad')
 # Ainda sem downloader: a pasta extraída do CaSSeD.tar.gz é copiada manualmente para cá
@@ -38,7 +44,21 @@ def dataset_dir(split, folder=''):
     return os.path.join(DATASET_DIR, split, folder)
 
 
+def dataset_info_file():
+    # Quando e com quais datasets o dataset foi montado. Função para acompanhar DATASET_DIR (testes o redirecionam)
+    return os.path.join(DATASET_DIR, 'montagem.json')
+
+
+def configuration_dir(configuration_id):
+    return os.path.join(CONFIGURATIONS_DIR, configuration_id)
+
+
+def session_dir(session_id):
+    return os.path.join(SESSIONS_DIR, session_id)
+
+
 def model_path(model):
+    # Caminho padrão de cada modelo, usado pelo CARLA e pelo treino fora da interface
     return os.path.join(RESULTS_DIR, model, 'model.pth')
 
 

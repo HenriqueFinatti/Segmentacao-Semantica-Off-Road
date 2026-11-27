@@ -1,5 +1,6 @@
 import os
 import gc
+import itertools
 import torch
 import numpy as np
 import torch.nn as nn
@@ -21,9 +22,15 @@ from modules.metrics.metrics_tracker import MetricsTracker
 
 
 class Trainer():
-    def __init__(self, model: str, settings):
+    def __init__(self, model: str, settings, output_dir=None, on_epoch=None):
+        """output_dir: pasta da configuração (model.pth, statistics/ e images/). Sem ela, usa results/<modelo>/.
+        on_epoch: chamado ao fim de cada época com as métricas, para a interface acompanhar o treino."""
         self.current_model = model.upper()
-        self.metrics_tracker = MetricsTracker(self.current_model)
+        self.output_dir = output_dir
+        self.on_epoch = on_epoch
+        self.statistics_dir = os.path.join(output_dir, 'statistics') if output_dir else paths.statistics_dir(model.lower())
+        self.charts_dir = os.path.join(output_dir, 'images') if output_dir else None
+        self.metrics_tracker = MetricsTracker(self.current_model, self.statistics_dir)
         self.settings = settings
         self.charts = Charts(settings)
         self.early_stopping = EarlyStopping(settings)
@@ -31,7 +38,10 @@ class Trainer():
         self.batch_size = self.settings.get_batch_size()
 
         print(f"Batch size: {self.batch_size}")
-        self.EPOCHS = self.settings.get_epochs()
+        # Com early stopping (fora da execução de teste) não há limite de épocas: o treino para quando ele parar.
+        # None = sem limite
+        unlimited = self.settings.is_early_stopping_on() and not self.settings.is_test_execution_on()
+        self.EPOCHS = None if unlimited else self.settings.get_epochs()
 
         img_transform = build_image_transform(self.settings.get_image_size())
 
@@ -77,7 +87,7 @@ class Trainer():
 
         model_name = validate_model_name(model)
         self.model = build_model(model_name).to(self.device)
-        self.final_model_path = paths.model_path(model_name)
+        self.final_model_path = os.path.join(output_dir, 'model.pth') if output_dir else paths.model_path(model_name)
 
         os.makedirs(os.path.dirname(self.final_model_path), exist_ok=True)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.settings.get_learning_rate())
@@ -122,8 +132,9 @@ class Trainer():
 
         validation = self.validate()
 
-        self.metrics_tracker.end_epoch(epoch_num, validation)
+        epoch_metrics = self.metrics_tracker.end_epoch(epoch_num, validation)
         self.early_stopping(self.metrics_tracker.selection_miou)
+        return epoch_metrics
 
 
     def validate(self):
@@ -153,20 +164,38 @@ class Trainer():
 
         self.metrics_tracker.start_training(self.get_configuration())
         self.save_validation_images()
-        for epoch in range(self.EPOCHS):
-            epoch_num = epoch + 1
 
-            self.train_one_epoch(self.train_loader, epoch_num)
+        # Motivo do término: 'epocas' (chegou ao total), 'early_stopping' ou 'execucao_de_teste'
+        reason = 'epocas'
+        epoch_num = 0
+
+        epochs = itertools.count(1) if self.EPOCHS is None else range(1, self.EPOCHS + 1)
+        for epoch_num in epochs:
+
+            epoch_metrics = self.train_one_epoch(self.train_loader, epoch_num)
             self.save_best_model()
 
+            if self.on_epoch:
+                self.on_epoch({**epoch_metrics, 'total': self.EPOCHS, 'melhor_epoca': self.metrics_tracker.best_epoch})
+
             if self.settings.is_test_execution_on() and epoch_num == self.settings.get_test_execution_epochs():
+                reason = 'execucao_de_teste'
                 break
 
             if self.early_stopping.should_stop:
+                reason = 'early_stopping'
                 break
 
         self.metrics_tracker.end_training()
-        self.charts.plot_charts(self.metrics_tracker, self.current_model)
+        self.charts.plot_charts(self.metrics_tracker, self.current_model, self.charts_dir)
+
+        return {
+            'motivo_termino': reason,
+            'epoca_final': epoch_num,
+            'melhor_epoca': self.metrics_tracker.best_epoch,
+            'tempo_total_s': self.metrics_tracker.total_training_time,
+            'modelo': self.final_model_path,
+        }
 
 
     def get_configuration(self):
@@ -193,7 +222,7 @@ class Trainer():
             'Seleção do Modelo': 'mIoU de validação' if self.validation_images else 'mIoU de treino',
             'Tamanho da Imagem': f"{settings.get_image_size()}x{settings.get_image_size()}",
             'Batch Size': self.batch_size,
-            'Épocas (máximo)': self.EPOCHS,
+            'Épocas (máximo)': self.EPOCHS if self.EPOCHS is not None else 'Sem limite (até o early stopping)',
             'Early Stopping': early_stopping,
             'Learning Rate': settings.get_learning_rate(),
             'Pesos das Classes': settings.get_class_weights(),
@@ -204,7 +233,8 @@ class Trainer():
 
     def save_validation_images(self):
         # Lista das imagens de validação, para saber exatamente com quais imagens o modelo foi escolhido
-        path = os.path.join(paths.statistics_dir(self.current_model.lower()), 'validacao_imagens.txt')
+        os.makedirs(self.statistics_dir, exist_ok=True)
+        path = os.path.join(self.statistics_dir, 'validacao_imagens.txt')
 
         with open(path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(self.validation_images) + ('\n' if self.validation_images else ''))

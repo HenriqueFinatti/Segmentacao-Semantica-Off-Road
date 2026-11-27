@@ -9,9 +9,9 @@ class Charts:
     def __init__(self, settings):
         self.settings = settings
 
-    def plot_charts(self, metrics_tracker, current_model):
+    def plot_charts(self, metrics_tracker, current_model, save_dir=None):
 
-        save_dir = self.get_result_path(current_model.upper())
+        save_dir = save_dir or self.get_result_path(current_model.upper())
         os.makedirs(save_dir, exist_ok=True)
 
         if self.settings.is_charts_on():

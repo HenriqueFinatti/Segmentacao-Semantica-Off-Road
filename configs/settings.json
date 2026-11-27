@@ -4,15 +4,14 @@
     ,"Freiburg_Forest": true
     ,"Synthetic_Offroad": true
     ,"CaSSeD": true
-    ,"Charts": true
-    ,"Epochs": 200
+    ,"Epochs": 100
     ,"Patience": 5
     ,"BATCH_SIZE": 4
     ,"Image_Size": 512
     ,"Learning_Rate": 0.0001
     ,"Class_Weights": [1.0, 9.0]
     ,"Num_Workers": 2
-    ,"Test_Execution_Images": 2
+    ,"Test_Execution_Images": 3
     ,"Test_Execution_Epochs": 3
     ,"Validation_Split": 0.15
     ,"Seed": 42

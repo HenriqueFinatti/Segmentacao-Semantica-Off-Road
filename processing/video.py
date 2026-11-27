@@ -11,11 +11,12 @@ TRAIL_ALPHA = 0.45
 
 class Video:
 
-    def __init__(self, video_path=paths.VIDEO_PATH, output_dir=paths.VIDEO_OUTPUT_DIR):
+    def __init__(self, video_path=paths.VIDEO_PATH, output_dir=paths.VIDEO_OUTPUT_DIR,
+                 frames_dir=paths.VIDEO_FRAMES_DIR, segmented_frames_dir=paths.VIDEO_SEGMENTED_FRAMES_DIR):
         self.video_path = video_path
         self.output_dir = output_dir
-        self.images_dir = paths.VIDEO_FRAMES_DIR
-        self.segmented_images_dir = paths.VIDEO_SEGMENTED_FRAMES_DIR
+        self.images_dir = frames_dir
+        self.segmented_images_dir = segmented_frames_dir
 
         os.makedirs(self.output_dir, exist_ok=True)
 
@@ -144,3 +145,103 @@ class Video:
 
             inference_times = segmentation_results.get(model, {}).get('inference_times')
             self._build_video(model, inference_times)
+
+
+def read_video_info(video_path):
+    """Retorna (fps, total de quadros) ou None se o arquivo não for um vídeo que o OpenCV consegue abrir."""
+    video = cv2.VideoCapture(video_path)
+    try:
+        if not video.isOpened():
+            return None
+        fps = video.get(cv2.CAP_PROP_FPS)
+        success, _ = video.read()
+        if not success or fps <= 0:
+            return None
+        return fps, int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    finally:
+        video.release()
+
+
+def extract_frames(video_path, output_dir, prefix, on_frame=None):
+    """Salva cada quadro do vídeo como <prefix>_quadro_000000.png em output_dir. Retorna a lista de nomes e o FPS."""
+    video = cv2.VideoCapture(video_path)
+
+    if not video.isOpened():
+        raise FileNotFoundError(f"Não foi possível abrir o vídeo: {paths.relative(video_path)}")
+
+    fps = video.get(cv2.CAP_PROP_FPS)
+    total = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    os.makedirs(output_dir, exist_ok=True)
+    names = []
+
+    try:
+        while True:
+            success, frame = video.read()
+            if not success:
+                break
+
+            name = f"{prefix}_quadro_{len(names):06d}.png"
+            cv2.imwrite(os.path.join(output_dir, name), frame)
+            names.append(name)
+
+            if on_frame:
+                on_frame(len(names), max(total, len(names)))
+    finally:
+        video.release()
+
+    return names, fps
+
+
+def paint_trail(frame, mask):
+    """Pinta a trilha prevista (pixels > 0 da máscara) sobre a imagem BGR, na mesma cor do overlay do CARLA."""
+    height, width = frame.shape[:2]
+    if mask.shape != (height, width):
+        mask = cv2.resize(mask, (width, height), interpolation=cv2.INTER_NEAREST)
+    trail = mask > 0
+    frame[trail] = ((1 - TRAIL_ALPHA) * frame[trail] + TRAIL_ALPHA * TRAIL_COLOR).astype(np.uint8)
+    return frame
+
+
+def build_overlay_image(image_path, mask_path):
+    """PNG (bytes) da imagem com a trilha prevista pintada por cima, para baixar."""
+    frame = cv2.imread(image_path)
+    mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+    if frame is None or mask is None:
+        raise RuntimeError(f"Não foi possível ler a imagem ou a máscara de {os.path.basename(image_path)}")
+
+    ok, png = cv2.imencode('.png', paint_trail(frame, mask))
+    if not ok:
+        raise RuntimeError(f"Não foi possível gerar a sobreposição de {os.path.basename(image_path)}")
+    return png.tobytes()
+
+
+def build_overlay_video(frames_dir, masks_dir, frame_names, output_path, fps, label=None):
+    """Monta um MP4 com a trilha prevista pintada sobre cada quadro (para baixar). Quadros sem máscara ficam sem pintura."""
+    if not frame_names:
+        raise ValueError("Nenhum quadro para montar o vídeo.")
+
+    first = cv2.imread(os.path.join(frames_dir, frame_names[0]))
+    if first is None:
+        raise RuntimeError(f"Não foi possível ler o quadro {frame_names[0]}")
+
+    height, width = first.shape[:2]
+    writer = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
+    if not writer.isOpened():
+        raise RuntimeError(f"Não foi possível criar o vídeo: {paths.relative(output_path)}")
+
+    try:
+        for name in frame_names:
+            frame = cv2.imread(os.path.join(frames_dir, name))
+            mask = cv2.imread(os.path.join(masks_dir, os.path.splitext(name)[0] + '.png'), cv2.IMREAD_GRAYSCALE)
+
+            if mask is not None:
+                paint_trail(frame, mask)
+
+            if label:
+                # Fontes do OpenCV não suportam acentos
+                cv2.putText(frame, label, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 4, cv2.LINE_AA)
+                cv2.putText(frame, label, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 1, cv2.LINE_AA)
+
+            writer.write(frame)
+    finally:
+        writer.release()
