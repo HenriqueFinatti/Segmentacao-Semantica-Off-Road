@@ -795,6 +795,53 @@ class Sistema:
         return self.registro.read(build)
 
 
+    def list_sessions(self):
+        """Resumo de todas as sessões (sem os rascunhos), da mais recente para a mais antiga."""
+        def summary(session, data):
+            executions = []
+            for cid, e in session['execucoes'].items():
+                c = data['configuracoes'].get(cid)
+                executions.append({
+                    'configuracao': cid,
+                    'nome': c['nome'] if c else cid,
+                    'estado': e.get('estado'),
+                    'concluidas': len(e.get('concluidas') or []),
+                    'falhas': len(e.get('falhas') or {}),
+                    'data': e.get('data'),
+                })
+            videos = session.get('videos', [])
+            running = any(e['estado'] in ('na fila', 'processando') for e in executions) \
+                or any(v.get('estado') in ('na fila', 'processando') for v in videos)
+            failed = any(e['estado'] == 'falhou' or e['falhas'] for e in executions) \
+                or any(v.get('estado') == 'falhou' for v in videos)
+            if running:
+                state = 'processando'
+            elif failed:
+                state = 'falhou'
+            elif executions:
+                state = 'concluído'
+            else:
+                state = None
+            dates = [e['data'] for e in executions if e['data']]
+            return {
+                'id': session['id'],
+                'ciclo': session['ciclo'],
+                'criada_em': session.get('criada_em'),
+                'executada_em': max(dates) if dates else None,
+                'atual': data.get('ultima_sessao') == session['id'],
+                'imagens': sum(1 for i in session['imagens'] if i.get('origem') != 'quadro'),
+                'videos': len(videos),
+                'execucoes': executions,
+                'estado': state,
+                'com_resultado': any(e['concluidas'] for e in executions),
+            }
+
+        def build(data):
+            items = [summary(s, data) for s in data['sessoes'].values() if not s.get('rascunho')]
+            return sorted(items, key=lambda s: s.get('criada_em') or '', reverse=True)
+        return self.registro.read(build)
+
+
     def current_session_id(self):
         return self.registro.read(lambda data: data.get('ultima_sessao'))
 

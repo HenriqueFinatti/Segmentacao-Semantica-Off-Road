@@ -552,3 +552,25 @@ input[type="range"] { accent-color: var(--primaria); min-height: 32px; }
 
 .lista-avaliacoes { list-style: none; padding: 0; margin: 0; display: grid; gap: .5rem; }
 .lista-avaliacoes > li { margin: 0; }
+
+/* Listas das telas Treinamentos e Sessões: cada item é um link para a tela daquele treino ou sessão */
+
+.lista-itens { list-style: none; padding: 0; margin: 0; display: grid; gap: .55rem; }
+.lista-itens > li { margin: 0; }
+.item-lista {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  padding: .7rem .8rem;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  color: var(--texto);
+  text-decoration: none;
+}
+.item-lista:hover { border-color: var(--primaria); background: #f5f8ff; }
+.item-lista-cabeca { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; justify-content: space-between; }
+.item-lista .nome { font-weight: 700; color: var(--primaria); }
+.item-lista:hover .nome { text-decoration: underline; }
+.item-lista .descricao { font-size: .9rem; color: var(--texto-suave); }
+.item-lista .metricas-curtas { font-size: .9rem; }

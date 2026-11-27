@@ -130,6 +130,10 @@ def create_app():
         sistema.discard_draft(session_id)
         return {'ok': True}
 
+    @app.get('/api/sessoes')
+    def sessions():
+        return sistema.list_sessions()
+
     @app.get('/api/sessoes/atual')
     def current_session():
         session_id = sistema.current_session_id()

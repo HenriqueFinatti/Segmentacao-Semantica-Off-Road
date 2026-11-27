@@ -7,16 +7,18 @@ import * as segmentar from './telas/segmentar.js';
 import * as processamento from './telas/processamento.js';
 import * as sessao from './telas/sessao.js';
 import * as treino from './telas/treino.js';
+import * as treinos from './telas/treinos.js';
 import * as desempenho from './telas/desempenho.js';
 import * as datasets from './telas/datasets.js';
 
 const ROTAS = [
   ['segmentar', segmentar.render, 'segmentar'],
-  ['sessao', sessao.renderAtual, 'sessao'],
+  ['sessoes', sessao.renderLista, 'sessao'],
   ['sessao/:id/processamento', processamento.render, 'sessao'],
   ['sessao/:id/imagem', sessao.render, 'sessao'],
   ['treino/novo', treino.renderNovo, 'treino'],
-  ['treino/:id', treino.renderAcompanhar, 'treino'],
+  ['treinos', treinos.render, 'treinos'],
+  ['treino/:id', treino.renderAcompanhar, 'treinos'],
   ['desempenho', desempenho.render, 'desempenho'],
   ['datasets', datasets.render, 'datasets'],
 ];
@@ -55,7 +57,7 @@ async function rotear() {
 
   const { caminho, consulta } = separar(location.hash);
   if (!caminho) {
-    // A interface sempre começa limpa, em Segmentar imagens (a última sessão continua em "Sessão atual")
+    // A interface sempre começa limpa, em Segmentar imagens (as sessões ficam em "Sessões")
     contexto.navegar('#/segmentar');
     return;
   }

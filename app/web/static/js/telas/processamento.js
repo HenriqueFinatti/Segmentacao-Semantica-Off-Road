@@ -11,7 +11,7 @@ export async function render(main, { id }, _consulta, contexto) {
 
   limpar(main, cabecalho('Acompanhar o processamento',
     `Ciclo de testes: ${sessao.ciclo}. Você pode sair desta tela: a execução continua enquanto o programa da interface estiver aberto.`,
-    h('a', { href: '#/segmentar' }, '← Segmentar imagens')), corpo);
+    h('a', { href: '#/sessoes' }, '← Sessões')), corpo);
 
   const imagensPorNome = () => Object.fromEntries(sessao.imagens.map((imagem) => [imagem.nome, imagem]));
 

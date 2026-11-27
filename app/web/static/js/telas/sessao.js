@@ -1,7 +1,7 @@
 // O04 Avaliar a segmentação de uma imagem (M01):
 // O04.1 Ver o resultado sobre a imagem · baixar a imagem (no modo escolhido) ou o vídeo segmentado.
-import { api, enc, ErroApi } from '../api.js';
-import { h, limpar, cabecalho, mensagem, legenda, icone } from '../ui.js';
+import { api, enc } from '../api.js';
+import { h, limpar, cabecalho, mensagem, legenda, icone, estado, situacao, formato } from '../ui.js';
 import { Regiao, Visualizador } from '../visualizador.js';
 import {
   configuracoesExecutadas, imagensComResultado, rotuloImagem, temMascara, urlImagem, urlMascara, urlSobreposicao,
@@ -14,25 +14,72 @@ function gravarPreferencia(chave, valor) {
   try { localStorage.setItem(chave, valor); } catch { /* sem armazenamento: só não lembra */ }
 }
 
-export async function renderAtual(main, _p, _c, contexto) {
-  let sessao;
-  try {
-    sessao = await api.get('/api/sessoes/atual');
-  } catch (erro) {
-    if (erro instanceof ErroApi && erro.status === 404) {
-      limpar(main, cabecalho('Sessão atual'), mensagem('neutra',
+const emAndamento = (s) => s.estado === 'processando';
+
+// Leva para os resultados quando estão prontos; com algo pendente, para o acompanhamento do processamento
+function destino(s) {
+  const pendente = s.estado === 'processando' || s.estado === 'falhou' || !s.com_resultado;
+  return pendente ? `#/sessao/${enc(s.id)}/processamento` : `#/sessao/${enc(s.id)}/imagem`;
+}
+
+function seloSessao(s) {
+  if (s.estado === 'processando') return estado('processando');
+  if (s.estado === 'falhou') return estado('falhou', 'Com falhas');
+  if (s.estado === 'concluído') return estado('concluído');
+  return estado(null, 'Sem execução');
+}
+
+function itemSessao(s) {
+  const conteudo = [`${s.imagens} imagem(ns)`, `${s.videos} vídeo(s)`];
+  const datas = [`Criada em ${formato.data(s.criada_em)}`];
+  if (s.executada_em) datas.push(`executada em ${formato.data(s.executada_em)}`);
+  return h('li', {},
+    h('a', { class: 'item-lista', href: destino(s) },
+      h('span', { class: 'item-lista-cabeca' },
+        h('span', {}, h('span', { class: 'nome' }, `Ciclo de testes: ${s.ciclo}`), s.atual ? situacao('sessão atual') : null),
+        seloSessao(s)),
+      h('span', { class: 'pequeno' }, `${datas.join(' · ')} · ${conteudo.join(' · ')}`),
+      s.execucoes.length
+        ? h('span', { class: 'descricao' }, s.execucoes.map((e) => `${e.nome}: ${e.concluidas} imagens segmentadas`
+          + (e.falhas ? `, ${e.falhas} com falha` : '')).join(' · '))
+        : h('span', { class: 'descricao' }, 'Nenhuma configuração foi executada nesta sessão.')));
+}
+
+export async function renderLista(main) {
+  let sessoes = await api.get('/api/sessoes');
+  const corpo = h('div', {});
+  limpar(main, cabecalho('Sessões',
+    'Todas as sessões de segmentação. Abra uma para ver os resultados ou acompanhar o processamento.'), corpo);
+
+  function desenhar() {
+    if (!sessoes.length) {
+      limpar(corpo, mensagem('neutra',
         h('p', {}, 'Ainda não há sessão de segmentação.'),
         h('p', {}, h('a', { href: '#/segmentar' }, 'Envie as imagens do teste em Segmentar imagens'), '.')));
-      return null;
+      return;
     }
-    throw erro;
+    const andamento = sessoes.filter(emAndamento);
+    const demais = sessoes.filter((s) => !emAndamento(s));
+    const secao = (titulo, lista) => (lista.length ? h('section', { class: 'cartao', 'aria-label': titulo },
+      h('h2', {}, `${titulo} (${lista.length})`),
+      h('ul', { class: 'lista-itens' }, lista.map(itemSessao))) : null);
+    limpar(corpo, secao('Em andamento', andamento), secao('Concluídas e com falhas', demais));
   }
 
-  const execucoes = Object.values(sessao.execucoes);
-  const pendente = execucoes.some((e) => ['na fila', 'processando', 'falhou'].includes(e.estado) || Object.keys(e.falhas || {}).length)
-    || sessao.videos.some((v) => v.estado !== 'concluído');
-  contexto.navegar(pendente ? `#/sessao/${enc(sessao.id)}/processamento` : `#/sessao/${enc(sessao.id)}/imagem`);
-  return null;
+  desenhar();
+
+  let ultimo = JSON.stringify(sessoes);
+  return {
+    async atualizar(estadoGeral) {
+      // Só busca a lista de novo quando há algo rodando (na lista ou na fila de tarefas)
+      if (!sessoes.some(emAndamento) && !(estadoGeral?.tarefas || []).length) return;
+      sessoes = await api.get('/api/sessoes');
+      const chave = JSON.stringify(sessoes);
+      if (chave === ultimo) return;
+      ultimo = chave;
+      desenhar();
+    },
+  };
 }
 
 export async function render(main, { id }, consulta) {
@@ -42,7 +89,7 @@ export async function render(main, { id }, consulta) {
 
   limpar(main, cabecalho('Avaliar a segmentação de cada imagem',
     `Ciclo de testes: ${sessao.ciclo} · ${sessao.imagens.length} imagens nesta sessão`,
-    h('a', { href: `#/sessao/${enc(id)}/processamento` }, '← Acompanhar o processamento')));
+    [h('a', { href: '#/sessoes' }, '← Sessões'), ' · ', h('a', { href: `#/sessao/${enc(id)}/processamento` }, 'Acompanhar o processamento')]));
 
   if (!executadas.length) {
     main.append(mensagem('neutra', h('p', {}, 'Ainda não há resultado nesta sessão.'),

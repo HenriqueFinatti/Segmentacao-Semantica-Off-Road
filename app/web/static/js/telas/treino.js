@@ -254,7 +254,7 @@ const MOTIVOS = {
 export async function renderAcompanhar(main, { id }, _consulta, contexto) {
   let configuracao = await api.get(`/api/configuracoes/${enc(id)}`);
   const corpo = h('div', { 'aria-live': 'polite' });
-  limpar(main, cabecalho(configuracao.nome, configuracao.descricao, h('a', { href: '#/treino/novo' }, '← Treinar uma configuração')), corpo);
+  limpar(main, cabecalho(configuracao.nome, configuracao.descricao, h('a', { href: '#/treinos' }, '← Treinamentos')), corpo);
 
   function graficos(historico, ligados) {
     if (!historico.length) return null;
@@ -312,9 +312,6 @@ export async function renderAcompanhar(main, { id }, _consulta, contexto) {
           h('tr', {}, h('th', {}, 'Tempo de inferência'), h('td', { class: 'numero' }, formato.ms(m.tempo_inferencia_ms))))),
         h('h3', { style: 'margin-top:1rem' }, 'Matriz de confusão'),
         tabelaMatriz(teste.matriz, configuracao.nome)),
-      h('div', { class: 'linha' },
-        h('a', { class: 'botao', href: `#/segmentar?configuracoes=${enc(configuracao.id)}` }, 'Comparar com outra configuração no vídeo'),
-        h('a', { class: 'botao botao-secundario', href: '#/' }, 'Concluir por agora')),
     ];
   }
 
