@@ -1,5 +1,6 @@
 import os
 import gc
+import itertools
 import torch
 import numpy as np
 import torch.nn as nn
@@ -37,7 +38,10 @@ class Trainer():
         self.batch_size = self.settings.get_batch_size()
 
         print(f"Batch size: {self.batch_size}")
-        self.EPOCHS = self.settings.get_epochs()
+        # Com early stopping (fora da execução de teste) não há limite de épocas: o treino para quando ele parar.
+        # None = sem limite
+        unlimited = self.settings.is_early_stopping_on() and not self.settings.is_test_execution_on()
+        self.EPOCHS = None if unlimited else self.settings.get_epochs()
 
         img_transform = build_image_transform(self.settings.get_image_size())
 
@@ -165,8 +169,8 @@ class Trainer():
         reason = 'epocas'
         epoch_num = 0
 
-        for epoch in range(self.EPOCHS):
-            epoch_num = epoch + 1
+        epochs = itertools.count(1) if self.EPOCHS is None else range(1, self.EPOCHS + 1)
+        for epoch_num in epochs:
 
             epoch_metrics = self.train_one_epoch(self.train_loader, epoch_num)
             self.save_best_model()
@@ -218,7 +222,7 @@ class Trainer():
             'Seleção do Modelo': 'mIoU de validação' if self.validation_images else 'mIoU de treino',
             'Tamanho da Imagem': f"{settings.get_image_size()}x{settings.get_image_size()}",
             'Batch Size': self.batch_size,
-            'Épocas (máximo)': self.EPOCHS,
+            'Épocas (máximo)': self.EPOCHS if self.EPOCHS is not None else 'Sem limite (até o early stopping)',
             'Early Stopping': early_stopping,
             'Learning Rate': settings.get_learning_rate(),
             'Pesos das Classes': settings.get_class_weights(),

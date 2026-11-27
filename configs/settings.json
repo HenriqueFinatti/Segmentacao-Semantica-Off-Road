@@ -4,8 +4,7 @@
     ,"Freiburg_Forest": true
     ,"Synthetic_Offroad": true
     ,"CaSSeD": true
-    ,"Charts": true
-    ,"Epochs": 200
+    ,"Epochs": 100
     ,"Patience": 5
     ,"BATCH_SIZE": 4
     ,"Image_Size": 512

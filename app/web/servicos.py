@@ -57,6 +57,8 @@ def ascii_text(text):
 
 
 def format_epochs(epochs):
+    if epochs is None:
+        return 'sem limite de épocas'
     return f"{epochs} época" if epochs == 1 else f"{epochs} épocas"
 
 
@@ -167,8 +169,9 @@ class Sistema:
                     table[match.group(1)] = match.group(2)
 
         parameters = dict(defaults)
+        epochs = str(table.get('Épocas (máximo)', defaults['epocas']))
         try:
-            parameters['epocas'] = int(table.get('Épocas (máximo)', defaults['epocas']))
+            parameters['epocas'] = None if epochs.startswith('Sem limite') else int(epochs)
             parameters['batch_size'] = int(table.get('Batch Size', defaults['batch_size']))
         except ValueError:
             pass
@@ -256,7 +259,7 @@ class Sistema:
             'paciencia': settings.get_patience(),
             'datasets': datasets,
             'batch_size': settings.get_batch_size(),
-            'graficos': settings.is_charts_on(),
+            'graficos': True,
             'execucao_teste': settings.is_test_execution_on(),
             'execucao_teste_imagens': settings.get_test_execution_images(),
             'execucao_teste_epocas': settings.get_test_execution_epochs(),
@@ -287,7 +290,8 @@ class Sistema:
         p = configuration['parametros']
         early = f"early stopping com paciência {p['paciencia']}" if p['early_stopping'] else 'sem early stopping'
         datasets = ', '.join(DATASET_NAMES.get(d, d) for d in p['datasets'])
-        description = (f"{MODEL_NAMES[configuration['modelo']]}, até {format_epochs(p['epocas'])}, {early}, "
+        epochs = f"até {format_epochs(p['epocas'])}" if p['epocas'] is not None else 'até o early stopping parar'
+        description = (f"{MODEL_NAMES[configuration['modelo']]}, {epochs}, {early}, "
                        f"batch size {p['batch_size']}, datasets de treino: {datasets}")
         if p.get('execucao_teste'):
             description += f", execução de teste com {p['execucao_teste_imagens']} imagens"
@@ -376,22 +380,23 @@ class Sistema:
         batch_size = positive_int('batch_size', 'o batch size')
 
         # Execução de teste: treino leve (poucas imagens e épocas) para conferir o fluxo num computador modesto.
-        # Ligada, ela define as épocas e desliga o early stopping; os campos Épocas e Paciência são ignorados.
+        # Ligada, ela desliga o early stopping e o campo único "epocas" traz as épocas do teste; a Paciência é ignorada.
         test_execution = bool(form.get('execucao_teste'))
         if test_execution:
             test_images = positive_int('execucao_teste_imagens', 'o número de imagens da execução de teste')
             if test_images < 3:
                 raise Recusa('PA', 'A execução de teste precisa de pelo menos 3 imagens (2 de treino e 1 de validação).',
                              'execucao_teste_imagens')
-            test_epochs = positive_int('execucao_teste_epocas', 'o número de épocas da execução de teste')
+            test_epochs = positive_int('epocas', 'o número de épocas da execução de teste')
             epochs = test_epochs
             early_stopping = False
             patience = self.settings.get_patience()
         else:
             test_images = self.settings.get_test_execution_images()
             test_epochs = self.settings.get_test_execution_epochs()
-            epochs = positive_int('epocas', 'o número de épocas')
             early_stopping = bool(form.get('early_stopping'))
+            # Com early stopping não há número de épocas: o treino continua até ele parar (None = sem limite)
+            epochs = None if early_stopping else positive_int('epocas', 'o número de épocas')
             patience = positive_int('paciencia', 'a paciência') if early_stopping else self.settings.get_patience()
 
         datasets = [d for d in form.get('datasets') or [] if d in DATASET_NAMES]
@@ -412,7 +417,8 @@ class Sistema:
                 'paciencia': patience,
                 'datasets': datasets,
                 'batch_size': batch_size,
-                'graficos': bool(form.get('graficos')),
+                # Os gráficos de treino são sempre gerados
+                'graficos': True,
                 'execucao_teste': test_execution,
                 'execucao_teste_imagens': test_images,
                 'execucao_teste_epocas': test_epochs,
@@ -503,7 +509,6 @@ class Sistema:
             'EarlyStopping': p['early_stopping'],
             'Patience': p['paciencia'],
             'BATCH_SIZE': p['batch_size'],
-            'Charts': p['graficos'],
             # Configurações antigas não têm estes campos: a execução de teste fica desligada
             'Test_Execution': p.get('execucao_teste', False),
             'Test_Execution_Images': p.get('execucao_teste_imagens', self.settings.get_test_execution_images()),
@@ -514,15 +519,16 @@ class Sistema:
         folder = self.configuration_folder(configuration)
         os.makedirs(folder, exist_ok=True)
 
+        # Sem limite (early stopping): não há total, o progresso mostra só a época atual
         total = p['epocas']
         if settings.is_test_execution_on():
-            total = min(total, settings.get_test_execution_epochs())
+            total = min(total or settings.get_test_execution_epochs(), settings.get_test_execution_epochs())
 
         self.registro.update_configuration(configuration_id, lambda c: c.update({'treino': {
             'estado': 'treinando', 'epoca': 0, 'total': total, 'historico': [], 'iniciado_em': now(),
             'etapa': 'Preparando o treino',
         }}))
-        task.set_progress(0, total, 'Preparando o treino')
+        task.set_progress(0, total or 0, 'Preparando o treino')
 
         def on_epoch(epoch):
             entry = {
@@ -538,7 +544,8 @@ class Sistema:
                 c['treino']['melhor_epoca'] = epoch['melhor_epoca']
                 c['treino']['etapa'] = 'Treinando'
             self.registro.update_configuration(configuration_id, update)
-            task.set_progress(epoch['epoca'], total, f"Época {epoch['epoca']} de {total}")
+            task.set_progress(epoch['epoca'], total or 0,
+                              f"Época {epoch['epoca']} de {total}" if total else f"Época {epoch['epoca']} (até o early stopping parar)")
 
         try:
             result = Trainer(configuration['modelo'], settings, output_dir=folder, on_epoch=on_epoch).train_model()

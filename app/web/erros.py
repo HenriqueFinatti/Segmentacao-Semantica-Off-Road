@@ -1,8 +1,12 @@
 """Traduz exceções do código do TCC para falas em linguagem de usuário.
 
 A interface nunca mostra traceback: a causa e o que fazer aparecem na tela, e os detalhes técnicos
-vão só para o terminal e para results/interface.log."""
+vão só para o arquivo de logs do sistema (results/logs_sistema.txt), nunca para o terminal."""
+import io
+import os
+import sys
 import logging
+import threading
 
 from configs import paths
 
@@ -19,25 +23,64 @@ class ErroDeUsuario(Exception):
         self.tipo = tipo
 
 
+# Saída do código do TCC (print, avisos e tracebacks) capturada pelo redirect_output
+output_logger = logging.getLogger('interface.saida')
+_file_handler = None
+
+
 def configure_logging():
+    """Logs da interface só no arquivo de logs do sistema (sem StreamHandler: nada vai para o terminal)."""
+    global _file_handler
     logger.setLevel(logging.INFO)
-    if logger.handlers:
+    logger.propagate = False
+    if _file_handler is not None:
         return
 
-    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-
-    console = logging.StreamHandler()
-    console.setFormatter(formatter)
-    logger.addHandler(console)
-
     try:
-        import os
-        os.makedirs(paths.RESULTS_DIR, exist_ok=True)
-        file_handler = logging.FileHandler(paths.INTERFACE_LOG_FILE, encoding='utf-8')
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
+        os.makedirs(os.path.dirname(paths.SYSTEM_LOG_FILE), exist_ok=True)
+        _file_handler = logging.FileHandler(paths.SYSTEM_LOG_FILE, encoding='utf-8')
     except OSError:
-        pass
+        _file_handler = logging.NullHandler()
+    _file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+    logger.addHandler(_file_handler)
+
+
+class _LogStream(io.TextIOBase):
+    """Arquivo de texto falso: cada linha escrita vira um registro no log do sistema."""
+
+    def __init__(self, level):
+        self.level = level
+        self.buffer_text = ''
+        self.lock = threading.Lock()
+
+    def writable(self):
+        return True
+
+    def write(self, text):
+        with self.lock:
+            # \r (barras de progresso) conta como fim de linha, para não acumular texto
+            self.buffer_text += str(text).replace('\r', '\n')
+            *lines, self.buffer_text = self.buffer_text.split('\n')
+        for line in lines:
+            if line.strip():
+                output_logger.log(self.level, line.rstrip())
+        return len(text)
+
+    def flush(self):
+        with self.lock:
+            line, self.buffer_text = self.buffer_text, ''
+        if line.strip():
+            output_logger.log(self.level, line.rstrip())
+
+    def isatty(self):
+        return False
+
+
+def redirect_output():
+    """Manda print(), avisos e tracebacks (stdout e stderr) para o arquivo de logs do sistema."""
+    configure_logging()
+    sys.stdout = _LogStream(logging.INFO)
+    sys.stderr = _LogStream(logging.ERROR)
 
 
 def is_out_of_memory(error):
@@ -110,6 +153,6 @@ def describe(error, contexto='execucao'):
     return {
         'causa': 'ocorreu um erro inesperado',
         'sugestao': 'Tente de novo. Se continuar, avise quem mantém o sistema: os detalhes técnicos foram '
-                    'registrados no terminal e em results/interface.log.',
+                    'registrados em results/logs_sistema.txt.',
         'tipo': 'CE',
     }

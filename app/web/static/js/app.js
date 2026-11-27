@@ -107,7 +107,7 @@ function desenharIndicador(estado) {
     texto = 'Nenhum treino em andamento';
     nomeIcone = 'sem';
   } else if (recente.estado === 'treinando') {
-    texto = `Treinando: ${recente.nome} · época ${recente.epoca || 0} de ${recente.total || '?'}`;
+    texto = `Treinando: ${recente.nome} · época ${recente.epoca || 0}${recente.total ? ` de ${recente.total}` : ''}`;
     nomeIcone = 'andamento';
   } else if (recente.estado === 'na fila') {
     texto = `Treino na fila: ${recente.nome}`;

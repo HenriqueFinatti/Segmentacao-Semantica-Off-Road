@@ -16,8 +16,11 @@ export async function renderNovo(main, _p, _consulta, contexto) {
   const padroes = await api.get('/api/treino/padroes');
   const montados = new Set(padroes.datasets.filter((d) => d.imagens_treino > 0).map((d) => d.id));
   // Só os datasets montados podem ser escolhidos (prevenção ativa)
-  const valores = { ...padroes.padrao, modelo: 'deeplabv3+', nome: '' };
+  // Estado inicial da tela: early stopping ligado, execução de teste desligada
+  const valores = { ...padroes.padrao, modelo: 'deeplabv3+', nome: '', early_stopping: true, execucao_teste: false };
   valores.datasets = valores.datasets.filter((d) => montados.has(d));
+  // O campo Épocas é um só: mostra as épocas do treino normal ou as da execução de teste, e guarda cada valor
+  const epocasPorModo = { normal: String(padroes.padrao.epocas), teste: String(padroes.padrao.execucao_teste_epocas) };
 
   const corpo = h('div', {});
   limpar(main, cabecalho('Treinar uma configuração',
@@ -28,7 +31,7 @@ export async function renderNovo(main, _p, _consulta, contexto) {
       h('label', { for: campo }, rotulo),
       ajuda ? h('span', { class: 'ajuda', id: `ajuda-${campo}` }, ajuda) : null,
       h('input', {
-        type: 'number', id: campo, name: campo, min: '1', step: '1', value: String(valores[campo]), inputmode: 'numeric',
+        type: 'number', id: campo, name: campo, min: '1', step: '1', value: String(valores[campo] ?? ''), inputmode: 'numeric',
         'aria-describedby': ajuda ? `ajuda-${campo}` : null, ...extra,
       }));
   }
@@ -41,26 +44,27 @@ export async function renderNovo(main, _p, _consulta, contexto) {
   function desenharFormulario() {
     const botao = h('button', { type: 'submit', class: 'botao' }, 'Iniciar o treino');
     const campoNome = h('input', { type: 'text', id: 'nome', name: 'nome', autocomplete: 'off', 'aria-describedby': 'ajuda-nome' });
+    // Esquerda: nome, modelo, as escolhas de early stopping e execução de teste e o batch size.
+    // Direita: datasets e, abaixo deles, os campos que aparecem conforme essas escolhas.
     const formulario = h('form', { class: 'cartao', novalidate: true },
-      h('div', { class: 'campo', 'data-campo': 'nome', style: 'max-width:520px' },
-        h('label', { for: 'nome' }, 'Nome da configuração'),
-        h('span', { class: 'ajuda', id: 'ajuda-nome' },
-          'Sugerido a partir do modelo, da data e da hora, sem repetir um nome existente. Você pode trocar. O nome identifica a configuração para toda a equipe.'),
-        campoNome),
-      h('fieldset', { 'data-campo': 'modelo' }, h('legend', {}, 'Modelo'),
-        padroes.modelos.map((m) => h('label', { class: 'opcao' },
-          h('input', { type: 'radio', name: 'modelo', value: m.id, checked: valores.modelo === m.id }), m.nome))),
       h('div', { class: 'grade-2' },
         h('div', {},
-          numero('epocas', 'Épocas', 'Número máximo de épocas. Padrão do TCC: 200.', { disabled: valores.execucao_teste }),
+          h('div', { class: 'campo', 'data-campo': 'nome' },
+            h('label', { for: 'nome' }, 'Nome da configuração'),
+            h('span', { class: 'ajuda', id: 'ajuda-nome' },
+              'Sugerido a partir do modelo, da data e da hora, sem repetir um nome existente. Você pode trocar. O nome identifica a configuração para toda a equipe.'),
+            campoNome),
+          h('fieldset', { 'data-campo': 'modelo' }, h('legend', {}, 'Modelo'),
+            padroes.modelos.map((m) => h('label', { class: 'opcao' },
+              h('input', { type: 'radio', name: 'modelo', value: m.id, checked: valores.modelo === m.id }), m.nome))),
           h('div', { class: 'linha' },
-            h('label', { class: 'opcao' }, h('input', {
-              type: 'checkbox', name: 'early_stopping', id: 'early_stopping', checked: valores.early_stopping, disabled: valores.execucao_teste,
-            }), 'Early stopping')),
-          numero('paciencia', 'Paciência', 'Épocas sem melhora na validação até encerrar. Só vale com o early stopping ligado.',
-            { disabled: valores.execucao_teste || !valores.early_stopping }),
+            h('label', { class: 'opcao' }, h('input', { type: 'checkbox', name: 'early_stopping', id: 'early_stopping', checked: valores.early_stopping }),
+              'Early stopping')),
+          h('div', { class: 'linha' },
+            h('label', { class: 'opcao' }, h('input', { type: 'checkbox', name: 'execucao_teste', id: 'execucao_teste', checked: valores.execucao_teste }),
+              'Execução de teste')),
           numero('batch_size', 'Batch size', 'Valores maiores exigem mais memória do computador.')),
-        h('div', {},
+        h('div', { class: 'coluna-dinamica' },
           h('fieldset', { 'data-campo': 'datasets' },
             h('legend', {}, 'Datasets de treino'),
             h('p', { class: 'pequeno suave', style: 'margin:0 0 .3rem' }, 'Só os datasets montados podem ser escolhidos.'),
@@ -71,18 +75,12 @@ export async function renderNovo(main, _p, _consulta, contexto) {
                 h('span', {}, d.nome, h('span', { class: 'pequeno suave', style: 'display:block' },
                   vazio ? 'Não está no dataset montado (monte-o na tela Datasets).' : `${formato.inteiro(d.imagens_treino)} imagens de treino no dataset montado`)));
             })),
-          h('div', { class: 'linha' },
-            h('label', { class: 'opcao' }, h('input', { type: 'checkbox', name: 'graficos', checked: valores.graficos }), 'Geração de gráficos')),
-          h('div', { class: 'linha' },
-            h('label', { class: 'opcao' }, h('input', { type: 'checkbox', name: 'execucao_teste', id: 'execucao_teste', checked: valores.execucao_teste }),
-              'Execução de teste')),
-          numero('execucao_teste_imagens', 'Imagens da execução de teste',
-            'Quantas imagens o treino usa (mínimo 3: 2 de treino e 1 de validação).',
-            { disabled: !valores.execucao_teste, min: '3' }),
-          numero('execucao_teste_epocas', 'Épocas da execução de teste',
-            'Épocas do treino de teste. Com a execução de teste ligada, Épocas, Early stopping e Paciência ficam desligados.',
-            { disabled: !valores.execucao_teste }))),
-      h('p', { class: 'pequeno suave' }, 'Os parâmetros internos do treino (taxa de aprendizado, tamanho da imagem e outros) são fixos do TCC.'),
+          numero('paciencia', 'Paciência', 'Épocas sem melhora na validação até encerrar. Com o early stopping ligado, o treino continua até ele parar.'),
+          // Épocas logo abaixo dos datasets: mesma posição no treino normal e na execução de teste
+          numero('epocas', 'Épocas', 'Número de épocas do treino.', { value: epocasPorModo.normal }),
+          numero('execucao_teste_imagens', 'Imagens da execução de teste', 'Quantas imagens o treino usa (mínimo 3: 2 de treino e 1 de validação).',
+            { min: '3' }))),
+      h('p', { class: 'pequeno suave' }, 'Os parâmetros internos do treino (taxa de aprendizado, tamanho da imagem e outros) são fixos do TCC. Os gráficos de treino são sempre gerados.'),
       h('div', { class: 'linha' }, botao));
 
     const caixaEarly = formulario.querySelector('#early_stopping');
@@ -111,17 +109,45 @@ export async function renderNovo(main, _p, _consulta, contexto) {
     formulario.addEventListener('change', (evento) => {
       if (evento.target.name === 'modelo') sugerirNome();
     });
-    // Execução de teste ligada: as épocas vêm dela e não há early stopping; os valores digitados ficam guardados para quando ela for desligada
-    const habilitarCampos = () => {
-      const teste = caixaTeste.checked;
-      formulario.querySelector('#epocas').disabled = teste;
-      caixaEarly.disabled = teste;
-      formulario.querySelector('#paciencia').disabled = teste || !caixaEarly.checked;
-      formulario.querySelector('#execucao_teste_imagens').disabled = !teste;
-      formulario.querySelector('#execucao_teste_epocas').disabled = !teste;
+    // O que aparece na tela:
+    // - early stopping ligado: Paciência; sem Épocas (o treino continua até o early stopping parar)
+    // - early stopping desligado: Épocas no lugar da Paciência
+    // - Batch size fica sempre visível, na coluna da esquerda
+    // - execução de teste ligada: desliga o early stopping e mostra as imagens de teste e as Épocas (com o valor do teste)
+    const campoEpocas = formulario.querySelector('#epocas');
+    const mostrar = (campo, visivel) => {
+      formulario.querySelector(`[data-campo="${campo}"]`).hidden = !visivel;
+      formulario.querySelector(`#${campo}`).disabled = !visivel;
     };
-    caixaEarly.addEventListener('change', habilitarCampos);
-    caixaTeste.addEventListener('change', habilitarCampos);
+    const mostrarCampos = () => {
+      const teste = caixaTeste.checked;
+      const early = caixaEarly.checked && !teste;
+      mostrar('paciencia', early);
+      mostrar('execucao_teste_imagens', teste);
+      mostrar('epocas', !early);
+      formulario.querySelector('[data-campo="epocas"] .ajuda').textContent = teste
+        ? 'Épocas da execução de teste.' : 'Número de épocas do treino.';
+    };
+    // Early stopping e execução de teste se excluem, e um clique em qualquer um deles basta:
+    // marcar um desmarca o outro; desmarcar um só desmarca ele mesmo.
+    const trocarModoDasEpocas = (teste) => {
+      // O campo Épocas guarda um valor para o treino normal e outro para a execução de teste
+      epocasPorModo[teste ? 'normal' : 'teste'] = campoEpocas.value;
+      campoEpocas.value = epocasPorModo[teste ? 'teste' : 'normal'];
+    };
+    caixaEarly.addEventListener('change', () => {
+      if (caixaEarly.checked && caixaTeste.checked) {
+        caixaTeste.checked = false;
+        trocarModoDasEpocas(false);
+      }
+      mostrarCampos();
+    });
+    caixaTeste.addEventListener('change', () => {
+      trocarModoDasEpocas(caixaTeste.checked);
+      if (caixaTeste.checked) caixaEarly.checked = false;
+      mostrarCampos();
+    });
+    mostrarCampos();
 
     const regras = exigir(formulario, botao, [
       { campo: 'nome', valido: () => campoNome.value.trim().length > 0 },
@@ -133,7 +159,6 @@ export async function renderNovo(main, _p, _consulta, contexto) {
         valido: () => inteiroPositivo(formulario, 'execucao_teste_imagens')
           && (formulario.querySelector('#execucao_teste_imagens').disabled || Number(formulario.querySelector('#execucao_teste_imagens').value) >= 3),
       },
-      { campo: 'execucao_teste_epocas', valido: () => inteiroPositivo(formulario, 'execucao_teste_epocas') },
       {
         campo: 'datasets', valido: () => formulario.querySelectorAll('input[name="datasets"]:checked').length > 0,
       },
@@ -167,20 +192,38 @@ export async function renderNovo(main, _p, _consulta, contexto) {
   function lerFormulario(formulario) {
     const dados = new FormData(formulario);
     valores.modelo = dados.get('modelo');
+    // Épocas do modo atual: do treino normal ou da execução de teste (o servidor sabe qual pela execucao_teste)
     valores.epocas = formulario.querySelector('#epocas').value;
-    // Lido da caixa (não do FormData), que omite campos desabilitados e perderia a escolha durante a execução de teste
     valores.early_stopping = formulario.querySelector('#early_stopping').checked;
     valores.paciencia = formulario.querySelector('#paciencia').value;
     valores.batch_size = formulario.querySelector('#batch_size').value;
     valores.datasets = dados.getAll('datasets');
-    valores.graficos = dados.get('graficos') !== null;
     valores.execucao_teste = dados.get('execucao_teste') !== null;
     valores.execucao_teste_imagens = formulario.querySelector('#execucao_teste_imagens').value;
-    valores.execucao_teste_epocas = formulario.querySelector('#execucao_teste_epocas').value;
   }
 
   limpar(corpo, desenharFormulario());
   corpo.querySelector('#nome')?.focus();
+
+  // A coluna da direita reserva a altura do modo mais alto (a execução de teste), para a seção não mudar
+  // de tamanho e o botão "Iniciar o treino" não mudar de lugar ao marcar e desmarcar as opções
+  const coluna = corpo.querySelector('.coluna-dinamica');
+  function reservarAltura() {
+    const campos = ['paciencia', 'epocas', 'execucao_teste_imagens'].map((c) => coluna.querySelector(`[data-campo="${c}"]`));
+    const antes = campos.map((c) => c.hidden);
+    coluna.style.minHeight = '';
+    // Campos visíveis em cada modo: early stopping, treino sem early stopping e execução de teste
+    const alturas = [[true, false, false], [false, true, false], [false, true, true]].map((visiveis) => {
+      campos.forEach((c, i) => { c.hidden = !visiveis[i]; });
+      return coluna.offsetHeight;
+    });
+    campos.forEach((c, i) => { c.hidden = antes[i]; });
+    coluna.style.minHeight = `${Math.max(...alturas)}px`;
+  }
+  reservarAltura();
+  // Em tela estreita as colunas empilham e a altura muda: mede de novo
+  window.addEventListener('resize', reservarAltura);
+  return { sair: () => window.removeEventListener('resize', reservarAltura) };
 }
 
 const MOTIVOS = {
@@ -285,7 +328,7 @@ export async function renderAcompanhar(main, { id }, _consulta, contexto) {
     const falha = falhaTreino ? treino : configuracao.avaliacao;
     const memoria = falha.causa === 'faltou memória no computador';
     const etapa = falhaTreino
-      ? (treino.epoca ? `treino, na época ${treino.epoca} de ${treino.total}` : 'treino, antes da primeira época')
+      ? (treino.epoca ? `treino, na época ${treino.epoca}${treino.total ? ` de ${treino.total}` : ''}` : 'treino, antes da primeira época')
       : 'avaliação no conjunto de teste, depois do treino';
     const sugerido = treino.batch_size_sugerido || Math.max(1, Math.floor(configuracao.parametros.batch_size / 2));
     const reiniciavel = !falhaTreino || configuracao.origem === 'interface';
@@ -335,7 +378,9 @@ export async function renderAcompanhar(main, { id }, _consulta, contexto) {
         h('div', { class: 'linha-entre' }, h('h2', {}, 'Estado do treino'), estado(treino.estado)),
         treino.estado === 'na fila'
           ? h('p', {}, 'Aguardando a vez: os processamentos rodam um de cada vez. O treino começa quando o anterior terminar.')
-          : progresso(treino.epoca || 0, treino.total || 0, `Treinando: época ${treino.epoca || 0} de ${treino.total || '?'}`),
+          : progresso(treino.epoca || 0, treino.total || 0, treino.total
+            ? `Treinando: época ${treino.epoca || 0} de ${treino.total}`
+            : `Treinando: época ${treino.epoca || 0} (até o early stopping parar)`),
         h('p', { class: 'suave' }, 'Métricas disponíveis após a avaliação no conjunto de teste.')));
     } else if (treino.estado === 'falhou' || avaliacao.estado === 'falhou') {
       partes.push(interrompido());

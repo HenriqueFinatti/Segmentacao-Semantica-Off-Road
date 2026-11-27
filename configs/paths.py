@@ -31,7 +31,7 @@ VIDEO_SEGMENTED_FRAMES_DIR = os.path.join(ROOT, 'video', 'segmented_frames')
 # Interface: cada configuração treinada tem a própria pasta; cada sessão de segmentação também
 CONFIGURATIONS_DIR = os.path.join(RESULTS_DIR, 'configuracoes')
 REGISTRY_FILE = os.path.join(RESULTS_DIR, 'registro.json')
-INTERFACE_LOG_FILE = os.path.join(RESULTS_DIR, 'interface.log')
+SYSTEM_LOG_FILE = os.path.join(RESULTS_DIR, 'logs_sistema.txt')
 SESSIONS_DIR = os.path.join(ROOT, 'sessoes')
 
 FREIBURG_RAW_DIR = os.path.join(RAW_DIR, 'freiburg_forest_annotated')

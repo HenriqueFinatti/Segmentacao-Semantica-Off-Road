@@ -28,7 +28,8 @@ class Settings():
 
 
     def is_charts_on(self) -> bool:
-        return self.settings['Charts']
+        # Geração de gráficos é obrigatória: não há mais a chave Charts no settings.json
+        return True
 
 
     def is_test_execution_on(self) -> bool:

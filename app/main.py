@@ -15,11 +15,17 @@ def main():
 
     # Imports aqui para o --help responder sem carregar o PyTorch
     import uvicorn
+    from configs import paths
+    from app.web.erros import redirect_output
     from app.web.server import create_app
 
-    app = create_app()
     url = f'http://127.0.0.1:{args.porta}/'
-    print(f'\nInterface disponível em {url} (Ctrl+C para encerrar)\n')
+    # Única mensagem no terminal; daqui em diante tudo (logs, print do treino, erros) vai para o arquivo
+    print(f'\nInterface disponível em {url} (Ctrl+C para encerrar)')
+    print(f'Logs do sistema em {paths.relative(paths.SYSTEM_LOG_FILE)}\n', flush=True)
+    redirect_output()
+
+    app = create_app()
 
     if not args.sem_navegador:
         threading.Timer(1.5, lambda: webbrowser.open(url)).start()

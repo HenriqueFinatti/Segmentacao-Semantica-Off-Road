@@ -15,7 +15,7 @@ Onde a interface guarda os dados:
 - `results/configuracoes/<id>/`: pesos, estatísticas e gráficos de cada configuração treinada pela interface.
 - `results/registro.json`: configurações e sessões de segmentação.
 - `sessoes/<id>/`: imagens e vídeos enviados, quadros extraídos e máscaras de cada configuração.
-- `results/interface.log`: detalhes técnicos de falhas (a interface mostra só a causa em linguagem de usuário).
+- `results/logs_sistema.txt`: logs do sistema (eventos, saída do treino e detalhes técnicos de falhas). Nada disso aparece no terminal; a interface mostra só a causa em linguagem de usuário.
 
 Os modelos treinados antes da interface (`results/fcn/model.pth` e `results/deeplabv3+/model.pth`) aparecem como configurações disponíveis.
 ## Como Instalar as dependencias
