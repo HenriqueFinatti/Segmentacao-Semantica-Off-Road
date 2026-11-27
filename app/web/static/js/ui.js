@@ -63,11 +63,6 @@ export function estado(valor, texto) {
   return h('span', { class: `estado ${classe}` }, icone(nomeIcone), texto || rotulo);
 }
 
-export function situacao(valor) {
-  const classe = valor === 'em uso' ? 'situacao-em-uso' : '';
-  return h('span', { class: `situacao ${classe}` }, valor);
-}
-
 export function mensagem(tipo, ...conteudo) {
   const icones = { info: 'info', ok: 'ok', alerta: 'alerta', falha: 'falha', neutra: 'info' };
   return h('div', { class: `mensagem mensagem-${tipo}`, role: tipo === 'falha' ? 'alert' : null },

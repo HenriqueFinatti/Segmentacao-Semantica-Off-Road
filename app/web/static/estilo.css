@@ -327,19 +327,6 @@ input[type="text"]:disabled, input[type="number"]:disabled, select:disabled, tex
 @media (prefers-reduced-motion: reduce) { .estado-andamento svg { animation: none; } }
 @keyframes girar { to { transform: rotate(360deg); } }
 
-.situacao {
-  display: inline-block;
-  font-size: .8rem;
-  font-weight: 600;
-  padding: .05rem .45rem;
-  border-radius: 4px;
-  border: 1px solid var(--borda-forte);
-  color: var(--texto-suave);
-  background: var(--superficie-2);
-  margin-left: .35rem;
-}
-.situacao-em-uso { color: var(--ok); border-color: var(--ok); background: var(--ok-fundo); }
-
 /* Mensagens dentro da tela */
 
 .mensagem {

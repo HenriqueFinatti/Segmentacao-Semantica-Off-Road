@@ -1,5 +1,5 @@
 // Peças repetidas entre telas: escolha de configurações, métricas resumidas e endereços dos arquivos da sessão.
-import { h, formato, situacao, conjuntoTexto } from '../ui.js';
+import { h, formato, conjuntoTexto } from '../ui.js';
 
 export function metricasCurtas(teste) {
   if (!teste) return h('span', { class: 'suave' }, 'Sem métricas no conjunto de teste.');
@@ -24,7 +24,7 @@ export function seletorDeConfiguracoes(configuracoes, { nome, multiplo = true, s
     grupo.append(h('label', { class: 'item-configuracao', for: id },
       entrada,
       h('span', {},
-        h('span', { class: 'nome' }, configuracao.nome), situacao(configuracao.situacao),
+        h('span', { class: 'nome' }, configuracao.nome),
         h('span', { class: 'descricao', style: 'display:block' }, configuracao.descricao),
         h('span', { class: 'metricas-curtas', style: 'display:block' }, metricasCurtas(configuracao.teste)),
         configuracao.teste ? h('span', { class: 'pequeno suave', style: 'display:block' }, conjuntoTexto(configuracao.teste.conjunto)) : null,

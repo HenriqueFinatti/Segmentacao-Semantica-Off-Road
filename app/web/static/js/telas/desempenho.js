@@ -2,7 +2,7 @@
 // O06.1 Escolher as configurações · O06.2 Conferir se a comparação é válida · O06.3 Ler o desempenho ·
 // O06.4 Consultar a matriz de confusão · O07.2 Julgar a diferença entre configurações (reusada na apresentação).
 import { api, ErroApi } from '../api.js';
-import { h, limpar, cabecalho, mensagem, dialogo, falhaDaApi, formato, situacao, conjuntoTexto, exigir } from '../ui.js';
+import { h, limpar, cabecalho, mensagem, dialogo, falhaDaApi, formato, conjuntoTexto, exigir } from '../ui.js';
 import { graficoDeBarras, CORES_SERIES } from '../graficos.js';
 
 export const LINHAS_METRICAS = [
@@ -157,7 +157,7 @@ export async function render(main, _p, consulta, contexto) {
               estado.selecionadas = e.target.checked ? [...estado.selecionadas, c.id] : estado.selecionadas.filter((x) => x !== c.id);
             } }),
           h('span', {},
-            h('span', { class: 'nome' }, c.nome), situacao(c.situacao),
+            h('span', { class: 'nome' }, c.nome),
             h('span', { class: 'descricao', style: 'display:block' }, c.descricao),
             h('span', { class: 'pequeno', style: 'display:block' },
               c.teste ? conjuntoTexto(c.teste.conjunto) : 'Sem avaliação no conjunto de teste'),

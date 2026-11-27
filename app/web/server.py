@@ -134,12 +134,6 @@ def create_app():
     def sessions():
         return sistema.list_sessions()
 
-    @app.get('/api/sessoes/atual')
-    def current_session():
-        session_id = sistema.current_session_id()
-        session = sistema.get_session(session_id) if session_id else None
-        return session if session else not_found('Ainda não há sessão de segmentação.')
-
     @app.get('/api/sessoes/{session_id}')
     def session(session_id: str):
         found = sistema.get_session(session_id)

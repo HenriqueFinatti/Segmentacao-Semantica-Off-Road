@@ -1,7 +1,7 @@
 // O04 Avaliar a segmentação de uma imagem (M01):
 // O04.1 Ver o resultado sobre a imagem · baixar a imagem (no modo escolhido) ou o vídeo segmentado.
 import { api, enc } from '../api.js';
-import { h, limpar, cabecalho, mensagem, legenda, icone, estado, situacao, formato } from '../ui.js';
+import { h, limpar, cabecalho, mensagem, legenda, icone, estado, formato } from '../ui.js';
 import { Regiao, Visualizador } from '../visualizador.js';
 import {
   configuracoesExecutadas, imagensComResultado, rotuloImagem, temMascara, urlImagem, urlMascara, urlSobreposicao,
@@ -36,7 +36,7 @@ function itemSessao(s) {
   return h('li', {},
     h('a', { class: 'item-lista', href: destino(s) },
       h('span', { class: 'item-lista-cabeca' },
-        h('span', {}, h('span', { class: 'nome' }, `Ciclo de testes: ${s.ciclo}`), s.atual ? situacao('sessão atual') : null),
+        h('span', { class: 'nome' }, `Ciclo de testes: ${s.ciclo}`),
         seloSessao(s)),
       h('span', { class: 'pequeno' }, `${datas.join(' · ')} · ${conteudo.join(' · ')}`),
       s.execucoes.length

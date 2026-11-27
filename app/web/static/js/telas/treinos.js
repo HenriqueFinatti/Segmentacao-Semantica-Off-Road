@@ -82,7 +82,7 @@ export async function render(main, _p, _consulta, _contexto) {
       h('ul', { class: 'lista-itens' }, lista.map(item))) : null);
     limpar(corpo,
       secao('Em andamento', andamento),
-      secao('Concluídos e interrompidos', demais),
+      secao('Concluídos', demais),
       h('div', { class: 'linha' }, h('a', { class: 'botao', href: '#/treino/novo' }, 'Treinar uma configuração')));
   }
 

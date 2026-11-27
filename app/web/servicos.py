@@ -279,14 +279,6 @@ class Sistema:
         return (configuration.get('treino') or {}).get('estado') == 'concluído'
 
 
-    def situation(self, configuration, data):
-        if not self.is_available(configuration):
-            return 'em treino'
-        if data.get('configuracao_em_uso') == configuration['id']:
-            return 'em uso'
-        return 'disponível'
-
-
     def description(self, configuration):
         p = configuration['parametros']
         early = f"early stopping com paciência {p['paciencia']}" if p['early_stopping'] else 'sem early stopping'
@@ -307,7 +299,6 @@ class Sistema:
             'modelo_nome': MODEL_NAMES[configuration['modelo']],
             'parametros': configuration['parametros'],
             'descricao': self.description(configuration),
-            'situacao': self.situation(configuration, data),
             'disponivel': self.is_available(configuration),
             'criada_em': configuration.get('criada_em'),
             'teste': configuration.get('teste'),
@@ -828,7 +819,6 @@ class Sistema:
                 'ciclo': session['ciclo'],
                 'criada_em': session.get('criada_em'),
                 'executada_em': max(dates) if dates else None,
-                'atual': data.get('ultima_sessao') == session['id'],
                 'imagens': sum(1 for i in session['imagens'] if i.get('origem') != 'quadro'),
                 'videos': len(videos),
                 'execucoes': executions,
@@ -840,10 +830,6 @@ class Sistema:
             items = [summary(s, data) for s in data['sessoes'].values() if not s.get('rascunho')]
             return sorted(items, key=lambda s: s.get('criada_em') or '', reverse=True)
         return self.registro.read(build)
-
-
-    def current_session_id(self):
-        return self.registro.read(lambda data: data.get('ultima_sessao'))
 
 
     def execute(self, session_id, configuration_ids, images=None):
@@ -1221,7 +1207,6 @@ class Sistema:
                     'id': c['id'],
                     'nome': c['nome'],
                     'descricao': self.description(c),
-                    'situacao': self.situation(c, data),
                     'conjunto': c['teste']['conjunto'],
                     'avaliado_em': c['teste'].get('avaliado_em'),
                     'data_execucao': dates.get(c['id']),
