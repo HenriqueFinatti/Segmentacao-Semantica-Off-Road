@@ -172,7 +172,7 @@ export async function render(main, _p, consulta, contexto) {
       h('div', { 'data-campo': 'configuracoes' }, lista),
       h('div', { class: 'linha', style: 'margin-top:.75rem' }, botaoComparar)));
     exigir(escolha.querySelector('form'), botaoComparar, [
-      { campo: 'configuracoes', valido: () => estado.selecionadas.length > 0, mensagem: 'escolha pelo menos uma configuração para comparar.' },
+      { campo: 'configuracoes', valido: () => estado.selecionadas.length > 0 },
     ]);
   }
 

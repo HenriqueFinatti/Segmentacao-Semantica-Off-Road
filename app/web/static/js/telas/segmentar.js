@@ -91,11 +91,11 @@ export async function render(main, _parametros, consulta, contexto) {
 
   main.append(formulario);
 
-  // Campos obrigatórios: botão desabilitado e, junto do campo, o que falta
+  // Campos obrigatórios: o botão fica desabilitado até tudo estar preenchido
   regras = exigir(formulario, botaoExecutar, [
-    { campo: 'ciclo', valido: () => campoCiclo.value.trim().length > 0, mensagem: 'informe o ciclo de testes (nome ou data do teste de campo).' },
-    { campo: 'arquivos', valido: () => arquivos.length > 0, mensagem: 'escolha pelo menos uma imagem ou um vídeo.' },
-    { campo: 'configuracoes', valido: () => seletor.valores().length > 0, mensagem: 'escolha pelo menos uma configuração.' },
+    { campo: 'ciclo', valido: () => campoCiclo.value.trim().length > 0 },
+    { campo: 'arquivos', valido: () => arquivos.length > 0 },
+    { campo: 'configuracoes', valido: () => seletor.valores().length > 0 },
   ]);
 
   formulario.addEventListener('submit', async (evento) => {

@@ -11,7 +11,6 @@ import { graficoDeLinhas } from '../graficos.js';
 import { tabelaMatriz } from './desempenho.js';
 const tarefaAvaliacao = (estadoGeral, cid) => (estadoGeral?.tarefas || []).find((t) => t.tipo === 'avaliacao' && t.alvo?.configuracao === cid);
 
-const AVISO_PROGRAMA_ABERTO = 'O treino continua só enquanto o programa estiver aberto. Você pode sair desta tela.';
 
 export async function renderNovo(main, _p, _consulta, contexto) {
   const padroes = await api.get('/api/treino/padroes');
@@ -106,19 +105,17 @@ export async function renderNovo(main, _p, _consulta, contexto) {
     caixaTeste.addEventListener('change', habilitarCampos);
 
     const regras = exigir(formulario, botao, [
-      { campo: 'epocas', valido: () => inteiroPositivo(formulario, 'epocas'), mensagem: 'informe as épocas (número inteiro, pelo menos 1).' },
-      { campo: 'paciencia', valido: () => inteiroPositivo(formulario, 'paciencia'), mensagem: 'informe a paciência (número inteiro, pelo menos 1).' },
-      { campo: 'batch_size', valido: () => inteiroPositivo(formulario, 'batch_size'), mensagem: 'informe o batch size (número inteiro, pelo menos 1).' },
+      { campo: 'epocas', valido: () => inteiroPositivo(formulario, 'epocas') },
+      { campo: 'paciencia', valido: () => inteiroPositivo(formulario, 'paciencia') },
+      { campo: 'batch_size', valido: () => inteiroPositivo(formulario, 'batch_size') },
       {
         campo: 'execucao_teste_imagens',
         valido: () => inteiroPositivo(formulario, 'execucao_teste_imagens')
           && (formulario.querySelector('#execucao_teste_imagens').disabled || Number(formulario.querySelector('#execucao_teste_imagens').value) >= 3),
-        mensagem: 'informe as imagens da execução de teste (número inteiro, pelo menos 3).',
       },
-      { campo: 'execucao_teste_epocas', valido: () => inteiroPositivo(formulario, 'execucao_teste_epocas'), mensagem: 'informe as épocas da execução de teste (número inteiro, pelo menos 1).' },
+      { campo: 'execucao_teste_epocas', valido: () => inteiroPositivo(formulario, 'execucao_teste_epocas') },
       {
         campo: 'datasets', valido: () => formulario.querySelectorAll('input[name="datasets"]:checked').length > 0,
-        mensagem: montados.size ? 'escolha pelo menos um dataset de treino.' : 'nenhum dataset está montado; monte o dataset na tela Datasets.',
       },
     ]);
     caixaEarly.addEventListener('change', regras.atualizar);
@@ -186,7 +183,7 @@ export async function renderNovo(main, _p, _consulta, contexto) {
         botao));
 
     const regras = exigir(formulario, botao, [
-      { campo: 'nome', valido: () => campoNome.value.trim().length > 0, mensagem: 'informe o nome da configuração.' },
+      { campo: 'nome', valido: () => campoNome.value.trim().length > 0 },
     ]);
 
     formulario.addEventListener('submit', async (evento) => {
@@ -198,7 +195,7 @@ export async function renderNovo(main, _p, _consulta, contexto) {
         const configuracao = await api.post('/api/treino', valores);
         anunciar(configuracao.treino?.estado === 'na fila' ? `Treino na fila: ${configuracao.nome}.` : `Treino iniciado com a ${configuracao.nome}.`);
         await contexto.atualizarEstado();
-        contexto.navegar(`#/treino/${enc(configuracao.id)}?iniciado=1`);
+        contexto.navegar(`#/treino/${enc(configuracao.id)}`);
       } catch (erro) {
         regras.atualizar();
         // Recuperação apoiada: nome editado que repete um existente
@@ -224,11 +221,10 @@ const MOTIVOS = {
   execucao_de_teste: (p) => `a execução de teste estava ligada e o treino chegou às ${p.execucao_teste_epocas ?? p.epocas} épocas dela.`,
 };
 
-export async function renderAcompanhar(main, { id }, consulta, contexto) {
+export async function renderAcompanhar(main, { id }, _consulta, contexto) {
   let configuracao = await api.get(`/api/configuracoes/${enc(id)}`);
   const corpo = h('div', { 'aria-live': 'polite' });
   limpar(main, cabecalho(configuracao.nome, configuracao.descricao, h('a', { href: '#/treino/novo' }, '← Treinar uma configuração')), corpo);
-  const iniciado = consulta.get('iniciado') === '1';
 
   function graficos(historico, ligados) {
     if (!historico.length) return null;
@@ -366,18 +362,12 @@ export async function renderAcompanhar(main, { id }, consulta, contexto) {
     const partes = [];
     const treinoEmAndamento = treino.estado === 'na fila' || treino.estado === 'treinando';
 
-    if (iniciado && treinoEmAndamento) {
-      partes.push(mensagem('ok', h('p', {}, h('strong', {}, treino.estado === 'na fila' ? 'Treino na fila ' : 'Treino iniciado '),
-        `com a ${configuracao.nome}.`)));
-    }
-
     if (treinoEmAndamento) {
       partes.push(h('div', { class: 'cartao' },
         h('div', { class: 'linha-entre' }, h('h2', {}, 'Estado do treino'), estado(treino.estado)),
         treino.estado === 'na fila'
           ? h('p', {}, 'Aguardando a vez: os processamentos rodam um de cada vez. O treino começa quando o anterior terminar.')
           : progresso(treino.epoca || 0, treino.total || 0, `Treinando: época ${treino.epoca || 0} de ${treino.total || '?'}`),
-        mensagem('info', h('p', {}, AVISO_PROGRAMA_ABERTO)),
         h('p', { class: 'suave' }, 'Métricas disponíveis após a avaliação no conjunto de teste.')));
     } else if (treino.estado === 'falhou' || avaliacao.estado === 'falhou') {
       partes.push(interrompido());
@@ -388,7 +378,6 @@ export async function renderAcompanhar(main, { id }, consulta, contexto) {
         h('div', { class: 'linha-entre' }, h('h2', {}, 'Estado do treino'), estado('concluído')),
         treino.epoca_final ? h('p', {}, `As épocas terminaram (época ${treino.epoca_final}).`) : null),
       estadoAvaliacao());
-      if (avaliacao.estado === 'na fila' || avaliacao.estado === 'processando') partes.push(mensagem('info', h('p', {}, AVISO_PROGRAMA_ABERTO)));
     }
 
     partes.push(graficos(treino.historico || [], configuracao.parametros.graficos));

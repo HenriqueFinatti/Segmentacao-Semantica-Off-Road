@@ -218,45 +218,14 @@ export function erroCampo(formulario, erro) {
 
 /**
  * Campo obrigatório com o mesmo comportamento em todas as telas: enquanto falta algo, o botão fica
- * desabilitado e, junto do campo, uma mensagem diz o que falta (prevenção ativa).
- * regras: [{ campo: 'nome do data-campo', valido: () => bool, mensagem: 'o que falta' }]
+ * desabilitado (prevenção ativa), sem mensagem do que falta.
+ * regras: [{ campo: 'nome do data-campo', valido: () => bool }]
  */
 export function exigir(formulario, botao, regras) {
-  const resumo = h('p', { class: 'falta-resumo', id: `falta-resumo-${Math.random().toString(36).slice(2, 8)}`, 'aria-live': 'polite' });
-  botao.insertAdjacentElement('afterend', resumo);
-
   function atualizar() {
-    const faltando = [];
-    for (const regra of regras) {
-      const recipiente = formulario.querySelector(`[data-campo="${regra.campo}"]`);
-      if (!recipiente) continue;
-      let aviso = recipiente.querySelector(`:scope > .falta-campo`);
-      const valido = regra.valido();
-      if (!valido) {
-        faltando.push(regra.mensagem);
-        if (!aviso) {
-          aviso = h('p', { class: 'falta-campo', id: `falta-${regra.campo}` });
-          recipiente.append(aviso);
-        }
-        aviso.textContent = regra.mensagem;
-        recipiente.querySelectorAll('input, select, textarea').forEach((entrada) => {
-          const atuais = (entrada.getAttribute('aria-describedby') || '').split(' ').filter(Boolean);
-          if (!atuais.includes(aviso.id)) entrada.setAttribute('aria-describedby', [...atuais, aviso.id].join(' '));
-        });
-      } else if (aviso) {
-        recipiente.querySelectorAll('input, select, textarea').forEach((entrada) => {
-          const atuais = (entrada.getAttribute('aria-describedby') || '').split(' ').filter((x) => x && x !== aviso.id);
-          if (atuais.length) entrada.setAttribute('aria-describedby', atuais.join(' '));
-          else entrada.removeAttribute('aria-describedby');
-        });
-        aviso.remove();
-      }
-    }
-    botao.disabled = faltando.length > 0;
-    resumo.textContent = faltando.length ? `Para continuar: ${faltando.join(' ')}` : '';
-    if (faltando.length) botao.setAttribute('aria-describedby', resumo.id);
-    else botao.removeAttribute('aria-describedby');
-    return faltando.length === 0;
+    const completo = regras.every((regra) => regra.valido());
+    botao.disabled = !completo;
+    return completo;
   }
 
   formulario.addEventListener('input', atualizar);

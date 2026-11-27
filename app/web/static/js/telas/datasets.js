@@ -96,8 +96,7 @@ export async function render(main, _p, _c, contexto) {
         partes.push(mensagem('falha', h('p', {}, h('strong', {}, 'Falhou: '), `a montagem do dataset não terminou porque ${ultima.causa}.`),
           ultima.sugestao ? h('p', {}, ultima.sugestao) : null));
       }
-      partes.push(h('button', { type: 'button', class: 'botao', disabled: !brutos.length, onclick: confirmarMontagem }, 'Remontar'),
-        !brutos.length ? h('p', { class: 'falta-campo' }, 'baixe ou copie pelo menos um dataset bruto para montar.') : null);
+      partes.push(h('button', { type: 'button', class: 'botao', disabled: !brutos.length, onclick: confirmarMontagem }, 'Remontar'));
     }
     return h('section', { class: 'cartao', 'aria-labelledby': 'titulo-montar' }, partes);
   }
@@ -132,7 +131,7 @@ export async function render(main, _p, _c, contexto) {
             h('span', {}, c.nome, h('span', { class: 'pequeno suave' }, ` · ${c.motivo}`))))),
         h('div', { class: 'linha' }, botao));
       exigir(form, botao, [
-        { campo: 'configuracoes', valido: () => form.querySelectorAll('input:checked').length > 0, mensagem: 'escolha pelo menos uma configuração para avaliar.' },
+        { campo: 'configuracoes', valido: () => form.querySelectorAll('input:checked').length > 0 },
       ]);
       form.addEventListener('submit', async (evento) => {
         evento.preventDefault();

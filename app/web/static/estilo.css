@@ -596,17 +596,6 @@ input[type="range"] { accent-color: var(--primaria); min-height: 32px; }
 .popover-termo dd { margin: .1rem 0 .4rem; }
 .termo-ajuda[aria-expanded="true"] { background: var(--primaria); color: #fff; }
 
-/* Campo obrigatório: mensagem junto do campo e resumo junto do botão */
-.falta-campo {
-  margin: .35rem 0 0;
-  font-size: .9rem;
-  font-weight: 600;
-  color: var(--alerta);
-}
-.falta-campo::before { content: "Falta: "; }
-.falta-resumo { margin: .4rem 0 0; font-size: .9rem; color: var(--alerta); flex-basis: 100%; }
-.falta-resumo:empty { display: none; }
-
 .indicador-treino[aria-disabled="true"] { cursor: default; opacity: .9; }
 .indicador-treino[aria-disabled="true"]:hover { background: #3a4c6d; }
 
